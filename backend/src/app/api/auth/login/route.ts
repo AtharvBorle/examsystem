@@ -75,6 +75,9 @@ export async function POST(req: NextRequest) {
         include: { school: true, classroom: true },
       })
       if (student && (await bcrypt.compare(password, student.password))) {
+        if (!student.approved) {
+          return errorResponse('Your registration is pending admin approval due to duplicate name.', 403)
+        }
         const token = signToken({
           userId: student.id,
           role: 'STUDENT',

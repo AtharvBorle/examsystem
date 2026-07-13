@@ -98,6 +98,15 @@ export async function POST(req: NextRequest) {
     // Delete OTP entry so it cannot be reused
     otpStore.delete(mobile)
 
+    // Check if there is an existing student in the same classroom with the exact same name (case-insensitive)
+    const existingDuplicate = await prisma.student.findFirst({
+      where: {
+        classroomId,
+        name: { equals: name, mode: 'insensitive' }
+      }
+    })
+    const requiresApproval = !!existingDuplicate
+
     const hashedPassword = await bcrypt.hash(password, 10)
 
     const student = await prisma.student.create({
@@ -110,12 +119,21 @@ export async function POST(req: NextRequest) {
         mobile,
         password: hashedPassword,
         language: language || 'en',
+        approved: !requiresApproval,
       },
       include: {
         school: true,
         classroom: true,
       },
     })
+
+    if (requiresApproval) {
+      return successResponse({
+        success: true,
+        pendingApproval: true,
+        message: 'A student with this name is already registered in this classroom. Your registration is pending admin approval.'
+      }, 201)
+    }
 
     const token = signToken({
       userId: student.id,

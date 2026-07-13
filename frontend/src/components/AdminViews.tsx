@@ -2140,8 +2140,154 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
   )
 }
 
+function AdminApprovalsTab({ token, lang }: { token: string | null; lang: Language }) {
+  const [pendingStudents, setPendingStudents] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const t = translations[lang]
+
+  const fetchPending = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/approvals', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPendingStudents(data.students)
+      } else {
+        setError(data.error || 'Failed to fetch pending approvals.')
+      }
+    } catch (err) {
+      setError('Connection to server failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPending()
+  }, [token, lang])
+
+  const handleApprove = async (studentId: string) => {
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch('/api/admin/approvals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ studentId })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(t.successApprove)
+        fetchPending()
+      } else {
+        setError(data.error || 'Failed to approve student.')
+      }
+    } catch (err) {
+      setError('Connection to server failed.')
+    }
+  }
+
+  const handleReject = async (studentId: string) => {
+    if (!window.confirm(lang === 'hi' ? 'क्या आप इस पंजीयन को अस्वीकार करना चाहते हैं?' : 'Are you sure you want to reject and delete this registration?')) {
+      return
+    }
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch(`/api/admin/approvals?id=${studentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(t.successReject)
+        fetchPending()
+      } else {
+        setError(data.error || 'Failed to reject student.')
+      }
+    } catch (err) {
+      setError('Connection to server failed.')
+    }
+  }
+
+  return (
+    <div className="card" style={{ padding: '1.5rem', marginTop: '1rem' }}>
+      <h3 className="card-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginBottom: '1.25rem' }}>
+        {t.studentApprovals}
+      </h3>
+
+      {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          Loading...
+        </div>
+      ) : pendingStudents.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+          {t.noPendingApprovals}
+        </div>
+      ) : (
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{translations[lang].fullName}</th>
+                <th>{translations[lang].schoolUdise.split(' / ')[0]}</th>
+                <th>{translations[lang].classClassroom.split(' / ')[0]}</th>
+                <th>{translations[lang].mobileUnique.split(' (')[0]}</th>
+                <th>{translations[lang].district}</th>
+                <th>{translations[lang].tehsil}</th>
+                <th>{t.adminActions}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingStudents.map((student) => (
+                <tr key={student.id}>
+                  <td><strong>{student.name}</strong></td>
+                  <td>{student.schoolName}</td>
+                  <td>{student.classroomName}</td>
+                  <td>{student.mobile}</td>
+                  <td>{student.district}</td>
+                  <td>{student.tehsil}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => handleApprove(student.id)}
+                        className="btn btn-primary"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textTransform: 'none', backgroundColor: 'var(--success-color)', borderColor: 'var(--success-color)' }}
+                      >
+                        {t.approve}
+                      </button>
+                      <button
+                        onClick={() => handleReject(student.id)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', textTransform: 'none', color: 'var(--text-danger, #d32f2f)', borderColor: 'var(--text-danger, #d32f2f)' }}
+                      >
+                        {t.reject}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AdminDashboard({ token, lang }: { token: string | null; lang: Language }) {
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS'>('ANALYTICS')
+  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS'>('ANALYTICS')
   const t = translations[lang]
 
   return (
@@ -2213,6 +2359,19 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
         >
           {t.tabExams}
         </button>
+        <button
+          onClick={() => setActiveTab('APPROVALS')}
+          className="btn-text"
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1rem',
+            padding: '1rem 1.5rem',
+            color: activeTab === 'APPROVALS' ? 'var(--primary-navy)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'APPROVALS' ? '2px solid var(--accent-gold)' : 'none',
+          }}
+        >
+          {t.approvals}
+        </button>
       </div>
 
       {activeTab === 'ANALYTICS' && <AdminAnalyticsTab token={token} lang={lang} />}
@@ -2220,6 +2379,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
       {activeTab === 'CLASSROOMS' && <AdminClassroomsTab token={token} lang={lang} />}
       {activeTab === 'CATEGORIES' && <AdminCategoriesTab token={token} lang={lang} />}
       {activeTab === 'EXAMS' && <AdminExamsTab token={token} lang={lang} />}
+      {activeTab === 'APPROVALS' && <AdminApprovalsTab token={token} lang={lang} />}
 
       <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%' }}>
         powered by Neopace Infotech LLP

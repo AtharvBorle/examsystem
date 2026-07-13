@@ -186,6 +186,7 @@ model Student {
   district    String
   tehsil      String
   language    String   @default("en")
+  approved    Boolean  @default(true)
   createdAt   DateTime @default(now())
   
   attempts    ExamAttempt[]

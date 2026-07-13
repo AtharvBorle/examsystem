@@ -404,7 +404,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
       })
       const data = await res.json()
       if (data.success) {
-        login(data.token, data.user)
+        if (data.pendingApproval) {
+          alert(translations[lang].pendingApprovalMsg)
+          onViewLogin()
+        } else {
+          login(data.token, data.user)
+        }
       } else {
         setError(data.error || 'Registration failed.')
       }

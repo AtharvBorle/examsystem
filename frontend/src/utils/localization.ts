@@ -282,6 +282,15 @@ export const translations = {
     adminPlaceholderQCount: "e.g. 50",
     adminPlaceholderMarks: "e.g. 2",
     adminPushToSchools: "Push to Schools",
+    pendingApprovalMsg: "A student with this name is already registered in this classroom. Your registration is pending admin approval.",
+    approvals: "Approvals",
+    pendingApprovals: "Pending Approvals",
+    studentApprovals: "Student Registration Approvals",
+    approve: "Approve",
+    reject: "Reject",
+    noPendingApprovals: "No pending registration approvals.",
+    successApprove: "Student registration approved successfully.",
+    successReject: "Student registration rejected.",
   },
   hi: {
     languageLabel: "भाषा / Language",
@@ -566,6 +575,15 @@ export const translations = {
     adminPlaceholderQCount: "जैसे. 50",
     adminPlaceholderMarks: "जैसे. 2",
     adminPushToSchools: "स्कूलों में भेजें",
+    pendingApprovalMsg: "इस कक्षा में इस नाम का एक छात्र पहले से ही पंजीकृत है। आपका पंजीकरण व्यवस्थापक (Admin) की मंजूरी के लिए लंबित है।",
+    approvals: "मंजूरी",
+    pendingApprovals: "लंबित मंजूरियां",
+    studentApprovals: "छात्र पंजीयन मंजूरियां",
+    approve: "मंजूर करें",
+    reject: "अस्वीकार करें",
+    noPendingApprovals: "कोई लंबित पंजीयन मंजूरी नहीं है।",
+    successApprove: "छात्र पंजीयन सफलतापूर्वक मंजूर किया गया।",
+    successReject: "छात्र पंजीयन अस्वीकार कर दिया गया।",
   }
 } as const;
 
