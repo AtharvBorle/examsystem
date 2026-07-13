@@ -1,0 +1,245 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  STUDENT
+}
+
+model SuperAdmin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  admins    Admin[]
+}
+
+model Admin {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  mobile         String       @unique
+  password       String
+  userCountLimit Int?         // Limit on exam attempts across all schools managed by this admin (null = unlimited)
+  userCountUsed  Int          @default(0)
+  createdById    String
+  createdBy      SuperAdmin   @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+  schools        School[]
+  categories     Category[]
+  questionMasters QuestionMaster[]
+  groups         Group[]
+  exams          Exam[]
+}
+
+model School {
+  id        String   @id @default(uuid())
+  name      String   @default("")
+  udise     String   // UDISE number
+  tehsil    String?
+  district  String?
+  language  String   @default("en") // "en" or "hi"
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+  questionSetName  String?
+  
+  // Relations
+  classrooms SchoolClassroom[]
+  students   Student[]
+  exams      SchoolExam[]
+
+  @@unique([udise, language])
+}
+
+model Classroom {
+  id        String   @id @default(uuid())
+  name      String   // e.g. "5th Grade", "Class A"
+  createdAt DateTime @default(now())
+  
+  // Relations
+  schools    SchoolClassroom[]
+  groups     GroupClassroom[]
+  students   Student[]
+}
+
+// Many-to-many join model for School and Classroom
+model SchoolClassroom {
+  schoolId    String
+  classroomId String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+
+  @@id([schoolId, classroomId])
+}
+
+model Category {
+  id        String        @id @default(uuid())
+  name      String
+  adminId   String
+  admin     Admin         @relation(fields: [adminId], references: [id])
+  createdAt DateTime      @default(now())
+  
+  subcategories   Subcategory[]
+  questionMasters QuestionMaster[]
+  exams           Exam[]
+}
+
+model Subcategory {
+  id         String     @id @default(uuid())
+  name       String
+  categoryId String
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  
+  questionMasters QuestionMaster[]
+  exams           Exam[]
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  name      String   // e.g., "5th to 8th Group A"
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+  
+  // Relations
+  classrooms GroupClassroom[]
+  exams      ExamGroup[]
+}
+
+model GroupClassroom {
+  groupId     String
+  classroomId String
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, classroomId])
+}
+
+model Exam {
+  id               String       @id @default(uuid())
+  name             String
+  nameHindi        String?
+  categoryId       String
+  category         Category     @relation(fields: [categoryId], references: [id])
+  subcategoryId    String?
+  subcategory      Subcategory? @relation(fields: [subcategoryId], references: [id])
+  duration         Int          // Exam duration in minutes
+  questionCount    Int          // Number of questions selected for a student set
+  marksPerQuestion Float
+  adminId          String
+  admin            Admin        @relation(fields: [adminId], references: [id])
+  createdAt        DateTime     @default(now())
+  questionSetName  String?
+  
+  // Relations
+  schools   SchoolExam[]
+  groups    ExamGroup[]
+  questions ExamQuestion[]
+  attempts  ExamAttempt[]
+}
+
+// Many-to-many relationships
+model SchoolExam {
+  schoolId  String
+  examId    String
+  school    School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam      Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@id([schoolId, examId])
+}
+
+model ExamGroup {
+  examId  String
+  groupId String
+  exam    Exam  @relation(fields: [examId], references: [id], onDelete: Cascade)
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([examId, groupId])
+}
+
+model ExamQuestion {
+  examId           String
+  questionMasterId String
+  exam             Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionMaster   QuestionMaster @relation(fields: [questionMasterId], references: [id], onDelete: Cascade)
+
+  @@id([examId, questionMasterId])
+}
+
+model Student {
+  id          String   @id @default(uuid())
+  name        String
+  mobile      String   @unique
+  password    String
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  district    String
+  tehsil      String
+  language    String   @default("en")
+  createdAt   DateTime @default(now())
+  
+  attempts    ExamAttempt[]
+}
+
+model ExamAttempt {
+  id             String       @id @default(uuid())
+  studentId      String
+  student        Student      @relation(fields: [studentId], references: [id])
+  examId         String
+  exam           Exam         @relation(fields: [examId], references: [id])
+  startedAt      DateTime     @default(now())
+  submittedAt    DateTime?
+  completed      Boolean      @default(false)
+  score          Float        @default(0)
+  correctAnswers Int          @default(0)
+  totalQuestions Int          @default(0)
+  
+  // Stores the random shuffled question IDs (in order) that were served for this attempt
+  questionsOrder Json
+  // Stores student responses as a JSON object, e.g., { "question-uuid-1": "A", "question-uuid-2": "C" }
+  responses      Json         @default("{}")
+  language       String       @default("en")
+}
+
+model QuestionMaster {
+  id              String       @id @default(uuid())
+  code            String       @unique // Human-readable stable code for translation matching (e.g., "Q_1001")
+  categoryId      String
+  category        Category     @relation(fields: [categoryId], references: [id])
+  subcategoryId   String?
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id])
+  adminId         String
+  admin           Admin        @relation(fields: [adminId], references: [id])
+  questionSetName String?
+  referenceImage  String?
+  createdAt       DateTime     @default(now())
+
+  translations    QuestionTranslation[]
+  exams           ExamQuestion[]
+}
+
+model QuestionTranslation {
+  id               String         @id @default(uuid())
+  questionMasterId String
+  questionMaster   QuestionMaster @relation(fields: [questionMasterId], references: [id], onDelete: Cascade)
+  language         String         // "en", "hi", etc.
+  text             String
+  optionA          String
+  optionB          String
+  optionC          String
+  optionD          String
+  correctOption    String         // "A" | "B" | "C" | "D"
+
+  @@unique([questionMasterId, language])
+}
+
