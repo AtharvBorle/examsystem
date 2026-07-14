@@ -3,11 +3,17 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "preandroid": "node load-env.js",
+    "prestart": "node load-env.js",
+    "prebuild-apk": "node load-env.js",
+    "prebuild-aab": "node load-env.js",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "build-apk": "cd android && gradlew.bat assembleRelease",
+    "build-aab": "cd android && gradlew.bat bundleRelease"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.86.0",
