@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     const normalizedIncomingName = cleanName.toLowerCase()
 
     const classroomStudents = await prisma.student.findMany({
-      where: { classroomId },
+      where: { classroomId, schoolId },
       select: { name: true }
     })
 
