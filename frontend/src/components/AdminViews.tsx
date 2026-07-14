@@ -704,6 +704,7 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [editingAdminId, setEditingAdminId] = useState<string | null>(null)
 
   const fetchDashboardData = async () => {
     try {
@@ -873,6 +874,62 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
     }
   }
 
+  const handleStartEditAdmin = (adm: any) => {
+    setEditingAdminId(adm.id)
+    setEmail(adm.email)
+    setMobile(adm.mobile)
+    setPassword('') // Leave blank unless changing
+    setUserCountLimit(adm.userCountLimit !== null ? String(adm.userCountLimit) : '')
+    setError('')
+    setSuccess('')
+  }
+
+  const handleCancelEditAdmin = () => {
+    setEditingAdminId(null)
+    setEmail('')
+    setMobile('')
+    setPassword('')
+    setUserCountLimit('')
+    setError('')
+    setSuccess('')
+  }
+
+  const handleUpdateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setSubmitting(true)
+
+    try {
+      const res = await fetch('/api/superadmin/admins', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: editingAdminId,
+          email,
+          mobile,
+          password: password || undefined,
+          userCountLimit: userCountLimit ? parseInt(userCountLimit) : null,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess('Admin updated successfully!')
+        handleCancelEditAdmin()
+        fetchDashboardData()
+      } else {
+        setError(data.error || 'Failed to update admin.')
+      }
+    } catch (err) {
+      setError('Connection failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleDeleteAdmin = async (adminId: string) => {
     if (!window.confirm('Are you sure you want to delete this Administrator? ALL schools, classrooms, students, exams, question banks, and progress records managed by this admin will be PERMANENTLY DELETED.')) return
     setError('')
@@ -1004,11 +1061,11 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
         <div className="grid-2">
           {/* Create Admin Form */}
           <div className="card" style={{ height: 'fit-content' }}>
-            <h3 className="card-title">Provision New Administrator</h3>
+            <h3 className="card-title">{editingAdminId ? 'Edit Administrator Details' : 'Provision New Administrator'}</h3>
             {error && <div className="alert alert-danger">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
-            <form onSubmit={handleCreateAdmin}>
+            <form onSubmit={editingAdminId ? handleUpdateAdmin : handleCreateAdmin}>
               <div className="form-group">
                 <label className="form-label">Email ID</label>
                 <input
@@ -1033,14 +1090,14 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Password</label>
+                <label className="form-label">Password {editingAdminId && '(Leave blank to keep current)'}</label>
                 <input
                   type="password"
                   className="form-input"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  required
+                  placeholder={editingAdminId ? 'New Password (Optional)' : 'Password'}
+                  required={!editingAdminId}
                 />
               </div>
               <div className="form-group">
@@ -1057,8 +1114,18 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
                 </span>
               </div>
               <button type="submit" className="btn btn-primary w-full" style={{ width: '100%' }} disabled={submitting}>
-                {submitting ? 'Creating Admin...' : 'Create Admin'}
+                {submitting ? (editingAdminId ? 'Updating Admin...' : 'Creating Admin...') : (editingAdminId ? 'Update Admin' : 'Create Admin')}
               </button>
+              {editingAdminId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditAdmin}
+                  className="btn btn-secondary w-full"
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                >
+                  Cancel Edit
+                </button>
+              )}
             </form>
           </div>
 
@@ -1098,13 +1165,22 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
                         </td>
                         <td style={{ fontSize: '0.85rem' }}>{new Date(adm.createdAt).toLocaleDateString()}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <button
-                            onClick={() => handleDeleteAdmin(adm.id)}
-                            className="btn"
-                            style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem', textTransform: 'none', backgroundColor: '#c00000', color: '#ffffff', borderColor: '#c00000' }}
-                          >
-                            Delete
-                          </button>
+                          <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                            <button
+                              onClick={() => handleStartEditAdmin(adm)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem', textTransform: 'none' }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAdmin(adm.id)}
+                              className="btn"
+                              style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem', textTransform: 'none', backgroundColor: '#c00000', color: '#ffffff', borderColor: '#c00000' }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

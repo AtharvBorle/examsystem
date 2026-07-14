@@ -180,3 +180,72 @@ export async function DELETE(req: NextRequest) {
     return errorResponse('Internal server error', 500)
   }
 }
+
+// PUT /api/superadmin/admins - Edit Admin
+export async function PUT(req: NextRequest) {
+  try {
+    const user = getAuthUser(req)
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return errorResponse('Unauthorized. Super-Admin access required.', 401)
+    }
+
+    const { id, email, mobile, password, userCountLimit } = await req.json()
+
+    if (!id) {
+      return errorResponse('Admin ID is required', 400)
+    }
+
+    const admin = await prisma.admin.findUnique({ where: { id } })
+    if (!admin) {
+      return errorResponse('Admin not found', 404)
+    }
+
+    const updateData: any = {}
+
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim()
+      if (normalizedEmail !== admin.email) {
+        // Check duplicate email
+        const dup = await prisma.admin.findUnique({ where: { email: normalizedEmail } })
+        if (dup) return errorResponse('Email is already registered', 400)
+        updateData.email = normalizedEmail
+      }
+    }
+
+    if (mobile) {
+      if (mobile !== admin.mobile) {
+        // Check duplicate mobile
+        const dupAdmin = await prisma.admin.findUnique({ where: { mobile } })
+        const dupStudent = await prisma.student.findUnique({ where: { mobile } })
+        if (dupAdmin || dupStudent) return errorResponse('Mobile number is already registered', 400)
+        updateData.mobile = mobile
+      }
+    }
+
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10)
+    }
+
+    if (userCountLimit !== undefined && userCountLimit !== null) {
+      updateData.userCountLimit = userCountLimit === '' ? null : parseInt(userCountLimit)
+    }
+
+    const updatedAdmin = await prisma.admin.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        mobile: true,
+        userCountLimit: true,
+        userCountUsed: true,
+        createdAt: true,
+      }
+    })
+
+    return successResponse({ admin: updatedAdmin })
+  } catch (error: any) {
+    console.error('Update admin error:', error)
+    return errorResponse('Internal server error', 500)
+  }
+}
