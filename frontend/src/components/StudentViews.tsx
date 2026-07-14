@@ -430,17 +430,37 @@ export function ExamSessionView({
                 const snippet = plainText.length > 80 ? plainText.substring(0, 80) + '...' : plainText
 
                 return (
-                  <div key={q.id} className="flex-between" style={{ padding: '0.75rem', borderRadius: '6px', backgroundColor: 'var(--bg-muted, #f8f9fa)', border: '1px solid var(--border-muted)', gap: '1rem' }}>
-                    <div style={{ textAlign: 'left', flex: 1 }}>
+                  <div 
+                    key={q.id} 
+                    style={{ 
+                      padding: '0.75rem', 
+                      borderRadius: '6px', 
+                      backgroundColor: 'var(--bg-muted, #f8f9fa)', 
+                      border: '1px solid var(--border-muted)', 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ textAlign: 'left' }}>
                       <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.25rem', color: 'var(--primary-navy)' }}>
                         {t.questionOf.split(' ')[0]} {idx + 1}
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-color)' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-color)', lineHeight: '1.4' }}>
                         {snippet}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      gap: '0.5rem',
+                      flexWrap: 'wrap',
+                      borderTop: '1px solid rgba(0,0,0,0.05)',
+                      paddingTop: '0.5rem'
+                    }}>
                       <span className={`badge ${isAnswered ? 'badge-success' : 'badge-outline'}`} style={{ minWidth: '100px', textAlign: 'center', textTransform: 'none' }}>
                         {isAnswered ? `${pTrans.optionLabel} ${answer}` : pTrans.notAnswered}
                       </span>
