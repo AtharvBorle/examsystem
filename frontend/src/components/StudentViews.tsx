@@ -269,6 +269,7 @@ export function ExamSessionView({
   })
   const [timeLeft, setTimeLeft] = useState(0) // Remaining seconds
   const [submitting, setSubmitting] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const timerRef = useRef<any | null>(null)
 
@@ -343,17 +344,13 @@ export function ExamSessionView({
     await onSubmit(session.attemptId, responses)
   }
 
-  const handleManualSubmit = async () => {
-    const unanswered = session.questions.length - Object.keys(responses).length
-    let confirmMsg = t.confirmSubmit
-    if (unanswered > 0) {
-      confirmMsg += t.confirmUnanswered.replace('{count}', String(unanswered))
-    }
+  const handleManualSubmit = () => {
+    setShowPreview(true)
+  }
 
-    if (window.confirm(confirmMsg)) {
-      setSubmitting(true)
-      await onSubmit(session.attemptId, responses)
-    }
+  const handleFinalSubmit = async () => {
+    setSubmitting(true)
+    await onSubmit(session.attemptId, responses)
   }
 
   const formatTime = (seconds: number) => {
@@ -365,6 +362,128 @@ export function ExamSessionView({
   const currentQ = session.questions[currentIdx]
   const activeTrans = currentQ?.translations?.find((tr: any) => tr.language === lang) || currentQ
   const t = translations[lang]
+
+  const pTrans = {
+    title: lang === 'hi' ? 'परीक्षा सारांश और पूर्वावलोकन' : 'Exam Summary & Preview',
+    desc: lang === 'hi' ? 'अंतिम रूप से जमा करने से पहले कृपया अपने उत्तरों की समीक्षा करें।' : 'Please review your answers before final submission.',
+    total: lang === 'hi' ? 'कुल प्रश्न' : 'Total Questions',
+    answered: lang === 'hi' ? 'उत्तर दिया गया' : 'Answered',
+    unanswered: lang === 'hi' ? 'अनुत्तरित' : 'Unanswered',
+    status: lang === 'hi' ? 'स्थिति' : 'Status',
+    notAnswered: lang === 'hi' ? 'उत्तर नहीं दिया गया' : 'Not Answered',
+    jump: lang === 'hi' ? 'प्रश्न पर जाएं' : 'Jump to Question',
+    back: lang === 'hi' ? 'परीक्षा पर वापस जाएं' : 'Back to Exam',
+    submit: lang === 'hi' ? 'पुष्टि करें और जमा करें' : 'Confirm & Submit',
+    submitting: lang === 'hi' ? 'जमा किया जा रहा है...' : 'Submitting...',
+    optionLabel: lang === 'hi' ? 'विकल्प' : 'Option'
+  }
+
+  if (showPreview) {
+    const answeredCount = Object.keys(responses).length
+    const unansweredCount = session.questions.length - answeredCount
+
+    return (
+      <div className="exam-layout">
+        <header className="exam-header">
+          <div className="navbar-container">
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--primary-navy)' }}>
+                {session.examName} - {pTrans.title}
+              </h3>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {pTrans.desc}
+              </span>
+            </div>
+            <div className="exam-timer">
+              <Clock size={16} /> {t.timer}: {formatTime(timeLeft)}
+            </div>
+          </div>
+        </header>
+
+        <div className="container exam-content" style={{ maxWidth: '800px', marginTop: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            <div className="card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--border-muted)', borderRadius: '6px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{pTrans.total}</span>
+              <h2 style={{ fontSize: '2rem', margin: '0.5rem 0 0', color: 'var(--primary-navy)' }}>{session.questions.length}</h2>
+            </div>
+            <div className="card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--border-muted)', borderLeft: '4px solid var(--success-color)', borderRadius: '6px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{pTrans.answered}</span>
+              <h2 style={{ fontSize: '2rem', margin: '0.5rem 0 0', color: 'var(--success-color)' }}>{answeredCount}</h2>
+            </div>
+            <div className="card" style={{ padding: '1rem', textAlign: 'center', border: '1px solid var(--border-muted)', borderLeft: '4px solid #ff9800', borderRadius: '6px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{pTrans.unanswered}</span>
+              <h2 style={{ fontSize: '2rem', margin: '0.5rem 0 0', color: '#ff9800' }}>{unansweredCount}</h2>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', borderRadius: '6px' }}>
+            <h4 style={{ fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-muted)', paddingBottom: '0.75rem', textAlign: 'left' }}>
+              {lang === 'hi' ? 'सभी प्रश्नों की समीक्षा करें' : 'Review All Questions'}
+            </h4>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              {session.questions.map((q: any, idx: number) => {
+                const answer = responses[q.id]
+                const isAnswered = !!answer
+                const qTrans = q.translations?.find((tr: any) => tr.language === lang) || q
+                const plainText = qTrans.text ? qTrans.text.replace(/<[^>]*>/g, '') : ''
+                const snippet = plainText.length > 80 ? plainText.substring(0, 80) + '...' : plainText
+
+                return (
+                  <div key={q.id} className="flex-between" style={{ padding: '0.75rem', borderRadius: '6px', backgroundColor: 'var(--bg-muted, #f8f9fa)', border: '1px solid var(--border-muted)', gap: '1rem' }}>
+                    <div style={{ textAlign: 'left', flex: 1 }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '0.25rem', color: 'var(--primary-navy)' }}>
+                        {t.questionOf.split(' ')[0]} {idx + 1}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-color)' }}>
+                        {snippet}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span className={`badge ${isAnswered ? 'badge-success' : 'badge-outline'}`} style={{ minWidth: '100px', textAlign: 'center', textTransform: 'none' }}>
+                        {isAnswered ? `${pTrans.optionLabel} ${answer}` : pTrans.notAnswered}
+                      </span>
+
+                      <button
+                        onClick={() => {
+                          setCurrentIdx(idx)
+                          setShowPreview(false)
+                        }}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                      >
+                        {pTrans.jump}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="flex-between" style={{ gap: '1rem' }}>
+            <button
+              onClick={() => setShowPreview(false)}
+              className="btn btn-secondary"
+              style={{ flex: 1 }}
+            >
+              {pTrans.back}
+            </button>
+
+            <button
+              onClick={handleFinalSubmit}
+              disabled={submitting}
+              className="btn btn-primary"
+              style={{ flex: 1, backgroundColor: 'var(--success-color)', borderColor: 'var(--success-color)' }}
+            >
+              {submitting ? pTrans.submitting : pTrans.submit}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="exam-layout">
