@@ -24,10 +24,6 @@ function MainLayout() {
   const handleLanguageChange = async (newLang: Language) => {
     setLang(newLang)
     if (user && token) {
-      // Update local auth context immediately to avoid needing system refresh!
-      let updatedUser = { ...user, language: newLang }
-      login(token, updatedUser)
-
       if (user.role === 'STUDENT') {
         try {
           const res = await fetch('/api/student/language', {
@@ -39,17 +35,21 @@ function MainLayout() {
             body: JSON.stringify({ language: newLang })
           })
           const data = await res.json()
-          if (data.success && data.school && data.classroom) {
-            updatedUser = {
-              ...updatedUser,
-              school: data.school,
-              classroom: data.classroom
+          if (data.success) {
+            const updatedUser = {
+              ...user,
+              language: newLang,
+              school: data.school || user.school,
+              classroom: data.classroom || user.classroom
             }
             login(token, updatedUser)
           }
         } catch (err) {
           console.error('Failed to save language preference on backend:', err)
+          login(token, { ...user, language: newLang })
         }
+      } else {
+        login(token, { ...user, language: newLang })
       }
     }
   }

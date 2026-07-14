@@ -32,7 +32,7 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
 
   useEffect(() => {
     fetchExams()
-  }, [token, lang])
+  }, [token, user.language])
 
   const handleStartExam = async (examId: string) => {
     setError('')
