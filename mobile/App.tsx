@@ -8,8 +8,13 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Alert,
+  Platform,
+  PermissionsAndroid,
+  Share,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import RNFS from 'react-native-fs';
 import { APP_URL } from './config';
 
 function App() {
@@ -37,6 +42,78 @@ function App() {
   const handleReload = () => {
     setIsError(false);
     webViewRef.current?.reload();
+  };
+
+  const saveToCacheAndShare = async (base64Content: string, filename: string) => {
+    try {
+      const cachePath = `${RNFS.CachesDirectoryPath}/${filename}`;
+      await RNFS.writeFile(cachePath, base64Content, 'base64');
+      
+      await Share.share({
+        title: 'Share Certificate',
+        url: Platform.OS === 'android' ? `file://${cachePath}` : cachePath,
+        message: `Here is my Exam Certificate: ${filename.replace(/_/g, ' ')}`,
+      });
+    } catch (err) {
+      Alert.alert('Share Failed', 'Could not open share menu for the certificate.');
+    }
+  };
+
+  const handleMessage = async (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'DOWNLOAD_PDF') {
+        const { pdfData, filename } = data;
+        const base64Content = pdfData.split(';base64,')[1];
+
+        if (Platform.OS === 'android') {
+          const sdkVersion = Platform.Version;
+          let hasPermission = true;
+
+          // Request write permission for Android 9 and below
+          if (typeof sdkVersion === 'number' && sdkVersion < 29) {
+            const checked = await PermissionsAndroid.check(
+              PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+            );
+            if (!checked) {
+              const status = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+              );
+              hasPermission = status === PermissionsAndroid.RESULTS.GRANTED;
+            }
+          }
+
+          if (!hasPermission) {
+            await saveToCacheAndShare(base64Content, filename);
+            return;
+          }
+
+          try {
+            const destPath = `${RNFS.DownloadDirectoryPath}/${filename}`;
+            await RNFS.writeFile(destPath, base64Content, 'base64');
+            Alert.alert(
+              'Success',
+              `Certificate saved to Downloads folder:\n${filename.replace(/_/g, ' ')}`,
+              [
+                { text: 'OK' },
+                {
+                  text: 'Share / Send',
+                  onPress: () => saveToCacheAndShare(base64Content, filename),
+                },
+              ]
+            );
+          } catch (writeErr) {
+            // Fallback to cache and share sheet if public path fails (e.g. Scoped Storage)
+            await saveToCacheAndShare(base64Content, filename);
+          }
+        } else {
+          // iOS sharing
+          await saveToCacheAndShare(base64Content, filename);
+        }
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Unable to parse certificate download package.');
+    }
   };
 
   const renderLoadingView = () => (
@@ -74,6 +151,7 @@ function App() {
             setCanGoBack(navState.canGoBack);
           }}
           onError={() => setIsError(true)}
+          onMessage={handleMessage}
           startInLoadingState={true}
           renderLoading={renderLoadingView}
           javaScriptEnabled={true}

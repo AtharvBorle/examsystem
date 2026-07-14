@@ -160,5 +160,19 @@ export function generateCertificatePDF(data: {
   // Save the PDF
   const suffix = isHindi ? 'सहभागिता_प्रमाण_पत्र' : 'Participation_Certificate'
   const filename = `${data.studentName.replace(/\s+/g, '_')}_${suffix}.pdf`
-  doc.save(filename)
+
+  if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
+    try {
+      const pdfDataUri = doc.output('datauristring');
+      (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'DOWNLOAD_PDF',
+        pdfData: pdfDataUri,
+        filename
+      }));
+    } catch (err) {
+      doc.save(filename);
+    }
+  } else {
+    doc.save(filename);
+  }
 }
