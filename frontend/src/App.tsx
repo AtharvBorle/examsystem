@@ -6,6 +6,84 @@ import { LoginView, RegisterView } from './components/AuthViews'
 import { StandaloneSchoolDetailView, SuperAdminDashboard, AdminDashboard } from './components/AdminViews'
 import { StudentDashboard } from './components/StudentViews'
 
+if (typeof window !== 'undefined') {
+  window.alert = (message: string) => {
+    const existing = document.getElementById('custom-global-alert');
+    if (existing) {
+      document.body.removeChild(existing);
+    }
+
+    const alertEl = document.createElement('div');
+    alertEl.id = 'custom-global-alert';
+    alertEl.style.position = 'fixed';
+    alertEl.style.top = '0';
+    alertEl.style.left = '0';
+    alertEl.style.width = '100vw';
+    alertEl.style.height = '100vh';
+    alertEl.style.backgroundColor = 'rgba(11, 26, 48, 0.75)';
+    alertEl.style.display = 'flex';
+    alertEl.style.justifyContent = 'center';
+    alertEl.style.alignItems = 'center';
+    alertEl.style.zIndex = '999999';
+    alertEl.style.padding = '20px';
+    alertEl.style.boxSizing = 'border-box';
+    alertEl.style.fontFamily = 'var(--font-sans, sans-serif)';
+    
+    const isHindi = message.includes('पंजीकरण') || message.includes('लंबित') || message.includes('अस्वीकार') || message.includes('पंजीकृत');
+    const buttonText = isHindi ? 'ठीक है' : 'OK';
+    const titleText = isHindi ? 'सूचना' : 'Notification';
+
+    alertEl.innerHTML = `
+      <div style="
+        background-color: #16253b;
+        border: 2px solid #c5a059;
+        border-radius: 12px;
+        padding: 24px;
+        width: 100%;
+        max-width: 360px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        text-align: center;
+        animation: alertScaleIn 0.2s ease-out;
+      ">
+        <style>
+          @keyframes alertScaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+          }
+        </style>
+        <div style="font-family: var(--font-serif, serif); font-size: 1.25rem; font-weight: bold; color: #ffffff; margin-bottom: 12px; border-bottom: 1px solid rgba(197, 160, 89, 0.2); padding-bottom: 8px;">
+          ${titleText}
+        </div>
+        <div style="font-size: 0.95rem; color: #e2e8f0; line-height: 1.5; margin-bottom: 24px; text-align: left; white-space: pre-line;">
+          ${message}
+        </div>
+        <button id="custom-global-alert-btn" style="
+          background-color: #c5a059;
+          color: #0b1a30;
+          border: none;
+          padding: 10px 24px;
+          border-radius: 6px;
+          font-weight: bold;
+          font-size: 0.95rem;
+          cursor: pointer;
+          width: 100%;
+          outline: none;
+        ">
+          ${buttonText}
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(alertEl);
+
+    const btn = document.getElementById('custom-global-alert-btn');
+    btn?.focus();
+    btn?.addEventListener('click', () => {
+      document.body.removeChild(alertEl);
+    });
+  };
+}
+
 function App() {
   return (
     <AuthProvider>
