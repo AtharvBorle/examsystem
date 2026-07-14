@@ -353,6 +353,126 @@ export function ExamSessionView({
     setShowSubmitConfirm(true)
   }
 
+  const renderSubmitConfirmModal = () => {
+    if (!showSubmitConfirm) return null
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(11, 26, 48, 0.85)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 99999,
+        padding: '20px',
+        boxSizing: 'border-box'
+      }}>
+        <div className="card" style={{
+          backgroundColor: '#16253b',
+          border: '2px solid var(--accent-gold, #c5a059)',
+          borderRadius: '12px',
+          padding: '24px',
+          width: '100%',
+          maxWidth: '400px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+          textAlign: 'center',
+          color: '#ffffff',
+          animation: 'modalScaleIn 0.25s ease-out'
+        }}>
+          <h3 style={{
+            fontFamily: 'var(--font-serif, serif)',
+            fontSize: '1.4rem',
+            color: 'var(--accent-gold, #c5a059)',
+            marginBottom: '15px',
+            borderBottom: '1px solid rgba(197, 160, 89, 0.2)',
+            paddingBottom: '10px'
+          }}>
+            {lang === 'hi' ? 'परीक्षा जमा करने की पुष्टि करें' : 'Confirm Exam Submission'}
+          </h3>
+          
+          <p style={{
+            fontSize: '0.95rem',
+            lineHeight: '1.6',
+            marginBottom: '20px',
+            color: '#e2e8f0',
+            textAlign: 'left'
+          }}>
+            {lang === 'hi'
+              ? 'क्या आप वाकई अपनी परीक्षा जमा करना चाहते हैं? एक बार जमा करने के बाद आप अपने उत्तरों को बदल नहीं सकते।'
+              : 'Are you sure you want to submit your examination? Once submitted, you cannot change your answers.'}
+          </p>
+
+          {(session.questions.length - Object.keys(responses).length) > 0 && (
+            <div style={{
+              backgroundColor: 'rgba(255, 152, 0, 0.1)',
+              border: '1px solid #ff9800',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '24px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '1.2rem', color: '#ff9800', lineHeight: 1 }}>⚠</span>
+              <div style={{ fontSize: '0.85rem', color: '#ffcc80', lineHeight: '1.4' }}>
+                {lang === 'hi'
+                  ? `आपके पास ${session.questions.length - Object.keys(responses).length} प्रश्न अनुत्तरित हैं।`
+                  : `You have ${session.questions.length - Object.keys(responses).length} question(s) left unanswered.`}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={() => setShowSubmitConfirm(false)}
+              className="btn btn-secondary"
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                backgroundColor: 'transparent',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              {lang === 'hi' ? 'परीक्षा पर वापस जाएं' : 'Back to Exam'}
+            </button>
+            
+            <button
+              onClick={async () => {
+                setShowSubmitConfirm(false)
+                setSubmitting(true)
+                await onSubmit(session.attemptId, responses)
+              }}
+              disabled={submitting}
+              className="btn btn-primary"
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--success-color, #4caf50)',
+                borderColor: 'var(--success-color, #4caf50)',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              {submitting
+                ? (lang === 'hi' ? 'जमा किया जा रहा है...' : 'Submitting...')
+                : (lang === 'hi' ? 'जमा करें' : 'Submit')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -501,6 +621,7 @@ export function ExamSessionView({
             </button>
           </div>
         </div>
+        {renderSubmitConfirmModal()}
       </div>
     )
   }
@@ -616,122 +737,7 @@ export function ExamSessionView({
         </div>
       </div>
 
-      {showSubmitConfirm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(11, 26, 48, 0.85)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 99999,
-          padding: '20px',
-          boxSizing: 'border-box'
-        }}>
-          <div className="card" style={{
-            backgroundColor: '#16253b',
-            border: '2px solid var(--accent-gold, #c5a059)',
-            borderRadius: '12px',
-            padding: '24px',
-            width: '100%',
-            maxWidth: '400px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-            textAlign: 'center',
-            color: '#ffffff',
-            animation: 'modalScaleIn 0.25s ease-out'
-          }}>
-            <h3 style={{
-              fontFamily: 'var(--font-serif, serif)',
-              fontSize: '1.4rem',
-              color: 'var(--accent-gold, #c5a059)',
-              marginBottom: '15px',
-              borderBottom: '1px solid rgba(197, 160, 89, 0.2)',
-              paddingBottom: '10px'
-            }}>
-              {lang === 'hi' ? 'परीक्षा जमा करने की पुष्टि करें' : 'Confirm Exam Submission'}
-            </h3>
-            
-            <p style={{
-              fontSize: '0.95rem',
-              lineHeight: '1.6',
-              marginBottom: '20px',
-              color: '#e2e8f0',
-              textAlign: 'left'
-            }}>
-              {lang === 'hi'
-                ? 'क्या आप वाकई अपनी परीक्षा जमा करना चाहते हैं? एक बार जमा करने के बाद आप अपने उत्तरों को बदल नहीं सकते।'
-                : 'Are you sure you want to submit your examination? Once submitted, you cannot change your answers.'}
-            </p>
-
-            {(session.questions.length - Object.keys(responses).length) > 0 && (
-              <div style={{
-                backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                border: '1px solid #ff9800',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginBottom: '24px',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px'
-              }}>
-                <span style={{ fontSize: '1.2rem', color: '#ff9800', lineHeight: 1 }}>⚠</span>
-                <div style={{ fontSize: '0.85rem', color: '#ffcc80', lineHeight: '1.4' }}>
-                  {lang === 'hi'
-                    ? `आपके पास ${session.questions.length - Object.keys(responses).length} प्रश्न अनुत्तरित हैं।`
-                    : `You have ${session.questions.length - Object.keys(responses).length} question(s) left unanswered.`}
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => setShowSubmitConfirm(false)}
-                className="btn btn-secondary"
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  backgroundColor: 'transparent',
-                  color: '#ffffff',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                {lang === 'hi' ? 'परीक्षा पर वापस जाएं' : 'Back to Exam'}
-              </button>
-              
-              <button
-                onClick={async () => {
-                  setShowSubmitConfirm(false)
-                  setSubmitting(true)
-                  await onSubmit(session.attemptId, responses)
-                }}
-                disabled={submitting}
-                className="btn btn-primary"
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--success-color, #4caf50)',
-                  borderColor: 'var(--success-color, #4caf50)',
-                  color: '#ffffff',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                {submitting
-                  ? (lang === 'hi' ? 'जमा किया जा रहा है...' : 'Submitting...')
-                  : (lang === 'hi' ? 'जमा करें' : 'Submit')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderSubmitConfirmModal()}
     </div>
   )
 }
