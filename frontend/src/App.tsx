@@ -176,30 +176,32 @@ function Navbar({ user, onLogout, lang, onChangeLang }: { user: User; onLogout: 
 
 function PendingApprovalView({ user, token, lang, onLogout, onApproved }: { user: User; token: string | null; lang: Language; onLogout: () => void; onApproved: () => void }) {
   const t = translations[lang]
+  const [checking, setChecking] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let active = true
-    const checkStatus = async () => {
-      try {
-        const res = await fetch('/api/student/status', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const data = await res.json()
-        if (active && data.success && data.approved) {
+  const handleCheckStatus = async () => {
+    setChecking(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/student/status', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (data.approved) {
           onApproved()
+        } else {
+          alert(lang === 'hi' ? 'आपका पंजीकरण अभी भी मंजूरी के लिए लंबित है।' : 'Your registration is still pending admin approval.')
         }
-      } catch (err) {
-        console.error('Error checking approval status:', err)
+      } else {
+        setError(data.error || 'Failed to check status.')
       }
+    } catch (err) {
+      setError('Connection failed.')
+    } finally {
+      setChecking(false)
     }
-
-    checkStatus()
-    const interval = setInterval(checkStatus, 5000)
-    return () => {
-      active = false
-      clearInterval(interval)
-    }
-  }, [token, onApproved])
+  }
 
   return (
     <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
@@ -254,13 +256,30 @@ function PendingApprovalView({ user, token, lang, onLogout, onApproved }: { user
           )}
         </div>
 
-        <button
-          onClick={onLogout}
-          className="btn btn-secondary w-full"
-          style={{ width: '100%' }}
-        >
-          {t.logout}
-        </button>
+        {error && (
+          <div className="error-message" style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#ff4d4f' }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          <button
+            onClick={handleCheckStatus}
+            disabled={checking}
+            className="btn btn-primary w-full"
+            style={{ width: '100%' }}
+          >
+            {checking ? t.checkingStatusBtn : t.checkStatusBtn}
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="btn btn-secondary w-full"
+            style={{ width: '100%' }}
+          >
+            {t.logout}
+          </button>
+        </div>
       </div>
     </div>
   )

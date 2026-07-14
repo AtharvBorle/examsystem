@@ -291,6 +291,8 @@ export const translations = {
     noPendingApprovals: "No pending registration approvals.",
     successApprove: "Student registration approved successfully.",
     successReject: "Student registration rejected.",
+    checkStatusBtn: "Check Status",
+    checkingStatusBtn: "Checking status...",
   },
   hi: {
     languageLabel: "भाषा / Language",
@@ -584,6 +586,8 @@ export const translations = {
     noPendingApprovals: "कोई लंबित पंजीयन मंजूरी नहीं है।",
     successApprove: "छात्र पंजीयन सफलतापूर्वक मंजूर किया गया।",
     successReject: "छात्र पंजीयन अस्वीकार कर दिया गया।",
+    checkStatusBtn: "स्थिति जांचें",
+    checkingStatusBtn: "स्थिति जांची जा रही है...",
   }
 } as const;
 
