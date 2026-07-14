@@ -349,8 +349,16 @@ export function ExamSessionView({
   }
 
   const handleFinalSubmit = async () => {
-    setSubmitting(true)
-    await onSubmit(session.attemptId, responses)
+    const unanswered = session.questions.length - Object.keys(responses).length
+    let confirmMsg = t.confirmSubmit
+    if (unanswered > 0) {
+      confirmMsg += t.confirmUnanswered.replace('{count}', String(unanswered))
+    }
+
+    if (window.confirm(confirmMsg)) {
+      setSubmitting(true)
+      await onSubmit(session.attemptId, responses)
+    }
   }
 
   const formatTime = (seconds: number) => {
