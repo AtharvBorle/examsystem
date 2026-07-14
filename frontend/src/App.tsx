@@ -118,6 +118,10 @@ function MainLayout() {
               token={token} 
               lang={lang} 
               onLogout={logout}
+              onRedirectRegister={() => {
+                logout()
+                setCurrentView('REGISTER')
+              }}
             />
           )}
         </>
@@ -174,7 +178,7 @@ function Navbar({ user, onLogout, lang, onChangeLang }: { user: User; onLogout: 
   )
 }
 
-function PendingApprovalView({ user, token, lang, onLogout, onApproved }: { user: User; token: string | null; lang: Language; onLogout: () => void; onApproved: () => void }) {
+function PendingApprovalView({ user, token, lang, onLogout, onApproved, onRedirectRegister }: { user: User; token: string | null; lang: Language; onLogout: () => void; onApproved: () => void; onRedirectRegister: () => void }) {
   const t = translations[lang]
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -188,7 +192,10 @@ function PendingApprovalView({ user, token, lang, onLogout, onApproved }: { user
       })
       const data = await res.json()
       if (data.success) {
-        if (data.approved) {
+        if (data.rejected) {
+          alert(lang === 'hi' ? 'आपका पंजीकरण अस्वीकार कर दिया गया है।' : 'Your registration has been rejected by the admin.')
+          onRedirectRegister()
+        } else if (data.approved) {
           onApproved()
         } else {
           alert(lang === 'hi' ? 'आपका पंजीकरण अभी भी मंजूरी के लिए लंबित है।' : 'Your registration is still pending admin approval.')
@@ -286,7 +293,7 @@ function PendingApprovalView({ user, token, lang, onLogout, onApproved }: { user
 }
 
 // Dashboard router based on user role
-function DashboardRouter({ user, token, lang, onLogout }: { user: User; token: string | null; lang: Language; onLogout: () => void }) {
+function DashboardRouter({ user, token, lang, onLogout, onRedirectRegister }: { user: User; token: string | null; lang: Language; onLogout: () => void; onRedirectRegister: () => void }) {
   const { login } = useAuth()
   if (user.role === 'SUPER_ADMIN') {
     return <SuperAdminDashboard token={token} />
@@ -300,7 +307,7 @@ function DashboardRouter({ user, token, lang, onLogout }: { user: User; token: s
         login(token, { ...user, approved: true })
       }
     }
-    return <PendingApprovalView user={user} token={token} lang={lang} onLogout={onLogout} onApproved={handleApproved} />
+    return <PendingApprovalView user={user} token={token} lang={lang} onLogout={onLogout} onApproved={handleApproved} onRedirectRegister={onRedirectRegister} />
   }
   return <StudentDashboard token={token} user={user} lang={lang} />
 }

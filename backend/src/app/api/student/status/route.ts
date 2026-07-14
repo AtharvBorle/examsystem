@@ -15,10 +15,10 @@ export async function GET(req: NextRequest) {
     })
 
     if (!student) {
-      return errorResponse('Student not found', 404)
+      return successResponse({ approved: false, rejected: true })
     }
 
-    return successResponse({ approved: student.approved })
+    return successResponse({ approved: student.approved, rejected: false })
   } catch (error: any) {
     console.error('Check student status error:', error)
     return errorResponse('Internal server error', 500)
