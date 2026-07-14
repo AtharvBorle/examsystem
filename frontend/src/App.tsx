@@ -174,8 +174,33 @@ function Navbar({ user, onLogout, lang, onChangeLang }: { user: User; onLogout: 
   )
 }
 
-function PendingApprovalView({ user, lang, onLogout }: { user: User; lang: Language; onLogout: () => void }) {
+function PendingApprovalView({ user, token, lang, onLogout, onApproved }: { user: User; token: string | null; lang: Language; onLogout: () => void; onApproved: () => void }) {
   const t = translations[lang]
+
+  useEffect(() => {
+    let active = true
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('/api/student/status', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (active && data.success && data.approved) {
+          onApproved()
+        }
+      } catch (err) {
+        console.error('Error checking approval status:', err)
+      }
+    }
+
+    checkStatus()
+    const interval = setInterval(checkStatus, 5000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [token, onApproved])
+
   return (
     <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
       <div className="card" style={{ maxWidth: '500px', width: '100%', padding: '2rem', textAlign: 'center', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-muted)', borderRadius: '8px' }}>
@@ -243,6 +268,7 @@ function PendingApprovalView({ user, lang, onLogout }: { user: User; lang: Langu
 
 // Dashboard router based on user role
 function DashboardRouter({ user, token, lang, onLogout }: { user: User; token: string | null; lang: Language; onLogout: () => void }) {
+  const { login } = useAuth()
   if (user.role === 'SUPER_ADMIN') {
     return <SuperAdminDashboard token={token} />
   }
@@ -250,7 +276,12 @@ function DashboardRouter({ user, token, lang, onLogout }: { user: User; token: s
     return <AdminDashboard token={token} lang={lang} />
   }
   if (user.role === 'STUDENT' && user.approved === false) {
-    return <PendingApprovalView user={user} lang={lang} onLogout={onLogout} />
+    const handleApproved = () => {
+      if (token) {
+        login(token, { ...user, approved: true })
+      }
+    }
+    return <PendingApprovalView user={user} token={token} lang={lang} onLogout={onLogout} onApproved={handleApproved} />
   }
   return <StudentDashboard token={token} user={user} lang={lang} />
 }
