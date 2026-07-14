@@ -406,7 +406,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
       if (data.success) {
         if (data.pendingApproval) {
           alert(translations[lang].pendingApprovalMsg)
-          onViewLogin()
+          login(data.token, data.user)
         } else {
           login(data.token, data.user)
         }

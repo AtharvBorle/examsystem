@@ -9,6 +9,7 @@ export interface User {
   school?: { id: string; name: string }
   classroom?: { id: string; name: string }
   language?: string
+  approved?: boolean
 }
 
 interface AuthContextType {

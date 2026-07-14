@@ -13,11 +13,15 @@ export async function GET(req: NextRequest) {
     // Fetch student's school, classroom, and language preference
     const student = await prisma.student.findUnique({
       where: { id: user.userId },
-      select: { schoolId: true, classroomId: true, language: true },
+      select: { schoolId: true, classroomId: true, language: true, approved: true },
     })
 
     if (!student) {
       return errorResponse('Student not found', 404)
+    }
+
+    if (!student.approved) {
+      return errorResponse('Registration pending approval.', 403)
     }
 
     const studentLang = student.language || 'en'

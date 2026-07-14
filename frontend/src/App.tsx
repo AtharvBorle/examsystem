@@ -117,6 +117,7 @@ function MainLayout() {
               user={user} 
               token={token} 
               lang={lang} 
+              onLogout={logout}
             />
           )}
         </>
@@ -173,13 +174,83 @@ function Navbar({ user, onLogout, lang, onChangeLang }: { user: User; onLogout: 
   )
 }
 
+function PendingApprovalView({ user, lang, onLogout }: { user: User; lang: Language; onLogout: () => void }) {
+  const t = translations[lang]
+  return (
+    <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 120px)' }}>
+      <div className="card" style={{ maxWidth: '500px', width: '100%', padding: '2rem', textAlign: 'center', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-muted)', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ff9800'
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{ width: '32px', height: '32px' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+        </div>
+        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-navy)' }}>
+          {lang === 'hi' ? 'पंजीकरण लंबित है' : 'Registration Pending Approval'}
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+          {t.pendingApprovalMsg}
+        </p>
+
+        <div style={{
+          backgroundColor: 'var(--bg-muted, #f8f9fa)',
+          border: '1px solid var(--border-muted)',
+          borderRadius: '6px',
+          padding: '1rem',
+          textAlign: 'left',
+          marginBottom: '2rem',
+          fontSize: '0.9rem'
+        }}>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <strong>{t.fullName}:</strong> {user.name}
+          </div>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <strong>{t.mobileUnique.split(' (')[0]}:</strong> {user.mobile}
+          </div>
+          {user.school && (
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>{t.schoolBadge}:</strong> {user.school.name}
+            </div>
+          )}
+          {user.classroom && (
+            <div>
+              <strong>{t.classClassroom.split(' / ')[0]}:</strong> {user.classroom.name}
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={onLogout}
+          className="btn btn-secondary w-full"
+          style={{ width: '100%' }}
+        >
+          {t.logout}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Dashboard router based on user role
-function DashboardRouter({ user, token, lang }: { user: User; token: string | null; lang: Language }) {
+function DashboardRouter({ user, token, lang, onLogout }: { user: User; token: string | null; lang: Language; onLogout: () => void }) {
   if (user.role === 'SUPER_ADMIN') {
     return <SuperAdminDashboard token={token} />
   }
   if (user.role === 'ADMIN') {
     return <AdminDashboard token={token} lang={lang} />
+  }
+  if (user.role === 'STUDENT' && user.approved === false) {
+    return <PendingApprovalView user={user} lang={lang} onLogout={onLogout} />
   }
   return <StudentDashboard token={token} user={user} lang={lang} />
 }

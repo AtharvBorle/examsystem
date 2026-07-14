@@ -32,6 +32,10 @@ export async function POST(req: NextRequest) {
       return errorResponse('Student not found', 404)
     }
 
+    if (!student.approved) {
+      return errorResponse('Registration pending approval.', 403)
+    }
+
     const studentLang = student.language || 'en'
 
     // Fetch exam details (ExamQuestion points to questionMasterId now)

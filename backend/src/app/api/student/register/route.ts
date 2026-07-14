@@ -98,20 +98,25 @@ export async function POST(req: NextRequest) {
     // Delete OTP entry so it cannot be reused
     otpStore.delete(mobile)
 
-    // Check if there is an existing student in the same classroom with the exact same name (case-insensitive)
-    const existingDuplicate = await prisma.student.findFirst({
-      where: {
-        classroomId,
-        name: { equals: name, mode: 'insensitive' }
-      }
+    // Normalize and clean spaces from name for comparison and database storage
+    const cleanName = name.replace(/\s+/g, ' ').trim()
+    const normalizedIncomingName = cleanName.toLowerCase()
+
+    const classroomStudents = await prisma.student.findMany({
+      where: { classroomId },
+      select: { name: true }
     })
-    const requiresApproval = !!existingDuplicate
+
+    const requiresApproval = classroomStudents.some(s => {
+      const dbNameNormalized = s.name.replace(/\s+/g, ' ').trim().toLowerCase()
+      return dbNameNormalized === normalizedIncomingName
+    })
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
     const student = await prisma.student.create({
       data: {
-        name,
+        name: cleanName,
         schoolId,
         classroomId,
         district,
@@ -127,14 +132,6 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    if (requiresApproval) {
-      return successResponse({
-        success: true,
-        pendingApproval: true,
-        message: 'A student with this name is already registered in this classroom. Your registration is pending admin approval.'
-      }, 201)
-    }
-
     const token = signToken({
       userId: student.id,
       role: 'STUDENT',
@@ -143,6 +140,25 @@ export async function POST(req: NextRequest) {
 
     const schoolName = student.school.name
     const classroomName = translateClassroomName(student.classroom.name, student.language)
+
+    if (requiresApproval) {
+      return successResponse({
+        success: true,
+        pendingApproval: true,
+        token,
+        user: {
+          id: student.id,
+          name: student.name,
+          mobile: student.mobile,
+          role: 'STUDENT',
+          language: student.language,
+          school: { id: student.school.id, name: schoolName },
+          classroom: { id: student.classroom.id, name: classroomName },
+          approved: false,
+        },
+        message: 'A student with this name is already registered in this classroom. Your registration is pending admin approval.'
+      }, 201)
+    }
 
     return successResponse({
       token,
@@ -154,6 +170,7 @@ export async function POST(req: NextRequest) {
         language: student.language,
         school: { id: student.school.id, name: schoolName },
         classroom: { id: student.classroom.id, name: classroomName },
+        approved: true,
       },
     }, 201)
   } catch (error: any) {
