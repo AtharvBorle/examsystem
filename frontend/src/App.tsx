@@ -6,8 +6,10 @@ import { LoginView, RegisterView } from './components/AuthViews'
 import { StandaloneSchoolDetailView, SuperAdminDashboard, AdminDashboard } from './components/AdminViews'
 import { StudentDashboard } from './components/StudentViews'
 
+import { LanguageSelector } from './components/LanguageSelector'
+
 if (typeof window !== 'undefined') {
-  window.alert = (message: string) => {
+  const customAlert = (message: string) => {
     const existing = document.getElementById('custom-global-alert');
     if (existing) {
       document.body.removeChild(existing);
@@ -29,9 +31,25 @@ if (typeof window !== 'undefined') {
     alertEl.style.boxSizing = 'border-box';
     alertEl.style.fontFamily = 'var(--font-sans, sans-serif)';
     
-    const isHindi = message.includes('पंजीकरण') || message.includes('लंबित') || message.includes('अस्वीकार') || message.includes('पंजीकृत');
+    const isHindi = message.includes('पंजीकरण') || message.includes('लंबित') || message.includes('अस्वीकार') || message.includes('पंजीकृत') || message.includes('भाषा') || message.includes('प्रमाण पत्र');
     const buttonText = isHindi ? 'ठीक है' : 'OK';
-    const titleText = isHindi ? 'सूचना' : 'Notification';
+    
+    let titleText = isHindi ? 'सूचना' : 'Notification';
+    let iconHtml = '📢'; // Default
+
+    if (message.toLowerCase().includes('language') || message.includes('भाषा')) {
+      iconHtml = '🌐';
+      titleText = isHindi ? 'भाषा बदली गई' : 'Language Selection';
+    } else if (message.toLowerCase().includes('certificate') || message.includes('प्रमाण पत्र')) {
+      iconHtml = '🏆';
+      titleText = isHindi ? 'प्रमाण पत्र' : 'Certificate';
+    } else if (message.toLowerCase().includes('rejected') || message.includes('अस्वीकार')) {
+      iconHtml = '❌';
+      titleText = isHindi ? 'पंजीकरण अस्वीकृत' : 'Registration Rejected';
+    } else if (message.toLowerCase().includes('pending') || message.includes('लंबित')) {
+      iconHtml = '⏳';
+      titleText = isHindi ? 'पंजीकरण लंबित' : 'Pending Approval';
+    }
 
     alertEl.innerHTML = `
       <div style="
@@ -51,6 +69,9 @@ if (typeof window !== 'undefined') {
             to { transform: scale(1); opacity: 1; }
           }
         </style>
+        <div style="font-size: 2.2rem; margin-bottom: 10px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+          ${iconHtml}
+        </div>
         <div style="font-family: var(--font-serif, serif); font-size: 1.25rem; font-weight: bold; color: #ffffff; margin-bottom: 12px; border-bottom: 1px solid rgba(197, 160, 89, 0.2); padding-bottom: 8px;">
           ${titleText}
         </div>
@@ -82,6 +103,8 @@ if (typeof window !== 'undefined') {
       document.body.removeChild(alertEl);
     });
   };
+  (window as any).showCustomAlert = customAlert;
+  window.alert = customAlert;
 }
 
 function App() {
@@ -101,6 +124,10 @@ function MainLayout() {
 
   const handleLanguageChange = async (newLang: Language) => {
     setLang(newLang)
+    window.alert(newLang === 'hi'
+      ? 'भाषा सफलतापूर्वक बदल दी गई है।'
+      : 'Language changed successfully.'
+    )
     if (user && token) {
       if (user.role === 'STUDENT') {
         try {
@@ -195,6 +222,7 @@ function MainLayout() {
               user={user} 
               token={token} 
               lang={lang} 
+              onChangeLang={handleLanguageChange}
               onLogout={logout}
               onRedirectRegister={() => {
                 logout()
@@ -227,25 +255,7 @@ function Navbar({ user, onLogout, lang, onChangeLang }: { user: User; onLogout: 
             {t.signedInAs}: <strong>{user.name || user.email || user.mobile}</strong> ({user.role.replace('_', ' ')})
           </span>
           
-          <select 
-            value={lang} 
-            onChange={(e) => onChangeLang(e.target.value as Language)}
-            style={{
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px',
-              border: '1px solid rgba(255,255,255,0.3)',
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              color: '#ffffff',
-              fontSize: '0.85rem',
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-              outline: 'none',
-              width: '70px'
-            }}
-          >
-            <option value="en" style={{ color: '#333333' }}>EN</option>
-            <option value="hi" style={{ color: '#333333' }}>HI</option>
-          </select>
+          <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={true} />
 
           <button onClick={onLogout} className="navbar-link btn-text flex" style={{ color: '#ffffff', gap: '0.4rem', padding: '0.25rem 0.5rem' }}>
             <LogOut size={16} /> <span className="hide-mobile">{t.logout}</span>
@@ -371,7 +381,7 @@ function PendingApprovalView({ user, token, lang, onLogout, onApproved, onRedire
 }
 
 // Dashboard router based on user role
-function DashboardRouter({ user, token, lang, onLogout, onRedirectRegister }: { user: User; token: string | null; lang: Language; onLogout: () => void; onRedirectRegister: () => void }) {
+function DashboardRouter({ user, token, lang, onChangeLang, onLogout, onRedirectRegister }: { user: User; token: string | null; lang: Language; onChangeLang: (lang: Language) => void; onLogout: () => void; onRedirectRegister: () => void }) {
   const { login } = useAuth()
   if (user.role === 'SUPER_ADMIN') {
     return <SuperAdminDashboard token={token} />
@@ -387,6 +397,6 @@ function DashboardRouter({ user, token, lang, onLogout, onRedirectRegister }: { 
     }
     return <PendingApprovalView user={user} token={token} lang={lang} onLogout={onLogout} onApproved={handleApproved} onRedirectRegister={onRedirectRegister} />
   }
-  return <StudentDashboard token={token} user={user} lang={lang} />
+  return <StudentDashboard token={token} user={user} lang={lang} onChangeLang={onChangeLang} />
 }
 export default App;

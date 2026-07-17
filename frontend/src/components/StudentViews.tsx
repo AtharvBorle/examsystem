@@ -6,15 +6,17 @@ import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight 
 } from 'lucide-react'
+import { LanguageSelector } from './LanguageSelector'
 
 /* ==========================================
    VIEW: STUDENT DASHBOARD
    ========================================== */
-export function StudentDashboard({ token, user, lang }: { token: string | null; user: User; lang: Language }) {
+export function StudentDashboard({ token, user, lang, onChangeLang }: { token: string | null; user: User; lang: Language; onChangeLang: (lang: Language) => void }) {
   const [exams, setExams] = useState<any[]>([])
   const [activeSession, setActiveSession] = useState<any | null>(null)
   const [completedAttempt, setCompletedAttempt] = useState<any | null>(null)
   const [error, setError] = useState('')
+  const [startingExamId, setStartingExamId] = useState<string | null>(null)
 
   const fetchExams = async () => {
     try {
@@ -36,6 +38,7 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
 
   const handleStartExam = async (examId: string) => {
     setError('')
+    setStartingExamId(examId)
     try {
       const res = await fetch('/api/student/exams/attempt/start', {
         method: 'POST',
@@ -50,6 +53,7 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
         // Set active session config
         setActiveSession({
           attemptId: data.attemptId,
+          examId: examId,
           questions: data.questions,
           responses: data.responses || {},
           startedAt: new Date(data.startedAt),
@@ -62,6 +66,8 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
       }
     } catch (err) {
       setError('Connection to server failed.')
+    } finally {
+      setStartingExamId(null)
     }
   }
 
@@ -108,6 +114,17 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
       examName: 'Examination',
       completedAt: new Date(),
     }
+    if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
+      (window as any).showCustomAlert(lang === 'hi'
+        ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+        : 'Generating your certificate. It will be downloaded/saved shortly.'
+      );
+    } else {
+      window.alert(lang === 'hi'
+        ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+        : 'Generating your certificate. It will be downloaded/saved shortly.'
+      );
+    }
     generateCertificatePDF({
       ...baseData,
       language: lang,
@@ -120,8 +137,10 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
     return (
       <ExamSessionView
         session={activeSession}
+        exams={exams}
         onSubmit={handleFinishExamSubmit}
         lang={lang}
+        onChangeLang={onChangeLang}
       />
     )
   }
@@ -226,10 +245,27 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
                 ) : (
                   <button
                     onClick={() => handleStartExam(ex.id)}
+                    disabled={startingExamId !== null}
                     className="btn btn-primary w-full"
-                    style={{ width: '100%', height: '40px' }}
+                    style={{
+                      width: '100%',
+                      height: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
                   >
-                    {ex.attemptStatus === 'IN_PROGRESS' ? t.inProgress : t.notStarted} <ChevronRight size={16} />
+                    {startingExamId === ex.id ? (
+                      <>
+                        <span className="spinner-small"></span>
+                        <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading Exam...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        {ex.attemptStatus === 'IN_PROGRESS' ? t.inProgress : t.notStarted} <ChevronRight size={16} />
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -246,12 +282,16 @@ export function StudentDashboard({ token, user, lang }: { token: string | null; 
    ========================================== */
 export function ExamSessionView({
   session,
+  exams,
   onSubmit,
   lang,
+  onChangeLang,
 }: {
   session: any
+  exams: any[]
   onSubmit: (attemptId: string, responses: any) => Promise<void>
   lang: Language
+  onChangeLang: (lang: Language) => void
 }) {
   const { token } = useAuth()
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -273,6 +313,9 @@ export function ExamSessionView({
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
 
   const timerRef = useRef<any | null>(null)
+
+  const currentExam = exams.find((e: any) => e.id === session.examId)
+  const examName = currentExam ? currentExam.name : session.examName
 
   // Calculate remaining seconds based on duration and start date
   useEffect(() => {
@@ -480,6 +523,7 @@ export function ExamSessionView({
   }
 
   const currentQ = session.questions[currentIdx]
+  console.log('[Exam Debug] lang:', lang, 'currentQ ID:', currentQ?.id, 'translations:', currentQ?.translations)
   const activeTrans = currentQ?.translations?.find((tr: any) => tr.language === lang) || currentQ
   const t = translations[lang]
 
@@ -508,14 +552,16 @@ export function ExamSessionView({
           <div className="navbar-container">
             <div>
               <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--primary-navy)' }}>
-                {session.examName} - {pTrans.title}
+                {examName} - {pTrans.title}
               </h3>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {pTrans.desc}
               </span>
             </div>
-            <div className="exam-timer">
-              <Clock size={16} /> {t.timer}: {formatTime(timeLeft)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div className="exam-timer">
+                <Clock size={16} /> {t.timer}: {formatTime(timeLeft)}
+              </div>
             </div>
           </div>
         </header>
@@ -633,15 +679,17 @@ export function ExamSessionView({
         <div className="navbar-container">
           <div>
             <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--primary-navy)' }}>
-              {session.examName}
+              {examName}
             </h3>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               {t.questionOf.replace('{current}', String(currentIdx + 1)).replace('{total}', String(session.questions.length))}
             </span>
           </div>
 
-          <div className="exam-timer">
-            <Clock size={16} /> {t.timer}: {formatTime(timeLeft)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div className="exam-timer">
+              <Clock size={16} /> {t.timer}: {formatTime(timeLeft)}
+            </div>
           </div>
         </div>
       </header>

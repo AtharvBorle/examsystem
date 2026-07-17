@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { translations, Language } from '../utils/localization'
 import { useAuth } from '../context/AuthContext'
-import { Search } from 'lucide-react'
+import { Search, Phone, Lock } from 'lucide-react'
+import { LanguageSelector } from './LanguageSelector'
 
 /* ==========================================
    VIEW: LOGIN
@@ -14,9 +15,22 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    // Keep only numeric characters and limit to 10 digits
+    const numericVal = val.replace(/\D/g, '').slice(0, 10)
+    setIdentifier(numericVal)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (identifier.length !== 10) {
+      setError(lang === 'hi' ? 'कृपया एक वैध 10-अंकीय मोबाइल नंबर दर्ज करें।' : 'Please enter a valid 10-digit mobile number.')
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -41,108 +55,88 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
   const t = translations[lang]
 
   return (
-    <div className="auth-container">
-      <div className="auth-card" style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', top: '15px', right: '15px' }}>
-          <select 
-            value={lang} 
-            onChange={(e) => onChangeLang(e.target.value as Language)}
-            style={{
-              padding: '0.2rem 0.4rem',
-              borderRadius: '4px',
-              border: '1px solid var(--border-muted)',
-              backgroundColor: 'var(--bg-card)',
-              color: 'var(--text-main)',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              outline: 'none',
-              width: '85px'
-            }}
-          >
-            <option value="en">English</option>
-            <option value="hi">हिन्दी</option>
-          </select>
+    <div className="mobile-login-container">
+      {/* Top bar with mobile app icon as logo, and LanguageSelector */}
+      <div className="mobile-login-topbar">
+        <img src="/app_icon.jpeg" className="mobile-logo-img" alt="Logo" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
-        <div className="auth-header">
-          <h1>{t.welcome}</h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            {t.subWelcome}
-          </p>
-        </div>
+      </div>
 
-        {error && <div className="alert alert-danger">{error}</div>}
+      <div className="mobile-login-card">
+        <h2>{lang === 'hi' ? 'स्वागत है' : 'Welcome'}</h2>
+        <p className="sub">
+          {lang === 'hi' ? (
+            <>ऑनलाइन परीक्षा<br />प्रबंधन प्रणाली</>
+          ) : (
+            <>Online Exam<br />Management System</>
+          )}
+        </p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">{t.emailOrMobile}</label>
+        {error && <div className="alert alert-danger" style={{ width: '100%', fontSize: '0.85rem', padding: '0.75rem', borderRadius: '10px' }}>{error}</div>}
+
+        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          <div className="mobile-input-wrapper">
+            <span className="mobile-input-icon">
+              <Phone size={20} strokeWidth={1.5} />
+            </span>
             <input
-              type="text"
-              className="form-input"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]{10}"
+              maxLength={10}
+              className="mobile-input-field"
               value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder={t.placeholderEmailMobile}
+              onChange={handleIdentifierChange}
+              placeholder={lang === 'hi' ? 'मोबाइल' : 'Mobile'}
               required
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">{t.password}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                className="form-input"
-                style={{ paddingRight: '2.5rem' }}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t.placeholderPassword}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                )}
-              </button>
-            </div>
+          <div className="mobile-input-wrapper">
+            <span className="mobile-input-icon">
+              <Lock size={20} strokeWidth={1.5} />
+            </span>
+            <input
+              type={showPassword ? "text" : "password"}
+              className="mobile-input-field"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={lang === 'hi' ? 'पासवर्ड' : 'Password'}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="mobile-password-toggle"
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              )}
+            </button>
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary w-full"
-            style={{ width: '100%', marginTop: '1rem' }}
+            className="mobile-login-btn"
             disabled={submitting}
           >
-            {submitting ? t.authenticating : t.signIn}
+            {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
           </button>
         </form>
 
-        <div className="auth-switch">
-          {t.areYouStudent}{' '}
-          <button onClick={onViewRegister} className="btn-text" style={{ textDecoration: 'underline', padding: 0 }}>
-            {t.registerHere}
+        <div className="mobile-register-prompt">
+          {lang === 'hi' ? 'खाता नहीं है?' : "Don't have an account?"}{' '}
+          <button onClick={onViewRegister} className="mobile-register-link">
+            {lang === 'hi' ? 'यहाँ पंजीकरण करें' : 'Register Here'}
           </button>
         </div>
       </div>
@@ -426,24 +420,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
     <div className="auth-container">
       <div className="auth-card" style={{ maxWidth: '500px', position: 'relative' }}>
         <div style={{ position: 'absolute', top: '15px', right: '15px' }}>
-          <select 
-            value={lang} 
-            onChange={(e) => onChangeLang(e.target.value as Language)}
-            style={{
-              padding: '0.2rem 0.4rem',
-              borderRadius: '4px',
-              border: '1px solid var(--border-muted)',
-              backgroundColor: 'var(--bg-card)',
-              color: 'var(--text-main)',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              outline: 'none',
-              width: '85px'
-            }}
-          >
-            <option value="en">English</option>
-            <option value="hi">हिन्दी</option>
-          </select>
+          <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
         <div className="auth-header">
           <h1>{t.studentRegistration}</h1>

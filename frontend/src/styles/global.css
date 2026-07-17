@@ -748,3 +748,198 @@ input::-webkit-credentials-auto-fill-button {
   display: none !important;
   pointer-events: none;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner-small {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+}
+
+/* Custom mobile-focused login UI styles matching the mock */
+.mobile-login-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: url('/login_bg.png') no-repeat center center;
+  background-size: cover;
+  padding: 0.375rem;
+  box-sizing: border-box;
+}
+
+.mobile-login-topbar {
+  position: absolute;
+  top: 40px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.mobile-logo-img {
+  height: 40px;
+  width: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mobile-skip-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  transition: color 0.15s ease;
+}
+
+.mobile-skip-btn:hover {
+  color: #718096;
+}
+
+.mobile-login-card {
+  width: 100%;
+  max-width: 320px;
+  background-color: #ffffff;
+  border: 1px solid rgba(227, 223, 217, 0.5);
+  border-radius: 28px;
+  padding: 2rem 1rem 1.75rem 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.mobile-login-card h2 {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  color: #000000;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.mobile-login-card p.sub {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #718096;
+  text-align: center;
+  margin-bottom: 1rem;
+  line-height: 1.35;
+}
+
+.mobile-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e0;
+  border-radius: 12px;
+  height: 46px;
+  padding: 0 1rem;
+  margin-bottom: 1.1rem;
+  background-color: #ffffff;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mobile-input-wrapper:focus-within {
+  border-color: #ff3b00;
+  box-shadow: 0 0 0 1px rgba(255, 59, 0, 0.15);
+}
+
+.mobile-input-icon {
+  color: #a0aec0;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.mobile-input-field {
+  border: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  font-size: 1rem !important;
+  color: #2d3748 !important;
+  width: 100% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.mobile-input-field::placeholder {
+  color: #a0aec0;
+}
+
+.mobile-password-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a0aec0;
+  padding: 0;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  height: 20px;
+}
+
+.mobile-login-btn {
+  width: 100%;
+  background-color: #ff3b00;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  margin-top: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.mobile-login-btn:hover {
+  background-color: #e03400;
+}
+
+.mobile-login-btn:disabled {
+  background-color: rgba(255, 59, 0, 0.5);
+  cursor: not-allowed;
+}
+
+.mobile-register-prompt {
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: #4a5568;
+  text-align: center;
+}
+
+.mobile-register-link {
+  color: #ff3b00;
+  text-decoration: underline;
+  font-weight: 700;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
