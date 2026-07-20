@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const smsDltTemplateId = process.env.SMS_DLT_TEMPLATE_ID
 
     if (smsApiUrl && smsApiKey) {
-      const message = `Dear Customer, your OTP is ${otp}, Your Code is valid for ${expiryMinutes} Minutes. -NEOPACE INFOTECH LLP`
+      const message = `Dear User , your verification code is ${otp} . This code will expire in ${expiryMinutes} Min - Neopace Team`
 
       const params = new URLSearchParams({
         sender: smsSender || 'NEOPCE',
