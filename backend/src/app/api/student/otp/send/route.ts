@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { otpStore } from '@/lib/otp-store'
+import { otpStore, rateLimitStore, getRateLimitStatus, queryRateLimitStatus } from '@/lib/otp-store'
 import { errorResponse, successResponse } from '@/lib/auth-middleware'
 
 export async function POST(req: NextRequest) {
@@ -17,12 +17,26 @@ export async function POST(req: NextRequest) {
       return errorResponse('Mobile number must be a valid 10-digit number starting with 6, 7, 8, or 9', 400)
     }
 
+    // Rate Limiting Check
+    const mobileLimit = getRateLimitStatus(`mobile:${mobile}`)
+    if (!mobileLimit.allowed) {
+      return NextResponse.json({
+        success: false,
+        error: `Too many attempts for this mobile number. Please try again after ${mobileLimit.minutesRemaining} minutes.`,
+        minutesRemaining: mobileLimit.minutesRemaining,
+        remainingAttempts: 0
+      }, { status: 429 })
+    }
+
     // Check if already registered
     const existingStudent = await prisma.student.findUnique({ where: { mobile } })
     const existingAdmin = await prisma.admin.findUnique({ where: { mobile } })
     if (existingStudent || existingAdmin) {
       return errorResponse('Mobile number is already registered', 400)
     }
+
+    // Apply the rate limit increments
+    if (mobileLimit.entry) rateLimitStore.set(`mobile:${mobile}`, mobileLimit.entry)
 
     // Generate random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -79,8 +93,13 @@ export async function POST(req: NextRequest) {
       console.log(`==================================================\n`)
     }
 
+    // Calculate remaining attempts for the client mobile number
+    const mobileStatus = queryRateLimitStatus(`mobile:${mobile}`)
+    const remainingAttempts = mobileStatus.remaining
+
     return successResponse({
       success: true,
+      remainingAttempts,
     }, 200)
   } catch (error: any) {
     console.error('Send OTP error:', error)

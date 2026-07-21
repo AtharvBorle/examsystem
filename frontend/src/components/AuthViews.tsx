@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
+import appIcon from '../assets/app_icon.jpeg'
+
 import { translations, Language } from '../utils/localization'
 import { useAuth } from '../context/AuthContext'
-import { Search, Phone, Lock } from 'lucide-react'
+import { Search, Phone, Lock, User, School, GraduationCap, MapPin, Building2, Eye, EyeOff } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 
 /* ==========================================
@@ -52,13 +54,123 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
     }
   }
 
-  const t = translations[lang]
+  const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
+
+  if (isNew) {
+    return (
+      <div className="mobile-login-container new-bg">
+        {/* Top bar with LanguageSelector */}
+        <div className="mobile-login-topbar" style={{ justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
+          </div>
+        </div>
+
+        {/* Spacer to skip pre-printed logo on the background */}
+        <div style={{ height: '110px' }}></div>
+
+        <div className="mobile-login-card">
+          {/* Top Gold Lotus decoration */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '0.75rem', gap: '8px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, #d4af37)' }}></div>
+            <svg viewBox="0 0 100 100" style={{ width: '28px', height: '28px', fill: '#d4af37' }}>
+              <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+              <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+              <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+              <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+              <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+            </svg>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, #d4af37)' }}></div>
+          </div>
+
+          <h2 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: '2.4rem', color: '#0f3d7a', margin: '0 0 8px 0', fontWeight: 700 }}>
+            {lang === 'hi' ? 'स्वागत है' : 'Welcome'}
+          </h2>
+          <p className="sub" style={{ fontSize: '1rem', color: '#8c6239', fontWeight: 600, margin: '0 0 1.5rem 0', textTransform: 'none', lineHeight: '1.4', textAlign: 'center' }}>
+            {lang === 'hi' ? 'ऑनलाइन परीक्षा प्रबंधन प्रणाली' : 'Online Exam Management System'}
+          </p>
+
+          {error && <div className="alert alert-danger" style={{ width: '100%', fontSize: '0.85rem', padding: '0.75rem', borderRadius: '10px', marginBottom: '1.1rem' }}>{error}</div>}
+
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            {/* Mobile Number input with phone icon */}
+            <div className="new-login-input-wrapper">
+              <span className="input-icon">
+                <Phone size={18} strokeWidth={1.5} />
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+                className="input-field"
+                value={identifier}
+                onChange={handleIdentifierChange}
+                placeholder={lang === 'hi' ? 'मोबाइल नंबर' : 'Mobile Number'}
+                required
+              />
+            </div>
+
+            {/* Password input with lock icon and eye toggle */}
+            <div className="new-login-input-wrapper">
+              <span className="input-icon">
+                <Lock size={18} strokeWidth={1.5} />
+              </span>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="input-field"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={lang === 'hi' ? 'पासवर्ड' : 'Password'}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="password-toggle"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              className="new-login-btn"
+              disabled={submitting}
+            >
+              {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
+            </button>
+          </form>
+
+          <div className="mobile-register-prompt" style={{ marginTop: '0.5rem', color: '#2d3748' }}>
+            {lang === 'hi' ? 'खाता नहीं है?' : "Don't have an account?"}{' '}
+            <button onClick={onViewRegister} className="mobile-register-link" style={{ color: '#8c6239', fontWeight: 'bold' }}>
+              {lang === 'hi' ? 'यहाँ पंजीकरण करें' : 'Register Here'}
+            </button>
+          </div>
+
+          {/* Bottom Gold Lotus decoration */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '1.25rem', gap: '8px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, #e0c080)' }}></div>
+            <svg viewBox="0 0 100 100" style={{ width: '20px', height: '20px', fill: '#e0c080' }}>
+              <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+              <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+              <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+              <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+              <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+            </svg>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, #e0c080)' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="mobile-login-container">
+    <div className={`mobile-login-container ${isNew ? 'new-bg' : ''}`}>
       {/* Top bar with mobile app icon as logo, and LanguageSelector */}
       <div className="mobile-login-topbar">
-        <img src="/app_icon.jpeg" className="mobile-logo-img" alt="Logo" />
+        <img src={appIcon} className="mobile-logo-img" alt="Logo" />
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
@@ -171,6 +283,27 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   const [resendCountdown, setResendCountdown] = useState(0)
   const [expiryCountdown, setExpiryCountdown] = useState(0)
 
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null)
+  const [minutesRemaining, setMinutesRemaining] = useState<number>(0)
+
+  // Reset rate limiting status locally if mobile is modified (e.g. typos corrected)
+  useEffect(() => {
+    if (mobile.length !== 10) {
+      setRemainingAttempts(null)
+      setMinutesRemaining(0)
+    }
+  }, [mobile])
+
+  // Purely client-side countdown for block duration, without server calls
+  useEffect(() => {
+    if (minutesRemaining <= 0) return
+    const timer = setInterval(() => {
+      setRemainingAttempts(null) // Clear attempts so user can try again when block expires
+      setMinutesRemaining((prev) => Math.max(0, prev - 1))
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [minutesRemaining])
+
   useEffect(() => {
     if (resendCountdown <= 0) return
     const timer = setInterval(() => {
@@ -219,8 +352,21 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
         setResendCountdown(60) // 60 seconds resend countdown
         setExpiryCountdown(600) // 10 minutes expiry countdown (600 seconds)
         setOtpSuccess(translations[lang].otpSentMsg)
+        if (typeof data.remainingAttempts === 'number') {
+          setRemainingAttempts(data.remainingAttempts)
+        }
+        setMinutesRemaining(0)
       } else {
-        setOtpError(data.error || translations[lang].otpSendError)
+        if (res.status === 429 || data.minutesRemaining) {
+          setOtpError('') // Clear regular error
+          setRemainingAttempts(0)
+          setMinutesRemaining(data.minutesRemaining || 60)
+        } else {
+          setOtpError(data.error || translations[lang].otpSendError)
+          if (typeof data.remainingAttempts === 'number') {
+            setRemainingAttempts(data.remainingAttempts)
+          }
+        }
       }
     } catch (err) {
       setOtpError(translations[lang].otpSendError)
@@ -416,6 +562,398 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
 
   const t = translations[lang]
 
+  const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
+
+  if (isNew) {
+    return (
+      <div className="mobile-register-container">
+        {/* Top bar with LanguageSelector */}
+        <div className="mobile-register-topbar">
+          <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
+        </div>
+
+        {/* Spacer to skip pre-printed logo on the background */}
+        <div style={{ height: '110px' }}></div>
+
+        {/* Header with text */}
+        <div className="mobile-register-header" style={{ marginBottom: '1.25rem' }}>
+          <h1>{t.studentRegistration}</h1>
+          <p className="sub-text">
+            {lang === 'hi' ? 'परीक्षा में शामिल होने के लिए पंजीकरण करें' : 'Register to join the examinations'}
+          </p>
+          <svg className="divider-svg" viewBox="0 0 100 10" preserveAspectRatio="none">
+            <path d="M0,5 Q25,0 50,5 T100,5" fill="none" stroke="#e0c080" strokeWidth="1.5" />
+            <circle cx="50" cy="5" r="3" fill="#c59f2d" />
+            <circle cx="42" cy="5" r="1.5" fill="#c59f2d" />
+            <circle cx="58" cy="5" r="1.5" fill="#c59f2d" />
+          </svg>
+        </div>
+
+        {/* Card containing form */}
+        <div className="mobile-register-card">
+          {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+          <form onSubmit={handleRegister}>
+            {/* First and Last Name Grid */}
+            <div className="new-grid-2">
+              <div className="new-form-group">
+                <label className="field-label">
+                  <User size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                  {t.firstName}
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={firstName}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
+                    if (filtered.length <= 25) {
+                      setFirstName(filtered)
+                    }
+                  }}
+                  placeholder={t.placeholderFirstName}
+                  required
+                />
+              </div>
+
+              <div className="new-form-group">
+                <label className="field-label">
+                  <User size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                  {t.lastName}
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={lastName}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
+                    if (filtered.length <= 25) {
+                      setLastName(filtered)
+                    }
+                  }}
+                  placeholder={t.placeholderLastName}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* School Search Input */}
+            <div className="new-form-group searchable-select-container" ref={popoverRef}>
+              <label className="field-label">
+                <School size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                {lang === 'hi' ? 'स्कूल का नाम / यूडीआईएसई संख्या' : 'School Name / UDISE No.'}
+              </label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={schoolSearch}
+                  onChange={(e) => {
+                    setSchoolSearch(e.target.value)
+                    setSelectedSchool(null)
+                    setShowSchoolPopover(true)
+                  }}
+                  onFocus={() => setShowSchoolPopover(true)}
+                  placeholder={t.placeholderSearchSchool}
+                  required
+                  style={{ paddingRight: '36px' }}
+                />
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#8c6239',
+                  }}
+                />
+              </div>
+              {showSchoolPopover && schoolList.length > 0 && (
+                <div className="search-results-popover">
+                  {schoolList.map((sch) => (
+                    <div key={sch.id} className="search-result-item" onClick={() => handleSelectSchool(sch)}>
+                      <strong>{sch.name}</strong> <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>(UDISE: {sch.udise})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Class Dropdown */}
+            <div className="new-form-group">
+              <label className="field-label">
+                <GraduationCap size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                {t.classClassroom}
+              </label>
+              <select
+                className="input-field"
+                value={selectedClassroom}
+                onChange={(e) => setSelectedClassroom(e.target.value)}
+                disabled={!selectedSchool}
+                required
+              >
+                <option value="">{t.selectClass}</option>
+                {classroomList.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </option>
+                ))}
+              </select>
+              {!selectedSchool && (
+                <span style={{ fontSize: '0.75rem', color: '#8c6239', marginTop: '4px' }}>
+                  {t.selectSchoolFirst}
+                </span>
+              )}
+            </div>
+
+            {/* District and Tehsil Grid */}
+            <div className="new-grid-2">
+              <div className="new-form-group">
+                <label className="field-label">
+                  <MapPin size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                  {t.district}
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder={t.district}
+                  required
+                />
+              </div>
+
+              <div className="new-form-group">
+                <label className="field-label">
+                  <Building2 size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                  {t.tehsil}
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={tehsil}
+                  onChange={(e) => setTehsil(e.target.value)}
+                  placeholder={t.tehsil}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Mobile Number with SEND OTP */}
+            <div className="new-form-group">
+              <label className="field-label">
+                <Phone size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                {t.mobileUnique}
+              </label>
+              <div style={{ display: 'flex', width: '100%' }}>
+                <input
+                  type="tel"
+                  className="input-field"
+                  value={mobile}
+                  onChange={(e) => {
+                    if (isOtpVerified) return
+                    const val = e.target.value
+                    const filtered = val.replace(/[^0-9]/g, '')
+                    if (filtered.length <= 10) {
+                      setMobile(filtered)
+                    }
+                  }}
+                  placeholder={t.placeholderMobile}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  disabled={isOtpVerified}
+                  style={{
+                    flex: 1,
+                    backgroundColor: isOtpVerified ? '#f5f5f5' : undefined,
+                    cursor: isOtpVerified ? 'not-allowed' : undefined
+                  }}
+                  required
+                />
+                <button
+                  type="button"
+                  className="send-otp-gold-btn"
+                  onClick={handleSendOtp}
+                  disabled={mobile.length !== 10 || otpLoading || isOtpVerified || resendCountdown > 0 || remainingAttempts === 0 || minutesRemaining > 0}
+                  style={{
+                    opacity: (mobile.length === 10 && !otpLoading && !isOtpVerified && resendCountdown === 0 && remainingAttempts !== 0 && minutesRemaining === 0) ? 1 : 0.6,
+                    cursor: (mobile.length === 10 && !otpLoading && !isOtpVerified && resendCountdown === 0 && remainingAttempts !== 0 && minutesRemaining === 0) ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  {otpLoading
+                    ? t.sending
+                    : resendCountdown > 0
+                      ? `${otpSent ? t.resendOtp : t.sendOtp} (${resendCountdown}s)`
+                      : otpSent ? t.resendOtp : t.sendOtp}
+                </button>
+              </div>
+              {remainingAttempts !== null && !isOtpVerified && remainingAttempts > 0 && minutesRemaining === 0 && (
+                <div style={{ marginTop: '6px', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#8c6239', fontWeight: 500 }}>
+                    {lang === 'hi'
+                      ? `${remainingAttempts} प्रयास शेष`
+                      : `${remainingAttempts} ${remainingAttempts === 1 ? 'attempt' : 'attempts'} left`}
+                  </span>
+                </div>
+              )}
+              {minutesRemaining > 0 && !isOtpVerified && (
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-danger, #d32f2f)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                  {lang === 'hi'
+                    ? `इस मोबाइल नंबर के लिए बहुत सारे प्रयास। कृपया ${minutesRemaining} मिनट के बाद पुनः प्रयास करें।`
+                    : `Too many attempts for this mobile number. Please try again after ${minutesRemaining} minutes.`}
+                </span>
+              )}
+              {!(minutesRemaining > 0) && otpError && !isOtpVerified && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-danger, #d32f2f)', marginTop: '4px', display: 'block' }}>
+                  {otpError}
+                </span>
+              )}
+              {otpSuccess && !isOtpVerified && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-success, #2e7d32)', marginTop: '4px', display: 'block' }}>
+                  {otpSuccess}
+                </span>
+              )}
+              {isOtpVerified && (
+                <div style={{ marginTop: '4px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-success, #2e7d32)', fontWeight: 'bold' }}>✓ {t.otpVerifySuccess}</span>
+                  <button
+                    type="button"
+                    onClick={handleResetOtp}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0f3d7a',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0,
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {t.changeNumber}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* OTP Verification Input */}
+            {otpSent && !isOtpVerified && (
+              <div className="new-form-group" style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="field-label" style={{ marginBottom: 0 }}>{t.enterOtp}</label>
+                  {expiryCountdown > 0 && (
+                    <span style={{ fontSize: '0.8rem', color: '#ff9800', fontWeight: 'bold' }}>
+                      {lang === 'hi' ? `वैधता: ${formatTime(expiryCountdown)}` : `Expires in: ${formatTime(expiryCountdown)}`}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', width: '100%' }}>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={otp}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '')
+                      if (val.length <= 6) {
+                        setOtp(val)
+                      }
+                    }}
+                    placeholder="6-digit OTP"
+                    maxLength={6}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="send-otp-gold-btn"
+                    onClick={handleVerifyOtp}
+                    disabled={otp.length !== 6 || otpVerifying}
+                    style={{
+                      opacity: (otp.length === 6 && !otpVerifying) ? 1 : 0.6,
+                      cursor: (otp.length === 6 && !otpVerifying) ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    {otpVerifying ? t.sending : t.verifyOtp}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Password Field */}
+            <div className="new-form-group">
+              <label className="field-label">
+                <Lock size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                {t.password}
+              </label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="input-field"
+                  style={{ paddingRight: '40px' }}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t.choosePassword}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#8c6239',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="gradient-gold-btn"
+              style={{
+                width: '100%',
+                marginTop: '1.25rem',
+                opacity: isOtpVerified ? 1 : 0.5,
+                cursor: isOtpVerified ? 'pointer' : 'not-allowed'
+              }}
+              disabled={submitting || !isOtpVerified}
+            >
+              <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', marginRight: '10px', fill: '#3d2703' }}>
+                <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+                <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+                <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+                <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+                <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+              </svg>
+              {submitting ? t.registering : t.register}
+            </button>
+          </form>
+
+          {/* Already registered Footer Link */}
+          <div className="auth-switch" style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.9rem', color: '#666666' }}>
+            {t.alreadyRegistered}{' '}
+            <button onClick={onViewLogin} className="btn-text" style={{ textDecoration: 'underline', padding: 0, color: '#0f3d7a', fontWeight: '700', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+              {t.loginHere}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="auth-container">
       <div className="auth-card" style={{ maxWidth: '500px', position: 'relative' }}>
@@ -584,11 +1122,11 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleSendOtp}
-                disabled={mobile.length !== 10 || otpLoading || isOtpVerified || resendCountdown > 0}
+                disabled={mobile.length !== 10 || otpLoading || isOtpVerified || resendCountdown > 0 || remainingAttempts === 0 || minutesRemaining > 0}
                 style={{
                   whiteSpace: 'nowrap',
-                  opacity: (mobile.length === 10 && !otpLoading && !isOtpVerified && resendCountdown === 0) ? 1 : 0.6,
-                  cursor: (mobile.length === 10 && !otpLoading && !isOtpVerified && resendCountdown === 0) ? 'pointer' : 'not-allowed'
+                  opacity: (mobile.length === 10 && !otpLoading && !isOtpVerified && resendCountdown === 0 && remainingAttempts !== 0 && minutesRemaining === 0) ? 1 : 0.6,
+                  cursor: (mobile.length === 10 && !otpLoading && !isOtpVerified && resendCountdown === 0 && remainingAttempts !== 0 && minutesRemaining === 0) ? 'pointer' : 'not-allowed'
                 }}
               >
                 {otpLoading
@@ -598,7 +1136,23 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                     : otpSent ? t.resendOtp : t.sendOtp}
               </button>
             </div>
-            {otpError && !isOtpVerified && (
+            {remainingAttempts !== null && !isOtpVerified && remainingAttempts > 0 && minutesRemaining === 0 && (
+              <div style={{ marginTop: '6px', fontSize: '0.82rem' }}>
+                <span style={{ color: 'var(--text-muted, #718096)', fontWeight: 500 }}>
+                  {lang === 'hi'
+                    ? `${remainingAttempts} प्रयास शेष`
+                    : `${remainingAttempts} ${remainingAttempts === 1 ? 'attempt' : 'attempts'} left`}
+                </span>
+              </div>
+            )}
+            {minutesRemaining > 0 && !isOtpVerified && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-danger, #d32f2f)', marginTop: '4px', display: 'block', fontWeight: 600 }}>
+                {lang === 'hi'
+                  ? `इस मोबाइल नंबर के लिए बहुत सारे प्रयास। कृपया ${minutesRemaining} मिनट के बाद पुनः प्रयास करें।`
+                  : `Too many attempts for this mobile number. Please try again after ${minutesRemaining} minutes.`}
+              </span>
+            )}
+            {!(minutesRemaining > 0) && otpError && !isOtpVerified && (
               <span style={{ fontSize: '0.8rem', color: 'var(--text-danger, #d32f2f)', marginTop: '4px', display: 'block' }}>
                 {otpError}
               </span>

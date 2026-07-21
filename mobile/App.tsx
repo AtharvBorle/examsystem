@@ -16,14 +16,15 @@ import {
   ImageBackground,
   ScrollView,
   Image,
+  NativeModules,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import RNFS from 'react-native-fs';
-import { APP_URL } from './config';
+import { APP_URL, SPLASH_SCREEN_VERSION } from './config';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-const SLIDES = [
+const SLIDES_OLD = [
   {
     key: '1',
     title: 'Practice. Improve. Achieve.',
@@ -43,6 +44,23 @@ const SLIDES = [
     image: require('./imges/third.jpeg'),
   },
 ];
+
+const SLIDES_NEW = [
+  {
+    key: '1',
+    image: require('./imges/rss_1.png'),
+  },
+  {
+    key: '2',
+    image: require('./imges/rss_2.png'),
+  },
+  {
+    key: '3',
+    image: require('./imges/rss_3.png'),
+  },
+];
+
+const SLIDES = SPLASH_SCREEN_VERSION === 'new' ? SLIDES_NEW : SLIDES_OLD;
 
 function App() {
   const webViewRef = useRef<any>(null);
@@ -160,40 +178,74 @@ function App() {
           const sdkVersion = Platform.Version;
           let hasPermission = true;
 
-          // Request write permission for Android 9 and below
-          if (typeof sdkVersion === 'number' && sdkVersion < 29) {
+          // Request write permission for Android (SDK < 33)
+          if (typeof sdkVersion === 'number' && sdkVersion < 33) {
             const checked = await PermissionsAndroid.check(
               PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
             );
             if (!checked) {
               const status = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                {
+                  title: 'Storage Permission Required',
+                  message: 'This application needs storage permission to save the exam certificate directly to your Downloads folder.',
+                  buttonNeutral: 'Ask Me Later',
+                  buttonNegative: 'Cancel',
+                  buttonPositive: 'OK',
+                }
               );
               hasPermission = status === PermissionsAndroid.RESULTS.GRANTED;
             }
           }
 
-          if (!hasPermission) {
-            await saveToCacheAndShare(base64Content, filename);
-            return;
+          let savedSuccessfully = false;
+
+          if (hasPermission) {
+            try {
+              // Call custom Kotlin FileSaver Native Module to save via MediaStore (supports Android 10, 11, 12, 13+)
+              await NativeModules.FileSaver.saveBase64ToDownloads(base64Content, filename);
+              savedSuccessfully = true;
+              webViewRef.current?.injectJavaScript(`
+                if (window.showCustomAlert) {
+                  window.showCustomAlert("Certificate saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
+                } else if (window.alert) {
+                  window.alert("Certificate saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
+                } else {
+                  alert("Certificate saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
+                }
+                true;
+              `);
+            } catch (writeErr) {
+              // Fallback to ExternalDirectory
+            }
           }
 
-          try {
-            const destPath = `${RNFS.DownloadDirectoryPath}/${filename}`;
-            await RNFS.writeFile(destPath, base64Content, 'base64');
-            webViewRef.current?.injectJavaScript(`
-              if (window.showCustomAlert) {
-                window.showCustomAlert("Certificate saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
-              } else if (window.alert) {
-                window.alert("Certificate saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
-              } else {
-                alert("Certificate saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
-              }
-              true;
-            `);
-          } catch (writeErr) {
-            // Fallback to cache and share sheet if public path fails (e.g. Scoped Storage)
-            await saveToCacheAndShare(base64Content, filename);
+          if (!savedSuccessfully) {
+            try {
+              const fallbackPath = `${RNFS.ExternalDirectoryPath}/${filename}`;
+              await RNFS.writeFile(fallbackPath, base64Content, 'base64');
+              webViewRef.current?.injectJavaScript(`
+                if (window.showCustomAlert) {
+                  window.showCustomAlert("Certificate saved to Application Storage folder:\\nAndroid/data/com.onlineexamsystem.app/files/\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
+                } else if (window.alert) {
+                  window.alert("Certificate saved to Application Storage folder:\\nAndroid/data/com.onlineexamsystem.app/files/\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
+                } else {
+                  alert("Certificate saved to Application Storage folder:\\nAndroid/data/com.onlineexamsystem.app/files/\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/_/g, ' ')}");
+                }
+                true;
+              `);
+            } catch (fallbackErr) {
+              webViewRef.current?.injectJavaScript(`
+                if (window.showCustomAlert) {
+                  window.showCustomAlert("Could not save certificate file to device storage.");
+                } else if (window.alert) {
+                  window.alert("Could not save certificate file to device storage.");
+                } else {
+                  alert("Could not save certificate file to device storage.");
+                }
+                true;
+              `);
+            }
           }
         } else {
           // iOS sharing
@@ -236,63 +288,134 @@ function App() {
   );
 
   if (showOnboarding) {
+    const isNew = SPLASH_SCREEN_VERSION === 'new';
+
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: '#0b1a30' }}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        <ImageBackground
-          source={require('./imges/bg.png')}
-          style={styles.onboardingBackground}
-          resizeMode="cover"
-        >
-          {/* Top Bar for Skip Button */}
-          <View style={[styles.topBar, { marginTop: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) }]}>
-            <TouchableOpacity onPress={completeOnboarding} style={styles.skipButton}>
-              <Text style={styles.skipText}>
-                {activeSlideIndex === 2 ? 'Done' : 'Skip'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Slider Content */}
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
-            onScrollBeginDrag={resetAutoplayTimer}
-            scrollEventThrottle={16}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ alignItems: 'center' }}
-          >
-            {SLIDES.map((slide) => (
-              <View key={slide.key} style={styles.slideWrapper}>
-                <Text style={styles.slideTitle}>{slide.title}</Text>
-                <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
-                <View style={styles.cardContainer}>
-                  <Image source={slide.image} style={styles.cardImage} resizeMode="contain" />
+        
+        {isNew ? (
+          <View style={{ flex: 1 }}>
+            {/* Slider Content for New Layout */}
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleScroll}
+              onScrollBeginDrag={resetAutoplayTimer}
+              scrollEventThrottle={16}
+              style={{ flex: 1 }}
+            >
+              {SLIDES.map((slide) => (
+                <View key={slide.key} style={{ width: screenWidth, height: screenHeight }}>
+                  <Image 
+                    source={slide.image} 
+                    style={{ width: '100%', height: '100%' }} 
+                    resizeMode="cover" 
+                  />
                 </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Footer Area with Dots & Next Button & Text */}
-          <View style={styles.footerContainer}>
-            <View style={styles.dotsContainer}>
-              {SLIDES.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    activeSlideIndex === index ? styles.activeDot : styles.inactiveDot,
-                  ]}
-                />
               ))}
+            </ScrollView>
+
+            {/* Float Skip Button on Top */}
+            <View style={[
+              styles.topBar, 
+              { 
+                position: 'absolute', 
+                top: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24), 
+                left: 0, 
+                right: 0, 
+                zIndex: 10 
+              }
+            ]}>
+              <TouchableOpacity onPress={completeOnboarding} style={styles.skipButton}>
+                <Text style={styles.skipText}>
+                  {activeSlideIndex === 2 ? 'Done' : 'Skip'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            <Text style={styles.footerText}>Online School Exam Management System</Text>
+            {/* Float Dots Container on Top */}
+            <View style={[
+              styles.footerContainer, 
+              { 
+                position: 'absolute', 
+                bottom: Platform.OS === 'ios' ? 40 : 24, 
+                left: 0, 
+                right: 0, 
+                zIndex: 10 
+              }
+            ]}>
+              <View style={styles.dotsContainer}>
+                {SLIDES.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.dot,
+                      activeSlideIndex === index ? styles.activeDot : styles.inactiveDot,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
           </View>
-        </ImageBackground>
+        ) : (
+          <ImageBackground
+            source={require('./imges/bg.png')}
+            style={styles.onboardingBackground}
+            resizeMode="cover"
+          >
+            {/* Top Bar for Skip Button */}
+            <View style={[styles.topBar, { marginTop: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24) }]}>
+              <TouchableOpacity onPress={completeOnboarding} style={styles.skipButton}>
+                <Text style={styles.skipText}>
+                  {activeSlideIndex === 2 ? 'Done' : 'Skip'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Slider Content */}
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleScroll}
+              onScrollBeginDrag={resetAutoplayTimer}
+              scrollEventThrottle={16}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ alignItems: 'center' }}
+            >
+              {SLIDES.map((slide) => (
+                <View key={slide.key} style={styles.slideWrapper}>
+                  <Text style={styles.slideTitle}>{slide.title}</Text>
+                  <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>
+                  <View style={styles.cardContainer}>
+                    <Image source={slide.image} style={styles.cardImage} resizeMode="contain" />
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Footer Area with Dots & Next Button & Text */}
+            <View style={styles.footerContainer}>
+              <View style={styles.dotsContainer}>
+                {SLIDES.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.dot,
+                      activeSlideIndex === index ? styles.activeDot : styles.inactiveDot,
+                    ]}
+                  />
+                ))}
+              </View>
+
+              <Text style={styles.footerText}>Online School Exam Management System</Text>
+            </View>
+          </ImageBackground>
+        )}
       </View>
     );
   }
@@ -306,7 +429,15 @@ function App() {
         <View style={{ flex: 1, position: 'relative' }}>
           <WebView
             ref={webViewRef}
-            source={{ uri: APP_URL }}
+            source={
+              Platform.OS === 'android'
+                ? { uri: 'file:///android_asset/www/index.html' }
+                : require('./www/index.html')
+            }
+            originWhitelist={['*']}
+            allowFileAccess={true}
+            allowUniversalAccessFromFileURLs={true}
+            allowFileAccessFromFileURLs={true}
             style={styles.webview}
             onNavigationStateChange={(navState: any) => {
               setCanGoBack(navState.canGoBack);

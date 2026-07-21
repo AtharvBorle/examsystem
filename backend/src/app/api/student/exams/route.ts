@@ -89,6 +89,7 @@ export async function GET(req: NextRequest) {
           : 'NOT_STARTED',
         attemptId: studentAttempt?.id || null,
         startedAt: studentAttempt?.startedAt || null,
+        createdAt: exam.createdAt,
       }
     })
 

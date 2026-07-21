@@ -75,7 +75,7 @@ if (typeof window !== 'undefined') {
         <div style="font-family: var(--font-serif, serif); font-size: 1.25rem; font-weight: bold; color: #ffffff; margin-bottom: 12px; border-bottom: 1px solid rgba(197, 160, 89, 0.2); padding-bottom: 8px;">
           ${titleText}
         </div>
-        <div style="font-size: 0.95rem; color: #e2e8f0; line-height: 1.5; margin-bottom: 24px; text-align: left; white-space: pre-line;">
+        <div style="font-size: 0.95rem; color: #e2e8f0; line-height: 1.5; margin-bottom: 24px; text-align: left; white-space: pre-line; word-break: break-all;">
           ${message}
         </div>
         <button id="custom-global-alert-btn" style="
@@ -189,9 +189,12 @@ function MainLayout() {
     )
   }
 
+  const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
+  const showNavbar = user && (!isNew || user.role !== 'STUDENT')
+
   return (
     <div>
-      {user && <Navbar user={user} onLogout={logout} lang={lang} onChangeLang={handleLanguageChange} />}
+      {showNavbar && <Navbar user={user} onLogout={logout} lang={lang} onChangeLang={handleLanguageChange} />}
       {directSchoolUdise && user && token ? (
         <StandaloneSchoolDetailView 
           schoolUdise={directSchoolUdise} 
@@ -397,6 +400,6 @@ function DashboardRouter({ user, token, lang, onChangeLang, onLogout, onRedirect
     }
     return <PendingApprovalView user={user} token={token} lang={lang} onLogout={onLogout} onApproved={handleApproved} onRedirectRegister={onRedirectRegister} />
   }
-  return <StudentDashboard token={token} user={user} lang={lang} onChangeLang={onChangeLang} />
+  return <StudentDashboard token={token} user={user} lang={lang} onChangeLang={onChangeLang} onLogout={onLogout} />
 }
 export default App;

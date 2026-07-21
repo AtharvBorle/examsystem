@@ -4,13 +4,67 @@ export interface OtpEntry {
   verified: boolean
 }
 
+export interface RateLimitEntry {
+  count: number
+  firstAttemptAt: Date
+}
+
 const globalForOtp = global as unknown as {
   otpStore?: Map<string, OtpEntry>
+  rateLimitStore?: Map<string, RateLimitEntry>
 }
 
 export const otpStore =
   globalForOtp.otpStore || new Map<string, OtpEntry>()
 
+export const rateLimitStore =
+  globalForOtp.rateLimitStore || new Map<string, RateLimitEntry>()
+
 if (process.env.NODE_ENV !== 'production') {
   globalForOtp.otpStore = otpStore
+  globalForOtp.rateLimitStore = rateLimitStore
+}
+
+export function getRateLimitStatus(key: string, maxAttempts = 3, windowMs = 60 * 60 * 1000) {
+  const now = new Date()
+  const entry = rateLimitStore.get(key)
+
+  if (!entry) {
+    return { allowed: true, entry: { count: 1, firstAttemptAt: now } }
+  }
+
+  const timePassed = now.getTime() - entry.firstAttemptAt.getTime()
+
+  if (timePassed > windowMs) {
+    return { allowed: true, entry: { count: 1, firstAttemptAt: now } }
+  }
+
+  if (entry.count >= maxAttempts) {
+    const msRemaining = windowMs - timePassed
+    const minutesRemaining = Math.ceil(msRemaining / (60 * 1000))
+    return { allowed: false, minutesRemaining }
+  }
+
+  return { allowed: true, entry: { count: entry.count + 1, firstAttemptAt: entry.firstAttemptAt } }
+}
+
+export function queryRateLimitStatus(key: string, maxAttempts = 3, windowMs = 60 * 60 * 1000) {
+  const now = new Date()
+  const entry = rateLimitStore.get(key)
+
+  if (!entry) {
+    return { remaining: maxAttempts, minutesRemaining: 0 }
+  }
+
+  const timePassed = now.getTime() - entry.firstAttemptAt.getTime()
+
+  if (timePassed > windowMs) {
+    return { remaining: maxAttempts, minutesRemaining: 0 }
+  }
+
+  const remaining = Math.max(0, maxAttempts - entry.count)
+  const msRemaining = windowMs - timePassed
+  const minutesRemaining = remaining === 0 ? Math.ceil(msRemaining / (60 * 1000)) : 0
+
+  return { remaining, minutesRemaining }
 }
