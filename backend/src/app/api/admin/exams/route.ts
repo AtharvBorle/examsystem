@@ -4,6 +4,8 @@ import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middlewa
 
 import { translateCategoryName } from '@/lib/category-translator'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/exams - List all exams
 export async function GET(req: NextRequest) {
   try {
@@ -141,6 +143,7 @@ export async function POST(req: NextRequest) {
           data: schoolIds.map((sId) => ({
             schoolId: sId,
             examId: e.id,
+            pushedAt: new Date(),
           })),
         })
       }
@@ -246,13 +249,20 @@ export async function PUT(req: NextRequest) {
         },
       })
 
-      // 2. Sync School links
+      // 2. Sync School links (preserve existing pushedAt for previously linked schools)
+      const existingSchoolExams = await tx.schoolExam.findMany({
+        where: { examId: id },
+        select: { schoolId: true, pushedAt: true },
+      })
+      const existingPushedMap = new Map(existingSchoolExams.map((s) => [s.schoolId, s.pushedAt]))
+
       await tx.schoolExam.deleteMany({ where: { examId: id } })
       if (Array.isArray(schoolIds) && schoolIds.length > 0) {
         await tx.schoolExam.createMany({
           data: schoolIds.map((sId) => ({
             schoolId: sId,
             examId: id,
+            pushedAt: existingPushedMap.get(sId) || new Date(),
           })),
         })
       }

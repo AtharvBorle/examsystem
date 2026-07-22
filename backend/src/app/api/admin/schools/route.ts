@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)

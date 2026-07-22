@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { queryRateLimitStatus } from '@/lib/otp-store'
 import { errorResponse, successResponse } from '@/lib/auth-middleware'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const mobile = req.nextUrl.searchParams.get('mobile')

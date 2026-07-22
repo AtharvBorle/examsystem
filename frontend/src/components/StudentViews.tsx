@@ -465,7 +465,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                         {lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}
                       </span>
                       <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
-                        {new Date(ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </span>
                     </div>
                   </div>
@@ -675,7 +675,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   </div>
                   <div className="meta-labels">
                     <span className="label">{lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}</span>
-                    <span className="val">{new Date(ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                   </div>
                 </div>
 

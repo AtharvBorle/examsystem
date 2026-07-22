@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 import crypto from 'crypto'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)

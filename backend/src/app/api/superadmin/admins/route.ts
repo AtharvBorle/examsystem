@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 import bcrypt from 'bcryptjs'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/superadmin/admins - List all Admins
 export async function GET(req: NextRequest) {
   try {

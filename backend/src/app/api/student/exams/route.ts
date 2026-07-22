@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 import { translateCategoryName } from '@/lib/category-translator'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)
@@ -62,6 +64,10 @@ export async function GET(req: NextRequest) {
       include: {
         category: { select: { name: true } },
         subcategory: { select: { name: true } },
+        schools: {
+          where: { schoolId: { in: relatedSchoolIds } },
+          select: { pushedAt: true },
+        },
         // Include only this student's attempts
         attempts: {
           where: { studentId: user.userId },
@@ -73,6 +79,8 @@ export async function GET(req: NextRequest) {
     const formatted = exams.map((exam) => {
       const studentAttempt = exam.attempts[0] || null
       const examName = (studentLang === 'hi' && exam.nameHindi) ? exam.nameHindi : exam.name
+      const schoolExam = exam.schools[0]
+      const pushedAt = schoolExam?.pushedAt || exam.createdAt
       return {
         id: exam.id,
         name: examName,
@@ -89,6 +97,7 @@ export async function GET(req: NextRequest) {
           : 'NOT_STARTED',
         attemptId: studentAttempt?.id || null,
         startedAt: studentAttempt?.startedAt || null,
+        pushedAt: pushedAt,
         createdAt: exam.createdAt,
       }
     })
