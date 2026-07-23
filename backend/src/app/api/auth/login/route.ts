@@ -52,6 +52,24 @@ export async function POST(req: NextRequest) {
         })
       }
     } else {
+      // 2.5 Check SuperAdmin by Mobile (mapped to superadmin@exam.com)
+      if (identifier === '9999999999') {
+        const superAdmin = await prisma.superAdmin.findUnique({
+          where: { email: 'superadmin@exam.com' },
+        })
+        if (superAdmin && (await bcrypt.compare(password, superAdmin.password))) {
+          const token = signToken({
+            userId: superAdmin.id,
+            role: 'SUPER_ADMIN',
+            email: superAdmin.email,
+          })
+          return successResponse({
+            token,
+            user: { id: superAdmin.id, email: superAdmin.email, role: 'SUPER_ADMIN' },
+          })
+        }
+      }
+
       // 3. Check Admin by Mobile
       const admin = await prisma.admin.findUnique({
         where: { mobile: identifier },
