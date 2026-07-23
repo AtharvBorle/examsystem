@@ -12,7 +12,7 @@ async function main() {
   })
 
   if (!existingSuper) {
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 6)
     await prisma.superAdmin.create({
       data: {
         email,

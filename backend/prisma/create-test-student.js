@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs')
 const prisma = new PrismaClient()
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('Password123', 10)
+  const hashedPassword = await bcrypt.hash('Password123', 6)
 
   // 1. Get or Create SuperAdmin
   let superAdmin = await prisma.superAdmin.findFirst()
@@ -14,6 +14,11 @@ async function main() {
         email: 'superadmin@exam.com',
         password: hashedPassword
       }
+    })
+  } else {
+    await prisma.superAdmin.update({
+      where: { id: superAdmin.id },
+      data: { password: hashedPassword }
     })
   }
 
@@ -29,6 +34,11 @@ async function main() {
         password: hashedPassword,
         createdById: superAdmin.id
       }
+    })
+  } else {
+    admin = await prisma.admin.update({
+      where: { id: admin.id },
+      data: { password: hashedPassword }
     })
   }
 
@@ -90,7 +100,11 @@ async function main() {
     console.log('Mobile: 8888888888')
     console.log('Password: Password123')
   } else {
-    console.log('Mock Student already exists.')
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { password: hashedPassword }
+    })
+    console.log('🔄 Updated existing Student password to 6-round hash!')
   }
 }
 

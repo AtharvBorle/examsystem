@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       return dbNameNormalized === normalizedIncomingName
     })
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 6)
 
     const student = await prisma.student.create({
       data: {

@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       return errorResponse('Email or mobile number is already registered', 400)
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 6)
     const limit = userCountLimit !== undefined && userCountLimit !== null ? parseInt(userCountLimit) : null
 
     const newAdmin = await prisma.admin.create({
@@ -225,7 +225,7 @@ export async function PUT(req: NextRequest) {
     }
 
     if (password) {
-      updateData.password = await bcrypt.hash(password, 10)
+      updateData.password = await bcrypt.hash(password, 6)
     }
 
     if (userCountLimit !== undefined && userCountLimit !== null) {
