@@ -2363,7 +2363,7 @@ function AdminApprovalsTab({ token, lang }: { token: string | null; lang: Langua
 }
 
 export function AdminDashboard({ token, lang }: { token: string | null; lang: Language }) {
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS'>('ANALYTICS')
+  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS' | 'PASSWORD_RESET'>('ANALYTICS')
   const t = translations[lang]
 
   return (
@@ -2448,6 +2448,19 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
         >
           {t.approvals}
         </button>
+        <button
+          onClick={() => setActiveTab('PASSWORD_RESET')}
+          className="btn-text"
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1rem',
+            padding: '1rem 1.5rem',
+            color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'PASSWORD_RESET' ? '2px solid var(--accent-gold)' : 'none',
+          }}
+        >
+          {lang === 'hi' ? 'भूल गए पासवर्ड' : 'Forgot Password'}
+        </button>
       </div>
 
       {activeTab === 'ANALYTICS' && <AdminAnalyticsTab token={token} lang={lang} />}
@@ -2456,6 +2469,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
       {activeTab === 'CATEGORIES' && <AdminCategoriesTab token={token} lang={lang} />}
       {activeTab === 'EXAMS' && <AdminExamsTab token={token} lang={lang} />}
       {activeTab === 'APPROVALS' && <AdminApprovalsTab token={token} lang={lang} />}
+      {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang={lang} />}
 
       <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%' }}>
         powered by Neopace Infotech LLP
@@ -6063,6 +6077,228 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
 
 // Sub-Tab 5: Leaderboard Results view & Export
 // AdminResultsTab component has been merged into AdminAnalyticsTab and is no longer needed.
+
+export function AdminPasswordResetTab({ token, lang }: { token: string | null; lang: Language }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [students, setStudents] = useState<any[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [newPassword, setNewPassword] = useState('bvp2026pass')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+    setLoading(true)
+
+    try {
+      const res = await fetch(`/api/admin/students/password-reset?query=${encodeURIComponent(searchQuery)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setStudents(data.students)
+        setSelectedIds([]) // reset selection
+      } else {
+        setError(data.error || 'Failed to fetch students')
+      }
+    } catch (err) {
+      setError('Connection failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(students.map(s => s.id))
+    } else {
+      setSelectedIds([])
+    }
+  }
+
+  const handleToggleSelect = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id])
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id))
+    }
+  }
+
+  const handleSubmitReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+
+    if (selectedIds.length === 0) {
+      setError(lang === 'hi' ? 'कृपया कम से कम एक छात्र का चयन करें।' : 'Please select at least one student.')
+      return
+    }
+
+    if (!newPassword || newPassword.length < 4) {
+      setError(lang === 'hi' ? 'पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।' : 'Password must be at least 4 characters.')
+      return
+    }
+
+    // Show warning alert if resetting multiple students or all students
+    const isMultiple = selectedIds.length > 1
+    const confirmMessage = lang === 'hi'
+      ? `क्या आप वाकई सभी चयनित ${selectedIds.length} छात्रों का पासवर्ड बदलना चाहते हैं?`
+      : `Are you sure you want to change the password for all ${selectedIds.length} selected students?`
+    
+    if (isMultiple && !window.confirm(confirmMessage)) {
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/admin/students/password-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          studentIds: selectedIds,
+          newPassword
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccessMsg(lang === 'hi' ? 'पासवर्ड सफलतापूर्वक बदल दिया गया है।' : 'Passwords changed successfully.')
+        setSelectedIds([]) // clear selection
+      } else {
+        setError(data.error || 'Failed to reset passwords')
+      }
+    } catch (err) {
+      setError('Connection failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="card" style={{ padding: '2rem' }}>
+      <h2 style={{ fontFamily: 'var(--font-serif)', color: 'var(--primary-navy)', marginBottom: '1.5rem' }}>
+        {lang === 'hi' ? 'छात्र पासवर्ड बदलें / भूल गए पासवर्ड' : 'Reset Student Password / Forgot Password'}
+      </h2>
+
+      {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+      {successMsg && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>{successMsg}</div>}
+
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder={lang === 'hi' ? 'छात्र का नाम या मोबाइल नंबर खोजें...' : 'Search student by name or mobile...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {lang === 'hi' ? 'खोजें' : 'Search'}
+        </button>
+      </form>
+
+      {loading && <div style={{ textAlign: 'center', padding: '1rem' }}>Loading...</div>}
+
+      {!loading && students.length > 0 && (
+        <div style={{ display: 'flex', gap: '2rem', flexDirection: 'row', flexWrap: 'wrap' }}>
+          
+          {/* Left panel: Students list */}
+          <div style={{ flex: 2, minWidth: '300px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === students.length}
+                  onChange={(e) => handleToggleSelectAll(e.target.checked)}
+                />
+                {lang === 'hi' ? 'सभी चुनें' : 'Select All'} ({students.length})
+              </label>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                {selectedIds.length} {lang === 'hi' ? 'चयनित' : 'selected'}
+              </span>
+            </div>
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-muted)', borderRadius: '8px', padding: '0.5rem' }}>
+              {students.map((student) => (
+                <div
+                  key={student.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '0.8rem',
+                    borderBottom: '1px solid #f1f1f1',
+                    backgroundColor: selectedIds.includes(student.id) ? '#faf7f0' : 'transparent'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(student.id)}
+                    onChange={(e) => handleToggleSelect(student.id, e.target.checked)}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--primary-navy)' }}>{student.name}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      📞 {student.mobile} | 🏫 {student.school.name} | 🎓 {student.classroom.name}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right panel: Password action card */}
+          <div style={{ flex: 1, minWidth: '250px' }}>
+            <div style={{ border: '1px solid var(--accent-gold)', borderRadius: '8px', padding: '1.5rem', backgroundColor: '#fcfbf8' }}>
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--primary-navy)', marginBottom: '1rem', fontFamily: 'var(--font-serif)' }}>
+                {lang === 'hi' ? 'नया पासवर्ड सेट करें' : 'Set New Password'}
+              </h3>
+              
+              <form onSubmit={handleSubmitReset}>
+                <div className="form-group" style={{ marginBottom: '1.2rem' }}>
+                  <label className="form-label">{lang === 'hi' ? 'पासवर्ड दर्ज करें' : 'Password'}</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter password"
+                  />
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    {lang === 'hi' ? 'डिफ़ॉल्ट पासवर्ड: bvp2026pass' : 'Default password: bvp2026pass'}
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', backgroundColor: 'var(--primary-navy)', border: 'none' }}
+                  disabled={loading}
+                >
+                  {lang === 'hi' ? 'पासवर्ड अपडेट करें' : 'Update Passwords'}
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {!loading && searchQuery && students.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          {lang === 'hi' ? 'कोई छात्र नहीं मिला।' : 'No students found.'}
+        </div>
+      )}
+    </div>
+  )
+}
 
 /* ==========================================
    VIEW: STUDENT DASHBOARD
