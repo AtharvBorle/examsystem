@@ -37,6 +37,7 @@ model Admin {
   questionMasters QuestionMaster[]
   groups         Group[]
   exams          Exam[]
+  classrooms     Classroom[]
 }
 
 model School {
@@ -63,6 +64,8 @@ model Classroom {
   id        String   @id @default(uuid())
   name      String   // e.g. "5th Grade", "Class A"
   createdAt DateTime @default(now())
+  adminId   String?
+  admin     Admin?   @relation(fields: [adminId], references: [id])
   
   // Relations
   schools    SchoolClassroom[]

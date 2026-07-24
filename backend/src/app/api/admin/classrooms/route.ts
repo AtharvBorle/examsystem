@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 
-// GET /api/admin/classrooms - List all classrooms
+// GET /api/admin/classrooms - List classrooms managed by this admin
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)
@@ -11,9 +11,28 @@ export async function GET(req: NextRequest) {
     }
 
     const classrooms = await prisma.classroom.findMany({
+      where: {
+        OR: [
+          { adminId: user.userId },
+          {
+            schools: {
+              some: {
+                school: {
+                  adminId: user.userId,
+                },
+              },
+            },
+          },
+        ],
+      },
       orderBy: { name: 'asc' },
       include: {
         schools: {
+          where: {
+            school: {
+              adminId: user.userId,
+            },
+          },
           include: { school: true },
         },
       },
@@ -50,19 +69,32 @@ export async function POST(req: NextRequest) {
       return errorResponse('Classroom name or classroomIds array is required', 400)
     }
 
+    // Fetch schools owned by this admin
+    const adminSchools = await prisma.school.findMany({
+      where: { adminId: user.userId },
+      select: { id: true }
+    })
+    const adminSchoolIds = adminSchools.map(s => s.id)
+
     // 1. Bulk push existing classrooms to selected schools
     if (Array.isArray(classroomIds) && classroomIds.length > 0) {
       if (!Array.isArray(schoolIds)) {
         return errorResponse('schoolIds array is required', 400)
       }
 
+      // Only allow linking to schools owned by this admin
+      const ownedSchoolIds = schoolIds.filter((sId: string) => adminSchoolIds.includes(sId))
+
       await prisma.$transaction(async (tx) => {
         for (const cId of classroomIds) {
-          // Remove links not in selected schools
+          // Remove links to schools owned by this admin that are not in the selected schoolIds
           await tx.schoolClassroom.deleteMany({
             where: {
               classroomId: cId,
-              schoolId: { notIn: schoolIds },
+              schoolId: {
+                in: adminSchoolIds,
+                notIn: ownedSchoolIds,
+              },
             },
           })
 
@@ -73,8 +105,8 @@ export async function POST(req: NextRequest) {
           })
           const existingSet = new Set(existing.map(e => e.schoolId))
 
-          // Create only missing links
-          const toCreate = schoolIds.filter((sId: string) => !existingSet.has(sId))
+          // Create only missing links to owned schools
+          const toCreate = ownedSchoolIds.filter((sId: string) => !existingSet.has(sId))
           if (toCreate.length > 0) {
             await tx.schoolClassroom.createMany({
               data: toCreate.map((sId: string) => ({
@@ -95,6 +127,11 @@ export async function POST(req: NextRequest) {
       return errorResponse('Classroom name is required', 400)
     }
 
+    // Only allow linking to schools owned by this admin
+    const ownedSchoolIds = Array.isArray(schoolIds)
+      ? schoolIds.filter((sId: string) => adminSchoolIds.includes(sId))
+      : []
+
     const classroom = await prisma.$transaction(async (tx) => {
       // Find or create classroom
       let cls = await tx.classroom.findFirst({
@@ -102,36 +139,43 @@ export async function POST(req: NextRequest) {
       })
       if (!cls) {
         cls = await tx.classroom.create({
-          data: { name },
+          data: { name, adminId: user.userId },
+        })
+      } else if (!cls.adminId) {
+        // Adopt orphan classroom
+        cls = await tx.classroom.update({
+          where: { id: cls.id },
+          data: { adminId: user.userId }
         })
       }
 
-      // Link to selected schools (synchronize)
-      if (Array.isArray(schoolIds)) {
-        await tx.schoolClassroom.deleteMany({
-          where: {
-            classroomId: cls.id,
-            schoolId: { notIn: schoolIds },
+      // Link/unlink for this admin's schools
+      await tx.schoolClassroom.deleteMany({
+        where: {
+          classroomId: cls.id,
+          schoolId: {
+            in: adminSchoolIds,
+            notIn: ownedSchoolIds,
           },
-        })
+        },
+      })
 
-        // Get existing links
-        const existing = await tx.schoolClassroom.findMany({
-          where: { classroomId: cls.id },
-          select: { schoolId: true },
-        })
-        const existingSet = new Set(existing.map(e => e.schoolId))
+      // Get existing links
+      const existing = await tx.schoolClassroom.findMany({
+        where: { classroomId: cls.id },
+        select: { schoolId: true },
+      })
+      const existingSet = new Set(existing.map(e => e.schoolId))
 
-        const toCreate = schoolIds.filter((sId: string) => !existingSet.has(sId))
-        if (toCreate.length > 0) {
-          await tx.schoolClassroom.createMany({
-            data: toCreate.map((sId: string) => ({
-              schoolId: sId,
-              classroomId: cls.id,
-            })),
-            skipDuplicates: true,
-          })
-        }
+      const toCreate = ownedSchoolIds.filter((sId: string) => !existingSet.has(sId))
+      if (toCreate.length > 0) {
+        await tx.schoolClassroom.createMany({
+          data: toCreate.map((sId: string) => ({
+            schoolId: sId,
+            classroomId: cls.id,
+          })),
+          skipDuplicates: true,
+        })
       }
 
       return cls
@@ -157,6 +201,27 @@ export async function PUT(req: NextRequest) {
       return errorResponse('id and name are required', 400)
     }
 
+    // Verify ownership or management link
+    const classroom = await prisma.classroom.findFirst({
+      where: {
+        id,
+        OR: [
+          { adminId: user.userId },
+          {
+            schools: {
+              some: {
+                school: { adminId: user.userId }
+              }
+            }
+          }
+        ]
+      }
+    })
+
+    if (!classroom) {
+      return errorResponse('Classroom not found or unauthorized', 404)
+    }
+
     const updated = await prisma.classroom.update({
       where: { id },
       data: { name },
@@ -169,7 +234,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE /api/admin/classrooms - Delete classroom(s)
+// DELETE /api/admin/classrooms - Delete/unlink classroom(s)
 export async function DELETE(req: NextRequest) {
   try {
     const user = getAuthUser(req)
@@ -185,36 +250,79 @@ export async function DELETE(req: NextRequest) {
       return errorResponse('Missing parameter: id or ids is required', 400)
     }
 
-    if (id) {
-      // Check if students exist under this classroom
-      const studentCount = await prisma.student.count({ where: { classroomId: id } })
-      if (studentCount > 0) {
-        return errorResponse(`Cannot delete classroom. There are ${studentCount} students registered under this classroom.`, 400)
-      }
+    // Get admin schools
+    const adminSchools = await prisma.school.findMany({
+      where: { adminId: user.userId },
+      select: { id: true }
+    })
+    const adminSchoolIds = adminSchools.map(s => s.id)
 
-      await prisma.classroom.delete({
-        where: { id },
+    const processDelete = async (cId: string) => {
+      // Check if classroom exists and belongs to admin
+      const classroom = await prisma.classroom.findFirst({
+        where: {
+          id: cId,
+          OR: [
+            { adminId: user.userId },
+            {
+              schools: {
+                some: {
+                  school: { adminId: user.userId }
+                }
+              }
+            }
+          ]
+        },
+        include: {
+          schools: {
+            include: { school: true }
+          }
+        }
       })
-      return successResponse({ success: true, message: 'Classroom deleted successfully' })
+
+      if (!classroom) return
+
+      // Check if other admins use this classroom
+      const isShared = classroom.schools.some(s => s.school.adminId !== user.userId)
+
+      if (isShared) {
+        // Just unlink from this admin's schools
+        await prisma.schoolClassroom.deleteMany({
+          where: {
+            classroomId: cId,
+            schoolId: { in: adminSchoolIds }
+          }
+        })
+      } else {
+        // Delete completely if no students
+        const studentCount = await prisma.student.count({ where: { classroomId: cId } })
+        if (studentCount > 0) {
+          // If students exist, unlink schools instead of full delete
+          await prisma.schoolClassroom.deleteMany({
+            where: {
+              classroomId: cId,
+              schoolId: { in: adminSchoolIds }
+            }
+          })
+        } else {
+          await prisma.classroom.delete({
+            where: { id: cId }
+          })
+        }
+      }
+    }
+
+    if (id) {
+      await processDelete(id)
+      return successResponse({ success: true, message: 'Classroom deleted/unlinked successfully' })
     }
 
     if (idsStr) {
       const targetIds = idsStr.split(',').filter(Boolean)
-
-      // Check if any of these classrooms have students
-      const studentCount = await prisma.student.count({
-        where: { classroomId: { in: targetIds } }
-      })
-      if (studentCount > 0) {
-        return errorResponse(`Cannot delete classrooms. There are registered students under some of the selected classrooms.`, 400)
+      for (const targetId of targetIds) {
+        await processDelete(targetId)
       }
-
-      const deleteResult = await prisma.classroom.deleteMany({
-        where: {
-          id: { in: targetIds },
-        },
-      })
-      return successResponse({ success: true, message: `${deleteResult.count} classrooms deleted successfully` })
+      return successResponse({ success: true, message: 'Classrooms deleted/unlinked successfully' })
     }
 
     return errorResponse('Bad request', 400)
