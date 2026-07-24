@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAuth, errorResponse, successResponse } from '@/lib/auth-middleware'
+import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 import bcrypt from 'bcryptjs'
 
 // GET: Search students managed by this admin
 export async function GET(req: NextRequest) {
   try {
-    const user = await verifyAuth(req)
+    const user = getAuthUser(req)
     if (!user || user.role !== 'ADMIN') {
       return errorResponse('Unauthorized', 401)
     }
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 // POST: Reset passwords in bulk or for single student
 export async function POST(req: NextRequest) {
   try {
-    const user = await verifyAuth(req)
+    const user = getAuthUser(req)
     if (!user || user.role !== 'ADMIN') {
       return errorResponse('Unauthorized', 401)
     }
