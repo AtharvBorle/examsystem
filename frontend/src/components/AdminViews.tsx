@@ -682,13 +682,13 @@ export function StandaloneSchoolDetailView({ schoolUdise, token, onBackToDashboa
 }
 
 // Main App wrapper with AuthProvider
-export function SuperAdminDashboard({ token }: { token: string | null }) {
+export function SuperAdminDashboard({ token, lang }: { token: string | null; lang: Language }) {
   const [stats, setStats] = useState<any>({ totalAdmins: 0, totalSchools: 0, totalStudents: 0, totalAttempts: 0 })
   const [admins, setAdmins] = useState<any[]>([])
   const [schools, setSchools] = useState<any[]>([])
   const [recentAttempts, setRecentAttempts] = useState<any[]>([])
   const [selectedSchoolDetail, setSelectedSchoolDetail] = useState<any | null>(null)
-  const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'ATTEMPTS'>('ADMINS')
+  const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'ATTEMPTS' | 'PASSWORD_RESET'>('ADMINS')
 
   // Filters for CSV and overview lists
   const [schoolSearchQuery, setSchoolSearchQuery] = useState('')
@@ -974,7 +974,7 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
       </div>
 
       {/* Aggregate Stats Cards */}
-      <div className="grid-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '2.5rem' }}>
+      <div className="grid-3" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: '2.5rem' }}>
         <div 
           onClick={() => setActiveTab('ADMINS')}
           className="card"
@@ -1053,6 +1053,26 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
               <h2 style={{ fontSize: '2.25rem', marginBottom: 0, color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'inherit' }}>{stats.totalAttempts}</h2>
             </div>
             <Award size={36} style={{ color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
+          </div>
+        </div>
+        <div 
+          onClick={() => setActiveTab('PASSWORD_RESET')}
+          className="card"
+          style={{ 
+            cursor: 'pointer',
+            border: activeTab === 'PASSWORD_RESET' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
+            boxShadow: activeTab === 'PASSWORD_RESET' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+            transform: activeTab === 'PASSWORD_RESET' ? 'translateY(-2px)' : 'none',
+            transition: 'all 0.2s ease',
+            backgroundColor: activeTab === 'PASSWORD_RESET' ? '#fbf9f5' : '#ffffff'
+          }}
+        >
+          <div className="flex-between">
+            <div>
+              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'PASSWORD_RESET' ? 'bold' : 'normal' }}>Security</div>
+              <h2 style={{ fontSize: '1.25rem', marginTop: '0.5rem', marginBottom: 0, color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'inherit', fontFamily: 'var(--font-serif)', whiteSpace: 'nowrap' }}>Forgot Password</h2>
+            </div>
+            <FileText size={36} style={{ color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
       </div>
@@ -1388,6 +1408,8 @@ export function SuperAdminDashboard({ token }: { token: string | null }) {
           </div>
         </div>
       )}
+
+      {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang="en" />}
 
 
 
@@ -6189,17 +6211,25 @@ export function AdminPasswordResetTab({ token, lang }: { token: string | null; l
       {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
       {successMsg && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>{successMsg}</div>}
 
-      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center' }}>
-        <div style={{ flex: 1 }}>
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px', width: '100%', maxWidth: '700px', marginBottom: '2rem', alignItems: 'center' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
           <input
             type="text"
             className="form-control"
+            style={{
+              width: '100%',
+              padding: '12px 16px 12px 40px',
+              fontSize: '1rem',
+              height: '46px',
+              boxSizing: 'border-box'
+            }}
             placeholder={lang === 'hi' ? 'छात्र का नाम या मोबाइल नंबर खोजें...' : 'Search student by name or mobile...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <Search size={18} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
         </div>
-        <button type="submit" className="btn btn-primary" disabled={loading}>
+        <button type="submit" className="btn btn-primary" style={{ padding: '0 24px', height: '46px', borderRadius: '8px', fontSize: '1rem', flexShrink: 0 }} disabled={loading}>
           {lang === 'hi' ? 'खोजें' : 'Search'}
         </button>
       </form>

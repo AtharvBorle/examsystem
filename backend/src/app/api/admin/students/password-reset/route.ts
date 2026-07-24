@@ -3,23 +3,21 @@ import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 import bcrypt from 'bcryptjs'
 
-// GET: Search students managed by this admin
+// GET: Search students managed by this admin (or all if Super-Admin)
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return errorResponse('Unauthorized', 401)
     }
 
     const { searchParams } = new URL(req.url)
     const query = searchParams.get('query') || ''
 
-    // Fetch students where school.adminId === user.userId
+    // Fetch students
     const students = await prisma.student.findMany({
       where: {
-        school: {
-          adminId: user.userId,
-        },
+        school: user.role === 'ADMIN' ? { adminId: user.userId } : undefined,
         OR: query
           ? [
               { name: { contains: query, mode: 'insensitive' } },
@@ -56,7 +54,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = getAuthUser(req)
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return errorResponse('Unauthorized', 401)
     }
 
@@ -77,9 +75,7 @@ export async function POST(req: NextRequest) {
       const student = await prisma.student.findFirst({
         where: {
           id,
-          school: {
-            adminId: user.userId,
-          },
+          school: user.role === 'ADMIN' ? { adminId: user.userId } : undefined,
         },
       })
 

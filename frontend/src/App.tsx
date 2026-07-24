@@ -387,7 +387,7 @@ function PendingApprovalView({ user, token, lang, onLogout, onApproved, onRedire
 function DashboardRouter({ user, token, lang, onChangeLang, onLogout, onRedirectRegister }: { user: User; token: string | null; lang: Language; onChangeLang: (lang: Language) => void; onLogout: () => void; onRedirectRegister: () => void }) {
   const { login } = useAuth()
   if (user.role === 'SUPER_ADMIN') {
-    return <SuperAdminDashboard token={token} />
+    return <SuperAdminDashboard token={token} lang={lang} />
   }
   if (user.role === 'ADMIN') {
     return <AdminDashboard token={token} lang={lang} />
