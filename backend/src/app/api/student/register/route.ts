@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { signToken } from '@/lib/jwt'
 import { errorResponse, successResponse } from '@/lib/auth-middleware'
 import bcrypt from 'bcryptjs'
-import { otpStore } from '@/lib/otp-store'
+import { getOtp, deleteOtp } from '@/lib/otp-store'
 import { translateClassroomName } from '@/lib/class-translator'
 import { upsertSchoolTranslation } from '@/lib/school-translator'
 
@@ -84,19 +84,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify OTP has been successfully validated
-    const otpEntry = otpStore.get(mobile)
+    const otpEntry = await getOtp(mobile)
     if (!otpEntry || !otpEntry.verified) {
       return errorResponse('Mobile number must be verified via OTP first', 400)
     }
 
     // Check expiry
     if (new Date() > otpEntry.expiresAt) {
-      otpStore.delete(mobile)
+      await deleteOtp(mobile)
       return errorResponse('OTP session has expired. Please request and verify a new OTP.', 400)
     }
 
     // Delete OTP entry so it cannot be reused
-    otpStore.delete(mobile)
+    await deleteOtp(mobile)
 
     // Normalize and clean spaces from name for comparison and database storage
     const cleanName = name.replace(/\s+/g, ' ').trim()

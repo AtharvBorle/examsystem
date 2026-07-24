@@ -246,3 +246,13 @@ model QuestionTranslation {
   @@unique([questionMasterId, language])
 }
 
+model Otp {
+  id        String   @id @default(uuid())
+  mobile    String   @unique
+  code      String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+

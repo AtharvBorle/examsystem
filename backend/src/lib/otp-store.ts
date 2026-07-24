@@ -1,3 +1,5 @@
+import { prisma } from './prisma'
+
 export interface OtpEntry {
   code: string
   expiresAt: Date
@@ -10,19 +12,46 @@ export interface RateLimitEntry {
 }
 
 const globalForOtp = global as unknown as {
-  otpStore?: Map<string, OtpEntry>
   rateLimitStore?: Map<string, RateLimitEntry>
 }
-
-export const otpStore =
-  globalForOtp.otpStore || new Map<string, OtpEntry>()
 
 export const rateLimitStore =
   globalForOtp.rateLimitStore || new Map<string, RateLimitEntry>()
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForOtp.otpStore = otpStore
   globalForOtp.rateLimitStore = rateLimitStore
+}
+
+// Database-backed OTP helper functions
+export async function setOtp(mobile: string, code: string, expiresAt: Date, verified = false) {
+  return await prisma.otp.upsert({
+    where: { mobile },
+    update: { code, expiresAt, verified },
+    create: { mobile, code, expiresAt, verified }
+  })
+}
+
+export async function getOtp(mobile: string): Promise<OtpEntry | null> {
+  const otp = await prisma.otp.findUnique({
+    where: { mobile }
+  })
+  if (!otp) return null
+  return {
+    code: otp.code,
+    expiresAt: otp.expiresAt,
+    verified: otp.verified
+  }
+}
+
+export async function deleteOtp(mobile: string) {
+  try {
+    return await prisma.otp.delete({
+      where: { mobile }
+    })
+  } catch (error) {
+    // Ignore error if already deleted
+    return null
+  }
 }
 
 export function getRateLimitStatus(key: string, maxAttempts = 3, windowMs = 60 * 60 * 1000) {

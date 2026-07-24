@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { otpStore } from '@/lib/otp-store'
+import { getOtp, setOtp, deleteOtp } from '@/lib/otp-store'
 import { errorResponse, successResponse } from '@/lib/auth-middleware'
 
 export async function POST(req: NextRequest) {
@@ -10,14 +10,14 @@ export async function POST(req: NextRequest) {
       return errorResponse('Mobile number and OTP are required', 400)
     }
 
-    const entry = otpStore.get(mobile)
+    const entry = await getOtp(mobile)
     if (!entry) {
       return errorResponse('OTP not requested or expired', 400)
     }
 
     // Check expiry
     if (new Date() > entry.expiresAt) {
-      otpStore.delete(mobile) // clean up expired
+      await deleteOtp(mobile) // clean up expired
       return errorResponse('OTP has expired. Please request a new one.', 400)
     }
 
@@ -27,10 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark as verified
-    otpStore.set(mobile, {
-      ...entry,
-      verified: true
-    })
+    await setOtp(mobile, entry.code, entry.expiresAt, true)
 
     return successResponse({
       success: true,

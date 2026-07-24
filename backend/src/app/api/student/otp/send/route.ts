@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { otpStore, rateLimitStore, getRateLimitStatus, queryRateLimitStatus } from '@/lib/otp-store'
+import { setOtp, rateLimitStore, getRateLimitStatus, queryRateLimitStatus } from '@/lib/otp-store'
 import { errorResponse, successResponse } from '@/lib/auth-middleware'
 
 export async function POST(req: NextRequest) {
@@ -43,12 +43,8 @@ export async function POST(req: NextRequest) {
     const expiryMinutes = 10
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000)
 
-    // Store in global memory map
-    otpStore.set(mobile, {
-      code: otp,
-      expiresAt,
-      verified: false
-    })
+    // Store in Postgres database instead of in-memory map
+    await setOtp(mobile, otp, expiresAt, false)
 
     // Send OTP via Way2Smart SMS API
     const smsApiUrl = process.env.SMS_API_URL
