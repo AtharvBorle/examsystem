@@ -16,6 +16,7 @@ enum Role {
 model SuperAdmin {
   id        String   @id @default(uuid())
   email     String   @unique
+  mobile    String?  @unique
   password  String
   createdAt DateTime @default(now())
   admins    Admin[]

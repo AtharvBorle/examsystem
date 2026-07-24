@@ -5,6 +5,7 @@ const prisma = new PrismaClient()
 
 async function main() {
   const email = 'superadmin@exam.com'
+  const mobile = '9999999999'
   const password = 'SuperSecurePassword123!'
 
   const existingSuper = await prisma.superAdmin.findUnique({
@@ -16,6 +17,7 @@ async function main() {
     await prisma.superAdmin.create({
       data: {
         email,
+        mobile,
         password: hashedPassword,
       },
     })
