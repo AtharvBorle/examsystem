@@ -21,6 +21,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [completedAttempt, setCompletedAttempt] = useState<any | null>(null)
   const [error, setError] = useState('')
   const [startingExamId, setStartingExamId] = useState<string | null>(null)
+  const [viewingResourceUrl, setViewingResourceUrl] = useState<string | null>(null)
+  const [viewingResourceTitle, setViewingResourceTitle] = useState<string>('')
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
 
@@ -227,6 +229,94 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     } finally {
       setDownloadingAnswersheet(false)
     }
+  }
+
+  const renderResourceModal = () => {
+    if (!viewingResourceUrl) return null
+
+    const absoluteUrl = viewingResourceUrl.startsWith('/') 
+      ? `${window.location.origin}${viewingResourceUrl}` 
+      : viewingResourceUrl
+
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const isPdf = absoluteUrl.toLowerCase().endsWith('.pdf') || absoluteUrl.toLowerCase().includes('/uploads/')
+    const iframeSrc = (isPdf && !isLocalhost)
+      ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(absoluteUrl)}`
+      : absoluteUrl
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(11, 34, 64, 0.95)',
+        zIndex: 99999,
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box'
+      }}>
+        {/* Modal Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px 20px',
+          backgroundColor: '#0b2240',
+          borderBottom: '1px solid #f2bb50',
+          color: '#ffffff'
+        }}>
+          <h3 style={{
+            margin: 0,
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            color: '#f5d782',
+            fontFamily: 'var(--font-serif, serif)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '75%'
+          }}>
+            {viewingResourceTitle || (lang === 'hi' ? 'अध्ययन संसाधन' : 'Study Resource')}
+          </h3>
+          <button 
+            onClick={() => {
+              setViewingResourceUrl(null)
+              setViewingResourceTitle('')
+            }}
+            style={{
+              backgroundColor: '#1b6c3a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              outline: 'none',
+              textTransform: 'uppercase'
+            }}
+          >
+            {lang === 'hi' ? 'बंद करें' : 'Close'}
+          </button>
+        </div>
+
+        {/* Modal Body / iframe */}
+        <div style={{ flex: 1, backgroundColor: '#ffffff', position: 'relative' }}>
+          <iframe 
+            src={iframeSrc} 
+            title="Resource Viewer"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none'
+            }}
+            sandbox="allow-scripts allow-same-origin allow-popups"
+          />
+        </div>
+      </div>
+    )
   }
 
   const t = translations[lang]
@@ -788,25 +878,30 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                       )}
                       
                       {link && (
-                        <a 
-                          href={link} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <button 
+                          onClick={() => {
+                            setViewingResourceTitle(title)
+                            setViewingResourceUrl(link)
+                          }}
                           style={{ 
                             alignSelf: 'flex-start',
                             color: '#c59f2d', 
-                            textDecoration: 'none', 
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
                             fontWeight: 600, 
                             fontSize: '0.95rem',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '6px',
-                            marginTop: '4px'
+                            marginTop: '4px',
+                            outline: 'none'
                           }}
                         >
                           <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
                           <ChevronRight size={18} />
-                        </a>
+                        </button>
                       )}
                     </div>
                   );
@@ -815,6 +910,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             </div>
           </div>
 
+        {renderResourceModal()}
         </div>
       </div>
     )
@@ -1091,31 +1187,37 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   )}
                   
                   {link && (
-                    <a 
-                      href={link} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button 
+                      onClick={() => {
+                        setViewingResourceTitle(title)
+                        setViewingResourceUrl(link)
+                      }}
                       style={{ 
                         alignSelf: 'flex-start',
                         color: '#c59f2d', 
-                        textDecoration: 'none', 
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
                         fontWeight: 600, 
                         fontSize: '0.85rem',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
-                        marginTop: '4px'
+                        marginTop: '4px',
+                        outline: 'none'
                       }}
                     >
                       <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
                       <ChevronRight size={14} />
-                    </a>
+                    </button>
                   )}
                 </div>
               );
             })
           )}
         </div>
+        {renderResourceModal()}
       </div>
     )
   }
@@ -1258,25 +1360,30 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                     )}
                     
                     {link && (
-                      <a 
-                        href={link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
+                      <button 
+                        onClick={() => {
+                          setViewingResourceTitle(title)
+                          setViewingResourceUrl(link)
+                        }}
                         style={{ 
                           alignSelf: 'flex-start',
                           color: 'var(--accent-gold, #c59f2d)', 
-                          textDecoration: 'none', 
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
                           fontWeight: 600, 
                           fontSize: '0.9rem',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          marginTop: '4px'
+                          marginTop: '4px',
+                          outline: 'none'
                         }}
                       >
                         <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
                         <ChevronRight size={14} />
-                      </a>
+                      </button>
                     )}
                   </div>
                 );
@@ -1284,6 +1391,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             )}
           </div>
         </div>
+      {renderResourceModal()}
       </div>
     </div>
   )
