@@ -59,7 +59,10 @@ export async function GET(
     const currentSchool = attempt.student.school
     let schoolName = currentSchool.name
 
-    const targetLang = attempt.language || 'en'
+    const { searchParams } = new URL(req.url)
+    const queryLang = searchParams.get('lang')
+    const targetLang = queryLang || attempt.language || 'en'
+
     if (targetLang !== currentSchool.language) {
       const targetSchool = await prisma.school.findFirst({
         where: {
@@ -72,7 +75,7 @@ export async function GET(
       }
     }
 
-    const classroomName = translateClassroomName(attempt.student.classroom.name, attempt.language || 'en')
+    const classroomName = translateClassroomName(attempt.student.classroom.name, targetLang)
 
     return successResponse({
       certificate: {
@@ -80,9 +83,9 @@ export async function GET(
         studentName: attempt.student.name,
         schoolName,
         classroomName,
-        examName: (attempt.language === 'hi' && attempt.exam.nameHindi) ? attempt.exam.nameHindi : attempt.exam.name,
+        examName: (targetLang === 'hi' && attempt.exam.nameHindi) ? attempt.exam.nameHindi : attempt.exam.name,
         completedAt: attempt.submittedAt,
-        language: attempt.language,
+        language: targetLang,
       },
     })
   } catch (error: any) {

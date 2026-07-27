@@ -1798,6 +1798,42 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     document.body.removeChild(link)
   }
 
+  const handleAdminCertificateDownload = async (row: any) => {
+    if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
+      (window as any).showCustomAlert(lang === 'hi'
+        ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+        : 'Generating your certificate. It will be downloaded/saved shortly.'
+      );
+    } else {
+      window.alert(lang === 'hi'
+        ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+        : 'Generating your certificate. It will be downloaded/saved shortly.'
+      );
+    }
+
+    try {
+      const res = await fetch(`/api/student/exams/attempt/${row.attemptId}/certificate?lang=${lang}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        generateCertificatePDF({
+          studentName: data.certificate.studentName,
+          schoolName: data.certificate.schoolName,
+          classroomName: data.certificate.classroomName,
+          examName: data.certificate.examName,
+          completedAt: data.certificate.completedAt,
+          language: lang,
+        })
+      } else {
+        alert(data.error || 'Failed to fetch certificate details')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Failed to connect to server')
+    }
+  }
+
   if (loading && !data) {
     return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>{t.analyticsLoading}</div>
   }
@@ -2264,7 +2300,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
                       </td>
                       <td>
                         <button
-                          onClick={() => generateCertificatePDF({ ...r, language: lang })}
+                          onClick={() => handleAdminCertificateDownload(r)}
                           className="btn btn-secondary"
                           style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                         >

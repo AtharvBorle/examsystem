@@ -135,7 +135,42 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     }
   }
 
-  const handleCertificateDownload = () => {
+  const handleCertificateDownload = async () => {
+    const attemptId = completedAttempt?.attemptId
+    if (attemptId) {
+      if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
+        (window as any).showCustomAlert(lang === 'hi'
+          ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+          : 'Generating your certificate. It will be downloaded/saved shortly.'
+        );
+      } else {
+        window.alert(lang === 'hi'
+          ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+          : 'Generating your certificate. It will be downloaded/saved shortly.'
+        );
+      }
+
+      try {
+        const res = await fetch(`/api/student/exams/attempt/${attemptId}/certificate?lang=${lang}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (data.success) {
+          generateCertificatePDF({
+            studentName: data.certificate.studentName,
+            schoolName: data.certificate.schoolName,
+            classroomName: data.certificate.classroomName,
+            examName: data.certificate.examName,
+            completedAt: data.certificate.completedAt,
+            language: lang,
+          })
+          return
+        }
+      } catch (err) {
+        console.error('Failed to fetch certificate details:', err)
+      }
+    }
+
     const baseData = completedAttempt || {
       studentName: user.name || 'Student',
       schoolName: user.school?.name || 'School',

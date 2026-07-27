@@ -1195,7 +1195,10 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
         if (data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN') {
           login(data.token, data.user)
         } else {
-          setError(lang === 'hi' ? 'अनधिकृत। केवल एडमिन ही लॉग इन कर सकते हैं।' : 'Unauthorized. Only administrators can log in here.')
+          setError(lang === 'hi' 
+            ? 'अनधिकृत। केवल एडमिन और सुपर-एडमिन ही लॉग इन कर सकते हैं।' 
+            : 'Unauthorized. Only administrators and super-administrators can log in here.'
+          )
         }
       } else {
         setError(data.error || (lang === 'hi' ? 'लॉगिन विफल।' : 'Login failed.'))
