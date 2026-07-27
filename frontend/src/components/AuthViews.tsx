@@ -37,7 +37,7 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier }),
+        body: JSON.stringify({ identifier, language: lang }),
       })
       const data = await res.json()
       if (data.success) {
@@ -1187,7 +1187,7 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, language: lang }),
       })
       const data = await res.json()
       if (data.success) {

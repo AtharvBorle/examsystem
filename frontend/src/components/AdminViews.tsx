@@ -1067,6 +1067,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
             <Award size={36} style={{ color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
+        {/* 
         <div 
           onClick={() => setActiveTab('PASSWORD_RESET')}
           className="card"
@@ -1087,6 +1088,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
             <FileText size={36} style={{ color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
+        */}
       </div>
 
       {activeTab === 'ADMINS' && (
@@ -1452,7 +1454,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         </div>
       )}
 
-      {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang="en" />}
+      {/* {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang="en" />} */}
 
 
 
@@ -2526,6 +2528,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
         >
           {t.tabResources}
         </button>
+        {/* 
         <button
           onClick={() => setActiveTab('PASSWORD_RESET')}
           className="btn-text"
@@ -2539,6 +2542,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
         >
           {lang === 'hi' ? 'भूल गए पासवर्ड' : 'Forgot Password'}
         </button>
+        */}
       </div>
 
       {activeTab === 'ANALYTICS' && <AdminAnalyticsTab token={token} lang={lang} />}
@@ -2548,7 +2552,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
       {activeTab === 'EXAMS' && <AdminExamsTab token={token} lang={lang} />}
       {activeTab === 'APPROVALS' && <AdminApprovalsTab token={token} lang={lang} />}
       {activeTab === 'RESOURCES' && <AdminResourcesTab token={token} lang={lang} />}
-      {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang={lang} />}
+      {/* {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang={lang} />} */}
 
       <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%' }}>
         powered by Neopace Infotech LLP

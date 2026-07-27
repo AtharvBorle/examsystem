@@ -144,7 +144,18 @@ export async function POST(req: NextRequest) {
       mobile: student.mobile,
     })
 
-    const schoolName = student.school.name
+    let schoolName = student.school.name
+    if (student.language === 'hi') {
+      const hiSchool = await prisma.school.findFirst({
+        where: {
+          udise: student.school.udise,
+          language: 'hi',
+        }
+      })
+      if (hiSchool) {
+        schoolName = hiSchool.name
+      }
+    }
     const classroomName = translateClassroomName(student.classroom.name, student.language)
     const resolvedBranch = student.language === 'hi'
       ? (student.school.admin.branchHindi || student.school.admin.branch)

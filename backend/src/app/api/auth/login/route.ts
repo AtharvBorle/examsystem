@@ -8,14 +8,14 @@ import { upsertSchoolTranslation } from '@/lib/school-translator'
 
 export async function POST(req: NextRequest) {
   try {
-    const { identifier, password } = await req.json()
+    const { identifier, password, language } = await req.json()
 
     // Determine if identifier is email or mobile (simple regex)
     const isEmail = identifier?.includes('@')
 
-    // 1. If identifier is a 10-digit mobile number, check if it is a Student.
-    // Students can log in passwordlessly.
-    if (identifier && !isEmail) {
+    // 1. If identifier is a 10-digit mobile number and no password is provided,
+    // this is a student trying to log in passwordlessly.
+    if (identifier && !isEmail && !password) {
       const student = await prisma.student.findUnique({
         where: { mobile: identifier },
         include: {
@@ -34,7 +34,18 @@ export async function POST(req: NextRequest) {
           mobile: student.mobile,
         })
 
-        const schoolName = student.school.name
+        let schoolName = student.school.name
+        if (student.language === 'hi') {
+          const hiSchool = await prisma.school.findFirst({
+            where: {
+              udise: student.school.udise,
+              language: 'hi',
+            }
+          })
+          if (hiSchool) {
+            schoolName = hiSchool.name
+          }
+        }
         const classroomName = translateClassroomName(student.classroom.name, student.language)
         const resolvedBranch = student.language === 'hi'
           ? (student.school.admin.branchHindi || student.school.admin.branch)
@@ -54,6 +65,25 @@ export async function POST(req: NextRequest) {
             branch: resolvedBranch || null,
           },
         })
+      } else {
+        // Not registered as student. Check if they are Admin/SuperAdmin
+        const adminExists = await prisma.admin.findUnique({ where: { mobile: identifier } })
+        const superAdminExists = await prisma.superAdmin.findUnique({ where: { mobile: identifier } })
+        if (adminExists || superAdminExists) {
+          return errorResponse(
+            language === 'hi' 
+              ? 'एडमिन लॉगिन के लिए पासवर्ड आवश्यक है।' 
+              : 'Password is required for administrator login', 
+            400
+          )
+        }
+        
+        return errorResponse(
+          language === 'hi'
+            ? 'मोबाइल नंबर पंजीकृत नहीं है। कृपया पहले पंजीकरण करें।'
+            : 'Mobile number is not registered. Please register first.',
+          400
+        )
       }
     }
 
@@ -148,7 +178,18 @@ export async function POST(req: NextRequest) {
           mobile: student.mobile,
         })
 
-        const schoolName = student.school.name
+        let schoolName = student.school.name
+        if (student.language === 'hi') {
+          const hiSchool = await prisma.school.findFirst({
+            where: {
+              udise: student.school.udise,
+              language: 'hi',
+            }
+          })
+          if (hiSchool) {
+            schoolName = hiSchool.name
+          }
+        }
         const classroomName = translateClassroomName(student.classroom.name, student.language)
         const resolvedBranch = student.language === 'hi'
           ? (student.school.admin.branchHindi || student.school.admin.branch)
@@ -168,6 +209,20 @@ export async function POST(req: NextRequest) {
             branch: resolvedBranch || null,
           },
         })
+      }
+    }
+
+    if (!isEmail) {
+      const studentExists = await prisma.student.findUnique({ where: { mobile: identifier } })
+      const adminExists = await prisma.admin.findUnique({ where: { mobile: identifier } })
+      const superAdminExists = await prisma.superAdmin.findUnique({ where: { mobile: identifier } })
+      if (!studentExists && !adminExists && !superAdminExists) {
+        return errorResponse(
+          language === 'hi'
+            ? 'मोबाइल नंबर पंजीकृत नहीं है। कृपया पहले पंजीकरण करें।'
+            : 'Mobile number is not registered. Please register first.',
+          400
+        )
       }
     }
 

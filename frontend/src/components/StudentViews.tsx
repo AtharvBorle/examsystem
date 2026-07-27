@@ -166,7 +166,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     if (!completedAttempt?.attemptId) return
     setDownloadingAnswersheet(true)
     try {
-      const res = await fetch(`/api/student/exams/attempt/${completedAttempt.attemptId}/answersheet`, {
+      const res = await fetch(`/api/student/exams/attempt/${completedAttempt.attemptId}/answersheet?lang=${lang}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -182,7 +182,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             : 'Generating your answersheet. It will be downloaded/saved shortly.'
           );
         }
-        generateAnswersheetPDF(data.answersheet)
+        generateAnswersheetPDF({ ...data.answersheet, language: lang })
       } else {
         alert(data.error || 'Failed to fetch answersheet details')
       }

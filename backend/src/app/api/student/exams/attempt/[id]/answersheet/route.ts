@@ -45,7 +45,9 @@ export async function GET(
       return errorResponse('Answersheet is not available yet. The exam is not completed.', 400)
     }
 
-    const studentLang = attempt.language || 'en'
+    const { searchParams } = new URL(req.url)
+    const queryLang = searchParams.get('lang')
+    const studentLang = queryLang || attempt.language || 'en'
     const questionsOrder = attempt.questionsOrder as string[]
     const responses = (attempt.responses || {}) as Record<string, string>
 

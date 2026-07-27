@@ -1,5 +1,197 @@
 import { jsPDF } from 'jspdf'
 
+// Helper to translate classroom names to Hindi (Frontend-safe version)
+function translateClassroomToHindi(name: string): string {
+  if (!name) return ''
+  const cleaned = name.trim()
+  
+  const HINDI_ORDINALS: { [key: number]: string } = {
+    1: 'पहली कक्षा (1 कक्षा)',
+    2: 'दूसरी कक्षा (2 कक्षा)',
+    3: 'तीसरी कक्षा (3 कक्षा)',
+    4: 'चौथी कक्षा (4 कक्षा)',
+    5: 'पाँचवीं कक्षा (5 कक्षा)',
+    6: 'छठी कक्षा (6 कक्षा)',
+    7: 'सातवीं कक्षा (7 कक्षा)',
+    8: 'आठवीं कक्षा (8 कक्षा)',
+    9: 'नौवीं कक्षा (9 कक्षा)',
+    10: 'दसवीं कक्षा (10 कक्षा)',
+    11: 'ग्यारहवीं कक्षा (11 कक्षा)',
+    12: 'बारहवीं कक्षा (12 कक्षा)',
+  }
+  
+  const ROMAN_MAP: { [key: string]: number } = {
+    xii: 12, xi: 11, x: 10, ix: 9, viii: 8, vii: 7, vi: 6, v: 5, iv: 4, iii: 3, ii: 2, i: 1
+  }
+  
+  const FALLBACK_WORDS: { [key: string]: string } = {
+    nursery: 'नर्सरी (Nursery)',
+    lkg: 'एल.के.जी. (LKG)',
+    ukg: 'यू.के.जी. (UKG)',
+    balvatika: 'बालवाटिका (Balvatika)',
+    'pre-primary': 'पूर्व-प्राथमिक (Pre-primary)',
+    classroom: 'कक्षा',
+    class: 'कक्षा',
+  }
+
+  const numMatch = cleaned.match(/(12|11|10|[1-9])/)
+  const romanMatch = cleaned.match(/\b(xii|xi|x|ix|viii|vii|vi|v|iv|iii|ii|i)\b/i)
+
+  let num: number | null = null
+  if (numMatch) {
+    num = parseInt(numMatch[1])
+  } else if (romanMatch) {
+    num = ROMAN_MAP[romanMatch[1].toLowerCase()]
+  }
+
+  if (num && HINDI_ORDINALS[num]) {
+    let hindiName = HINDI_ORDINALS[num]
+    const sectionMatch = cleaned.match(/\b([A-D])\b/i)
+    if (sectionMatch) {
+      const section = sectionMatch[1].toUpperCase()
+      const hindiSection = section === 'A' ? 'ए' : section === 'B' ? 'बी' : section === 'C' ? 'सी' : 'डी'
+      hindiName += ` - ${hindiSection}`
+    }
+    return hindiName
+  }
+
+  const lower = cleaned.toLowerCase()
+  for (const [engWord, hiWord] of Object.entries(FALLBACK_WORDS)) {
+    if (lower.includes(engWord)) {
+      return hiWord
+    }
+  }
+
+  return name
+}
+
+// Helper to translate school names to Hindi (Frontend-safe version)
+function translateSchoolToHindi(name: string): string {
+  if (!name) return ''
+  if (/[\u0900-\u097F]/.test(name)) {
+    return name
+  }
+
+  const SCHOOL_WORD_MAP: { [key: string]: string } = {
+    school: 'स्कूल',
+    academy: 'अकादमी',
+    public: 'पब्लिक',
+    international: 'इंटरनेशनल',
+    english: 'इंग्लिश',
+    medium: 'मीडियम',
+    hindi: 'हिंदी',
+    marathi: 'मराठी',
+    'high school': 'हाई स्कूल',
+    highschool: 'हाईस्कूल',
+    primary: 'प्राथमिक',
+    secondary: 'माध्यमिक',
+    higher: 'उच्च',
+    govt: 'शासकीय',
+    government: 'शासकीय',
+    zilla: 'जिला',
+    parishad: 'परिषद',
+    'z.p.': 'जि.प.',
+    'z p': 'जि.प.',
+    zp: 'जि.प.',
+    vidyalaya: 'विद्यालय',
+    shala: 'शाला',
+    model: 'मॉडल',
+    boys: 'बॉयज',
+    girls: 'गर्ल्स',
+    memorial: 'मेमोरियल',
+    convent: 'कॉन्वेंट',
+    'junior college': 'जूनियर कॉलेज',
+    college: 'कॉलेज',
+    national: 'नेशनल',
+    modern: 'मॉडर्न',
+    golden: 'गोल्डन',
+    valley: 'वैली',
+    bright: 'ब्राइट',
+    future: 'फ्यूचर',
+    little: 'लिटिल',
+    flower: 'फ्लावर',
+    st: 'सेंट',
+    saint: 'सेंट',
+    holy: 'होली',
+    cross: 'क्रॉस',
+    heart: 'हार्ट',
+    infant: 'इन्फेंट',
+    jesus: 'जीसस',
+    mary: 'मैरी',
+    central: 'सेंट्रल',
+    education: 'एजुकेशन',
+    trust: 'ट्रस्ट',
+    society: 'सोसाइटी',
+    institution: 'इंस्टीट्यूशन',
+    group: 'ग्रुप',
+    new: 'न्यू',
+    era: 'एरा',
+  }
+
+  let lower = name.toLowerCase().trim()
+  if (lower === 'new era academy') return 'न्यू एरा अकादमी'
+  if (lower === 'new era school') return 'न्यू एरा स्कूल'
+
+  let translated = name
+  const multiWords = ['high school', 'junior college', 'english medium', 'zilla parishad']
+  for (const mw of multiWords) {
+    if (lower.includes(mw)) {
+      const regex = new RegExp(`\\b${mw}\\b`, 'gi')
+      translated = translated.replace(regex, SCHOOL_WORD_MAP[mw])
+    }
+  }
+
+  const tokens = translated.split(/\s+/)
+  const mappedTokens = tokens.map(token => {
+    const cleanToken = token.toLowerCase().replace(/[^a-z0-9.]/g, '')
+    if (SCHOOL_WORD_MAP[cleanToken]) {
+      return SCHOOL_WORD_MAP[cleanToken]
+    }
+    return token
+  })
+
+  return mappedTokens.join(' ')
+}
+
+// Helper to translate exam names to Hindi (Frontend-safe version)
+function translateExamToHindi(name: string): string {
+  if (!name) return ''
+  if (/[\u0900-\u097F]/.test(name)) {
+    return name
+  }
+  const lower = name.toLowerCase().trim()
+  if (lower === 'examination' || lower === 'exam') return 'परीक्षा'
+  
+  const EXAM_WORDS: { [key: string]: string } = {
+    examination: 'परीक्षा',
+    exam: 'परीक्षा',
+    term: 'सत्र',
+    semester: 'समेस्टर',
+    quarterly: 'त्रैमासिक',
+    half: 'अर्धवार्षिक',
+    yearly: 'वार्षिक',
+    annual: 'वार्षिक',
+    weekly: 'सापचारिक',
+    monthly: 'मासिक',
+    test: 'परीक्षण',
+    final: 'अंतिम',
+    first: 'प्रथम',
+    second: 'द्वितीय',
+    third: 'तृतीय',
+  }
+
+  const tokens = name.split(/\s+/)
+  const mappedTokens = tokens.map(token => {
+    const cleanToken = token.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (EXAM_WORDS[cleanToken]) {
+      return EXAM_WORDS[cleanToken]
+    }
+    return token
+  })
+
+  return mappedTokens.join(' ')
+}
+
 export function generateCertificatePDF(data: {
   studentName: string
   schoolName: string
@@ -99,7 +291,8 @@ export function generateCertificatePDF(data: {
   // Exam Name
   setCanvasFont('bold', 18)
   ctx.fillStyle = 'rgb(27, 45, 66)'
-  ctx.fillText(data.examName, scale(297 / 2), scale(127))
+  const displayExam = isHindi ? translateExamToHindi(data.examName) : data.examName
+  ctx.fillText(displayExam, scale(297 / 2), scale(127))
 
   // Date
   setCanvasFont('normal', 14)
@@ -119,9 +312,11 @@ export function generateCertificatePDF(data: {
   // School and Class Metadata
   setCanvasFont('italic', 12)
   ctx.fillStyle = 'rgb(44, 44, 44)'
+  const displayClassroom = isHindi ? translateClassroomToHindi(data.classroomName) : data.classroomName
+  const displaySchool = isHindi ? translateSchoolToHindi(data.schoolName) : data.schoolName
   const metaText = isHindi 
-    ? `कक्षा: ${data.classroomName}   |   विद्यालय: ${data.schoolName}`
-    : `Classroom: ${data.classroomName}   |   School: ${data.schoolName}`
+    ? `कक्षा: ${displayClassroom}   |   विद्यालय: ${displaySchool}`
+    : `Classroom: ${displayClassroom}   |   School: ${displaySchool}`
   ctx.fillText(metaText, scale(297 / 2), scale(155))
 
   // Footer signatures lines and labels
@@ -257,36 +452,51 @@ export function generateAnswersheetPDF(data: {
   
   y += 110
 
+  // Calculate detailed stats
+  const attemptedCount = data.questions.filter(q => q.studentResponse && q.studentResponse.trim() !== '').length
+  const wrongCount = data.questions.filter(q => q.studentResponse && q.studentResponse.trim() !== '' && q.studentResponse !== q.correctOption).length
+  const unansweredCount = data.totalQuestions - attemptedCount
+
   // Draw metadata box
   ctx.fillStyle = '#f7fafc'
-  ctx.fillRect(30, y, 1140, 120)
+  ctx.fillRect(30, y, 1140, 130)
   ctx.strokeStyle = '#cbd5e0'
   ctx.lineWidth = 1
-  ctx.strokeRect(30, y, 1140, 120)
+  ctx.strokeRect(30, y, 1140, 130)
 
+  // Labels (Col 1: 55, Col 2: 560, Col 3: 880)
   setFont(ctx, 'bold', 14)
   ctx.fillStyle = '#2d3748'
   ctx.fillText(isHindi ? `छात्र का नाम: ` : `Student Name: `, 55, y + 35)
   ctx.fillText(isHindi ? `परीक्षा का नाम: ` : `Exam Name: `, 55, y + 70)
-  ctx.fillText(isHindi ? `दिनांक: ` : `Date: `, 55, y + 100)
+  ctx.fillText(isHindi ? `दिनांक: ` : `Date: `, 55, y + 105)
 
-  ctx.fillText(isHindi ? `प्राप्तांक: ` : `Score: `, 700, y + 35)
-  ctx.fillText(isHindi ? `सही उत्तर: ` : `Correct Answers: `, 700, y + 70)
+  ctx.fillText(isHindi ? `प्राप्तांक: ` : `Score: `, 560, y + 35)
+  ctx.fillText(isHindi ? `प्रयास किए गए: ` : `Attempted: `, 560, y + 70)
+  ctx.fillText(isHindi ? `अनुत्तरित: ` : `Unanswered: `, 560, y + 105)
 
+  ctx.fillText(isHindi ? `सही उत्तर: ` : `Correct: `, 880, y + 35)
+  ctx.fillText(isHindi ? `गलत उत्तर: ` : `Wrong: `, 880, y + 70)
+
+  // Values (Col 1: 185, Col 2: 700, Col 3: 980)
   setFont(ctx, 'normal', 14)
-  ctx.fillText(data.studentName, 175, y + 35)
-  ctx.fillText(data.examName, 175, y + 70)
+  ctx.fillText(data.studentName, 185, y + 35)
+  ctx.fillText(isHindi ? translateExamToHindi(data.examName) : data.examName, 185, y + 70)
   
   const formattedDate = new Date(data.completedAt).toLocaleDateString(
     isHindi ? 'hi-IN' : 'en-US',
     { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
   )
-  ctx.fillText(formattedDate, 175, y + 100)
+  ctx.fillText(formattedDate, 185, y + 105)
 
-  ctx.fillText(`${data.score.toFixed(1)}%`, 830, y + 35)
-  ctx.fillText(`${data.correctAnswers} / ${data.totalQuestions}`, 830, y + 70)
+  ctx.fillText(`${data.score.toFixed(1)}%`, 700, y + 35)
+  ctx.fillText(`${attemptedCount} / ${data.totalQuestions}`, 700, y + 70)
+  ctx.fillText(`${unansweredCount}`, 700, y + 105)
 
-  y += 160
+  ctx.fillText(`${data.correctAnswers}`, 980, y + 35)
+  ctx.fillText(`${wrongCount}`, 980, y + 70)
+
+  y += 170
 
   // Wrap text helper
   const getWrappedLines = (text: string, maxWidth: number): string[] => {
