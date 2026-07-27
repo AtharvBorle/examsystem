@@ -1220,8 +1220,8 @@ input::-webkit-credentials-auto-fill-button {
 .mobile-dashboard-container {
   min-height: 100vh;
   width: 100%;
-  background: url('../assets/rss_after_login.png') no-repeat center top;
-  background-size: cover;
+  background: #fffcf6 url('../assets/rss_after_login.png') no-repeat center top;
+  background-size: 100% auto;
   padding: 1.5rem 1.25rem;
   box-sizing: border-box;
   display: flex;

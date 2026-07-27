@@ -912,15 +912,30 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
         {error && <div className="alert alert-danger" style={{ marginBottom: '1rem', width: '100%' }}>{error}</div>}
 
-        {/* Exams list inside scrollable wrapper */}
-        <div style={{ maxHeight: '420px', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
+        {/* Exams list inside horizontal scrollable wrapper */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'row', 
+          overflowX: 'auto', 
+          width: '100%', 
+          gap: '1rem',
+          paddingBottom: '1rem',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}>
           {exams.length === 0 ? (
-            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0' }}>
+            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
               {t.noExams}
             </div>
           ) : (
             exams.map((ex) => (
-              <div key={ex.id} className="mobile-dashboard-card">
+              <div key={ex.id} className="mobile-dashboard-card" style={{ 
+                flexShrink: 0, 
+                width: '85%', 
+                maxWidth: '320px', 
+                marginBottom: 0,
+                boxSizing: 'border-box'
+              }}>
                 {ex.categoryName && (
                   <span className="badge badge-outline" style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>
                     {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
@@ -1027,10 +1042,20 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           <div style={{ width: '80px', height: '1px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
         </div>
 
-        {/* Resources Section container with max height scroll */}
-        <div style={{ maxHeight: '350px', overflowY: 'auto', width: '100%', paddingRight: '4px', marginBottom: '2rem' }}>
+        {/* Resources Section container with horizontal scroll */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'row', 
+          overflowX: 'auto', 
+          width: '100%', 
+          gap: '1rem',
+          paddingBottom: '1rem',
+          marginBottom: '2rem',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}>
           {resources.length === 0 ? (
-            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0' }}>
+            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
               {t.noResources}
             </div>
           ) : (
@@ -1040,7 +1065,15 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
               const description = (lang === 'hi' && res.descriptionHindi) ? res.descriptionHindi : res.description;
 
               return (
-                <div key={res.id} className="mobile-dashboard-card" style={{ padding: '1.25rem 1rem', gap: '8px' }}>
+                <div key={res.id} className="mobile-dashboard-card" style={{ 
+                  padding: '1.25rem 1rem', 
+                  gap: '8px',
+                  flexShrink: 0,
+                  width: '80%',
+                  maxWidth: '280px',
+                  marginBottom: 0,
+                  boxSizing: 'border-box'
+                }}>
                   <h4 style={{
                     fontFamily: 'var(--font-serif, Georgia, serif)',
                     fontSize: '1.15rem',
