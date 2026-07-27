@@ -28,6 +28,7 @@ model Admin {
   mobile         String       @unique
   password       String
   branch         String?
+  branchHindi    String?
   userCountLimit Int?         // Limit on exam attempts across all schools managed by this admin (null = unlimited)
   userCountUsed  Int          @default(0)
   createdById    String

@@ -215,9 +215,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   const [district, setDistrict] = useState('')
   const [tehsil, setTehsil] = useState('')
   const [mobile, setMobile] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   // OTP state variables
@@ -822,44 +820,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
               </div>
             )}
 
-            {/* Password Field */}
-            <div className="new-form-group">
-              <label className="field-label">
-                <Lock size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
-                {t.password}
-              </label>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className="input-field"
-                  style={{ paddingRight: '40px' }}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t.choosePassword}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#8c6239',
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
+
 
             {/* Submit Button */}
             <button

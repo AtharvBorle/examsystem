@@ -702,6 +702,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const [password, setPassword] = useState('')
   const [userCountLimit, setUserCountLimit] = useState('')
   const [branch, setBranch] = useState('')
+  const [branchHindi, setBranchHindi] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -856,6 +857,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
           password,
           userCountLimit: userCountLimit ? parseInt(userCountLimit) : null,
           branch: branch || undefined,
+          branchHindi: branchHindi || undefined,
         }),
       })
       const data = await res.json()
@@ -866,6 +868,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         setPassword('')
         setUserCountLimit('')
         setBranch('')
+        setBranchHindi('')
         fetchDashboardData()
       } else {
         setError(data.error || 'Failed to create admin.')
@@ -884,6 +887,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     setPassword('') // Leave blank unless changing
     setUserCountLimit(adm.userCountLimit !== null ? String(adm.userCountLimit) : '')
     setBranch(adm.branch || '')
+    setBranchHindi(adm.branchHindi || '')
     setError('')
     setSuccess('')
   }
@@ -895,6 +899,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     setPassword('')
     setUserCountLimit('')
     setBranch('')
+    setBranchHindi('')
     setError('')
     setSuccess('')
   }
@@ -919,6 +924,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
           password: password || undefined,
           userCountLimit: userCountLimit ? parseInt(userCountLimit) : null,
           branch: branch || '',
+          branchHindi: branchHindi || '',
         }),
       })
       const data = await res.json()
@@ -1140,13 +1146,23 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                 </span>
               </div>
               <div className="form-group">
-                <label className="form-label">Branch (Optional)</label>
+                <label className="form-label">Branch (English) (Optional)</label>
                 <input
                   type="text"
                   className="form-input"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
-                  placeholder="e.g. Science, Commerce, Central"
+                  placeholder="e.g. Science, Commerce"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Branch (Hindi) (Optional)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={branchHindi}
+                  onChange={(e) => setBranchHindi(e.target.value)}
+                  placeholder="e.g. विज्ञान, वाणिज्य"
                 />
               </div>
               <button type="submit" className="btn btn-primary w-full" style={{ width: '100%' }} disabled={submitting}>
@@ -1192,8 +1208,11 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Mob: {adm.mobile}</div>
                         </td>
                         <td style={{ fontSize: '0.85rem' }}>
-                          {adm.branch ? (
-                            <span className="badge badge-success">{adm.branch}</span>
+                          {adm.branch || adm.branchHindi ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {adm.branch && <span className="badge badge-success" style={{ width: 'fit-content', fontSize: '0.75rem', padding: '0.15rem 0.4rem' }}>{adm.branch}</span>}
+                              {adm.branchHindi && <span className="badge badge-outline" style={{ width: 'fit-content', fontSize: '0.75rem', padding: '0.15rem 0.4rem', borderColor: '#c5a059', color: '#c5a059' }}>{adm.branchHindi}</span>}
+                            </div>
                           ) : (
                             <span style={{ color: 'var(--text-muted)' }}>-</span>
                           )}

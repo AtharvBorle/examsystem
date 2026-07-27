@@ -146,6 +146,9 @@ export async function POST(req: NextRequest) {
 
     const schoolName = student.school.name
     const classroomName = translateClassroomName(student.classroom.name, student.language)
+    const resolvedBranch = student.language === 'hi'
+      ? (student.school.admin.branchHindi || student.school.admin.branch)
+      : student.school.admin.branch
 
     if (requiresApproval) {
       return successResponse({
@@ -161,7 +164,7 @@ export async function POST(req: NextRequest) {
           school: { id: student.school.id, name: schoolName },
           classroom: { id: student.classroom.id, name: classroomName },
           approved: false,
-          branch: student.school.admin.branch,
+          branch: resolvedBranch || null,
         },
         message: 'A student with this name is already registered in this classroom. Your registration is pending admin approval.'
       }, 201)
@@ -178,7 +181,7 @@ export async function POST(req: NextRequest) {
         school: { id: student.school.id, name: schoolName },
         classroom: { id: student.classroom.id, name: classroomName },
         approved: true,
-        branch: student.school.admin.branch,
+        branch: resolvedBranch || null,
       },
     }, 201)
   } catch (error: any) {

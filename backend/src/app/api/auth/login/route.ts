@@ -36,6 +36,9 @@ export async function POST(req: NextRequest) {
 
         const schoolName = student.school.name
         const classroomName = translateClassroomName(student.classroom.name, student.language)
+        const resolvedBranch = student.language === 'hi'
+          ? (student.school.admin.branchHindi || student.school.admin.branch)
+          : student.school.admin.branch
 
         return successResponse({
           token,
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
             school: { id: student.school.id, name: schoolName },
             classroom: { id: student.classroom.id, name: classroomName },
             approved: student.approved,
-            branch: student.school.admin.branch,
+            branch: resolvedBranch || null,
           },
         })
       }
@@ -147,6 +150,9 @@ export async function POST(req: NextRequest) {
 
         const schoolName = student.school.name
         const classroomName = translateClassroomName(student.classroom.name, student.language)
+        const resolvedBranch = student.language === 'hi'
+          ? (student.school.admin.branchHindi || student.school.admin.branch)
+          : student.school.admin.branch
 
         return successResponse({
           token,
@@ -159,7 +165,7 @@ export async function POST(req: NextRequest) {
             school: { id: student.school.id, name: schoolName },
             classroom: { id: student.classroom.id, name: classroomName },
             approved: student.approved,
-            branch: student.school.admin.branch,
+            branch: resolvedBranch || null,
           },
         })
       }

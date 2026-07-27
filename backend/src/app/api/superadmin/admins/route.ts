@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
         userCountLimit: true,
         userCountUsed: true,
         branch: true,
+        branchHindi: true,
         createdAt: true,
       },
     })
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       return errorResponse('Unauthorized. Super-Admin access required.', 401)
     }
 
-    const { email, mobile, password, userCountLimit, branch } = await req.json()
+    const { email, mobile, password, userCountLimit, branch, branchHindi } = await req.json()
 
     if (!email || !mobile || !password) {
       return errorResponse('Email, mobile, and password are required', 400)
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         userCountLimit: limit,
         branch: branch || null,
+        branchHindi: branchHindi || null,
         createdById: user.userId,
       },
       select: {
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
         userCountLimit: true,
         userCountUsed: true,
         branch: true,
+        branchHindi: true,
         createdAt: true,
       },
     })
@@ -194,7 +197,7 @@ export async function PUT(req: NextRequest) {
       return errorResponse('Unauthorized. Super-Admin access required.', 401)
     }
 
-    const { id, email, mobile, password, userCountLimit, branch } = await req.json()
+    const { id, email, mobile, password, userCountLimit, branch, branchHindi } = await req.json()
 
     if (!id) {
       return errorResponse('Admin ID is required', 400)
@@ -239,6 +242,10 @@ export async function PUT(req: NextRequest) {
       updateData.branch = branch || null;
     }
 
+    if (branchHindi !== undefined) {
+      updateData.branchHindi = branchHindi || null;
+    }
+
     const updatedAdmin = await prisma.admin.update({
       where: { id },
       data: updateData,
@@ -249,6 +256,7 @@ export async function PUT(req: NextRequest) {
         userCountLimit: true,
         userCountUsed: true,
         branch: true,
+        branchHindi: true,
         createdAt: true,
       }
     })

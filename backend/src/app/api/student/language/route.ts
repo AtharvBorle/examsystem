@@ -18,7 +18,13 @@ export async function POST(req: NextRequest) {
     // Find current student and school details
     const student = await prisma.student.findUnique({
       where: { id: user.userId },
-      include: { school: true }
+      include: {
+        school: {
+          include: {
+            admin: true
+          }
+        }
+      }
     })
     if (!student) {
       return errorResponse('Student not found', 404)
@@ -60,18 +66,26 @@ export async function POST(req: NextRequest) {
         schoolId: targetSchoolId,
       },
       include: {
-        school: true,
+        school: {
+          include: {
+            admin: true
+          }
+        },
         classroom: true,
       }
     })
 
     const classroomName = translateClassroomName(updated.classroom.name, updated.language)
+    const branchName = updated.language === 'hi'
+      ? (updated.school.admin.branchHindi || updated.school.admin.branch)
+      : updated.school.admin.branch
 
     return successResponse({ 
       message: 'Language updated successfully',
       language: updated.language,
       school: { id: updated.school.id, name: schoolName },
       classroom: { id: updated.classroom.id, name: classroomName },
+      branch: branchName || null,
     })
   } catch (error: any) {
     console.error('Update student language error:', error)

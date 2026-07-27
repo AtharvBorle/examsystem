@@ -145,7 +145,8 @@ function MainLayout() {
               ...user,
               language: newLang,
               school: data.school || user.school,
-              classroom: data.classroom || user.classroom
+              classroom: data.classroom || user.classroom,
+              branch: data.branch || user.branch
             }
             login(token, updatedUser)
           }
