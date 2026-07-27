@@ -10,6 +10,7 @@ export interface User {
   classroom?: { id: string; name: string }
   language?: string
   approved?: boolean
+  branch?: string
 }
 
 interface AuthContextType {

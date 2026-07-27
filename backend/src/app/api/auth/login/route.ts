@@ -10,12 +10,53 @@ export async function POST(req: NextRequest) {
   try {
     const { identifier, password } = await req.json()
 
+    // Determine if identifier is email or mobile (simple regex)
+    const isEmail = identifier?.includes('@')
+
+    // 1. If identifier is a 10-digit mobile number, check if it is a Student.
+    // Students can log in passwordlessly.
+    if (identifier && !isEmail) {
+      const student = await prisma.student.findUnique({
+        where: { mobile: identifier },
+        include: {
+          school: {
+            include: {
+              admin: true
+            }
+          },
+          classroom: true
+        },
+      })
+      if (student) {
+        const token = signToken({
+          userId: student.id,
+          role: 'STUDENT',
+          mobile: student.mobile,
+        })
+
+        const schoolName = student.school.name
+        const classroomName = translateClassroomName(student.classroom.name, student.language)
+
+        return successResponse({
+          token,
+          user: {
+            id: student.id,
+            name: student.name,
+            mobile: student.mobile,
+            role: 'STUDENT',
+            language: student.language,
+            school: { id: student.school.id, name: schoolName },
+            classroom: { id: student.classroom.id, name: classroomName },
+            approved: student.approved,
+            branch: student.school.admin.branch,
+          },
+        })
+      }
+    }
+
     if (!identifier || !password) {
       return errorResponse('Identifier (email/mobile) and password are required', 400)
     }
-
-        // Determine if identifier is email or mobile (simple regex)
-    const isEmail = identifier.includes('@')
 
     if (isEmail) {
       const normalizedIdentifier = identifier.toLowerCase().trim()
@@ -88,7 +129,14 @@ export async function POST(req: NextRequest) {
       // 4. Check Student by Mobile
       const student = await prisma.student.findUnique({
         where: { mobile: identifier },
-        include: { school: true, classroom: true },
+        include: {
+          school: {
+            include: {
+              admin: true
+            }
+          },
+          classroom: true
+        },
       })
       if (student && (await bcrypt.compare(password, student.password))) {
         const token = signToken({
@@ -111,6 +159,7 @@ export async function POST(req: NextRequest) {
             school: { id: student.school.id, name: schoolName },
             classroom: { id: student.classroom.id, name: classroomName },
             approved: student.approved,
+            branch: student.school.admin.branch,
           },
         })
       }

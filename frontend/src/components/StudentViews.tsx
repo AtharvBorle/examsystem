@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { translations, Language } from '../utils/localization'
 import { useAuth, User } from '../context/AuthContext'
-import { generateCertificatePDF } from '../utils/pdfGenerator'
+import { generateCertificatePDF, generateAnswersheetPDF } from '../utils/pdfGenerator'
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
@@ -16,6 +16,7 @@ import webDashboardBg from '../assets/rss_web_dashboard.png'
    ========================================== */
 export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: { token: string | null; user: User; lang: Language; onChangeLang: (lang: Language) => void; onLogout?: () => void }) {
   const [exams, setExams] = useState<any[]>([])
+  const [resources, setResources] = useState<any[]>([])
   const [activeSession, setActiveSession] = useState<any | null>(null)
   const [completedAttempt, setCompletedAttempt] = useState<any | null>(null)
   const [error, setError] = useState('')
@@ -45,8 +46,23 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     }
   }
 
+  const fetchResources = async () => {
+    try {
+      const res = await fetch('/api/student/resources', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setResources(data.resources)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   useEffect(() => {
     fetchExams()
+    fetchResources()
   }, [token, user.language])
 
   const handleStartExam = async (examId: string) => {
@@ -142,6 +158,40 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       ...baseData,
       language: lang,
     })
+  }
+
+  const [downloadingAnswersheet, setDownloadingAnswersheet] = useState(false)
+
+  const handleAnswersheetDownload = async () => {
+    if (!completedAttempt?.attemptId) return
+    setDownloadingAnswersheet(true)
+    try {
+      const res = await fetch(`/api/student/exams/attempt/${completedAttempt.attemptId}/answersheet`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
+          (window as any).showCustomAlert(lang === 'hi'
+            ? 'आपकी उत्तर पुस्तिका तैयार की जा रही है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+            : 'Generating your answersheet. It will be downloaded/saved shortly.'
+          );
+        } else {
+          window.alert(lang === 'hi'
+            ? 'आपकी उत्तर पुस्तिका तैयार की जा रही है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+            : 'Generating your answersheet. It will be downloaded/saved shortly.'
+          );
+        }
+        generateAnswersheetPDF(data.answersheet)
+      } else {
+        alert(data.error || 'Failed to fetch answersheet details')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Connection failed')
+    } finally {
+      setDownloadingAnswersheet(false)
+    }
   }
 
   const t = translations[lang]
@@ -253,6 +303,32 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           >
             <Award size={20} /> {lang === 'hi' ? 'प्रमाण पत्र डाउनलोड करें' : 'DOWNLOAD PARTICIPATION CERTIFICATE'}
           </button>
+
+          <button
+            onClick={() => handleAnswersheetDownload()}
+            disabled={downloadingAnswersheet}
+            style={{
+              backgroundColor: '#1b6c3a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '12px',
+              height: '56px',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              boxShadow: '0 4px 10px rgba(27, 108, 58, 0.2)',
+              outline: 'none',
+              width: '100%',
+              opacity: downloadingAnswersheet ? 0.7 : 1
+            }}
+          >
+            <FileText size={20} /> {downloadingAnswersheet ? (lang === 'hi' ? 'तैयार किया जा रहा है...' : 'GENERATING...') : (lang === 'hi' ? 'उत्तर पुस्तिका डाउनलोड करें' : 'DOWNLOAD ANSWERSHEET')}
+          </button>
           
           <button
             onClick={() => setCompletedAttempt(null)}
@@ -329,6 +405,24 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
         {/* Header section with Welcome and Student Name */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+          {user.branch && (
+            <span style={{
+              fontFamily: 'var(--font-sans, sans-serif)',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: '#ffffff',
+              backgroundColor: '#c5a059',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              marginBottom: '0.75rem',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              display: 'inline-block'
+            }}>
+              {user.branch}
+            </span>
+          )}
           <p style={{
             fontFamily: 'var(--font-sans, sans-serif)',
             fontSize: '1.5rem',
@@ -386,195 +480,307 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
         </div>
 
-        {/* Section title "My Examination" with gold lotus divider */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-          <h2 style={{
-            fontFamily: 'var(--font-serif, Georgia, serif)',
-            fontSize: '2rem',
-            fontWeight: 700,
-            color: '#0b2240',
-            margin: 0
-          }}>
-            {lang === 'hi' ? 'मेरी परीक्षा' : 'My Examination'}
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
-            <div style={{ width: '60px', height: '2px', background: '#c59f2d' }}></div>
-            <svg viewBox="0 0 100 100" style={{ width: '24px', height: '24px', fill: '#d4af37' }}>
-              <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
-              <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
-              <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
-              <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
-              <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
-            </svg>
-            <div style={{ width: '60px', height: '2px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
-          </div>
-        </div>
-
+        {/* Section title and content area divided into columns */}
         {error && <div className="alert alert-danger" style={{ marginBottom: '1.5rem', width: '100%', maxWidth: '600px' }}>{error}</div>}
 
-        {exams.length === 0 ? (
-          <div style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid rgba(197, 160, 89, 0.2)',
-            borderRadius: '16px',
-            padding: '3rem',
-            textAlign: 'center',
-            color: '#a0aec0',
-            fontSize: '1.1rem'
-          }}>
-            {t.noExams}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '1200px' }}>
-            {exams.map((ex) => (
-              <div key={ex.id} style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid rgba(197, 160, 89, 0.25)',
-                borderRadius: '16px',
-                padding: '24px 32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
+        <div style={{ display: 'flex', gap: '2.5rem', width: '100%', maxWidth: '1200px', alignItems: 'flex-start' }}>
+          
+          {/* Left Column: My Examination */}
+          <div style={{ flex: 3, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '2rem' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-serif, Georgia, serif)',
+                fontSize: '2rem',
+                fontWeight: 700,
+                color: '#0b2240',
+                margin: 0
               }}>
-                {/* Left Column: Exam Name */}
-                <div style={{ flex: 1, paddingRight: '24px' }}>
-                  <h3 style={{
-                    fontFamily: 'var(--font-serif, Georgia, serif)',
-                    fontSize: '1.75rem',
-                    fontWeight: 700,
-                    color: '#0b2240',
-                    margin: 0,
-                    lineHeight: 1.3,
-                    textTransform: 'uppercase'
+                {lang === 'hi' ? 'मेरी परीक्षा' : 'My Examination'}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+                <div style={{ width: '60px', height: '2px', background: '#c59f2d' }}></div>
+                <svg viewBox="0 0 100 100" style={{ width: '24px', height: '24px', fill: '#d4af37' }}>
+                  <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+                  <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+                  <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+                  <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+                  <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+                </svg>
+                <div style={{ width: '60px', height: '2px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
+              </div>
+            </div>
+
+            <div style={{ maxHeight: '650px', overflowY: 'auto', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {exams.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(197, 160, 89, 0.2)',
+                  borderRadius: '16px',
+                  padding: '3rem',
+                  textAlign: 'center',
+                  color: '#a0aec0',
+                  fontSize: '1.1rem'
+                }}>
+                  {t.noExams}
+                </div>
+              ) : (
+                exams.map((ex) => (
+                  <div key={ex.id} style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(197, 160, 89, 0.25)',
+                    borderRadius: '16px',
+                    padding: '24px 32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
                   }}>
-                    {ex.name}
-                  </h3>
-                </div>
-
-                {/* Vertical Divider */}
-                <div style={{ width: '1px', height: '80px', backgroundColor: '#e2d5c5', margin: '0 32px' }}></div>
-
-                {/* Middle Column: Metadata */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '240px' }}>
-                  {/* Date */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Calendar size={22} style={{ color: '#0b2240' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#8c6239', fontWeight: 600 }}>
-                        {lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}
-                      </span>
-                      <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
-                        {new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Duration */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Clock size={22} style={{ color: '#0b2240' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#8c6239', fontWeight: 600 }}>
-                        {lang === 'hi' ? 'अवधि' : 'Duration'}
-                      </span>
-                      <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
-                        {ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Take Exam Button */}
-                <div style={{ minWidth: '220px', display: 'flex', justifyContent: 'flex-end', marginLeft: '24px' }}>
-                  {ex.attemptStatus === 'COMPLETED' ? (
-                    <div style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'flex-end' }}>
-                      <div style={{
-                        backgroundColor: '#147a33',
-                        color: '#ffffff',
-                        height: '52px',
-                        padding: '0 24px',
-                        borderRadius: '10px',
-                        fontSize: '1rem',
+                    {/* Left Column: Exam Name & Category */}
+                    <div style={{ flex: 1, paddingRight: '24px', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                      {ex.categoryName && (
+                        <span className="badge badge-outline" style={{ display: 'inline-block' }}>
+                          {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
+                        </span>
+                      )}
+                      <h3 style={{
+                        fontFamily: 'var(--font-serif, Georgia, serif)',
+                        fontSize: '1.75rem',
                         fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexGrow: 1
+                        color: '#0b2240',
+                        margin: 0,
+                        lineHeight: 1.3,
+                        textTransform: 'uppercase'
                       }}>
-                        {t.completed}
-                      </div>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
-                              headers: { Authorization: `Bearer ${token}` }
-                            })
-                            const data = await res.json()
-                            if (data.success) {
-                              setCompletedAttempt(data.certificate)
-                            }
-                          } catch (err) {
-                            console.error(err)
-                          }
-                        }}
-                        style={{
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #f2bb50',
-                          color: '#0b2240',
-                          width: '52px',
-                          height: '52px',
-                          borderRadius: '10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          outline: 'none'
-                        }}
-                        title="Certificate Details"
-                      >
-                        <Award size={22} style={{ color: '#f2bb50' }} />
-                      </button>
+                        {ex.name}
+                      </h3>
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => handleStartExam(ex.id)}
-                      disabled={startingExamId !== null}
-                      style={{
-                        backgroundColor: '#0b2240',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '10px',
-                        height: '52px',
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '12px',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 10px rgba(11, 34, 64, 0.15)',
-                        outline: 'none'
-                      }}
-                    >
-                      {startingExamId === ex.id ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className="spinner-small" style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}></span>
-                          <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading...'}</span>
+
+                    {/* Vertical Divider */}
+                    <div style={{ width: '1px', height: '80px', backgroundColor: '#e2d5c5', margin: '0 32px' }}></div>
+
+                    {/* Middle Column: Metadata */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '240px' }}>
+                      {/* Date */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Calendar size={22} style={{ color: '#0b2240' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#8c6239', fontWeight: 600 }}>
+                            {lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}
+                          </span>
+                          <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
+                            {new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Duration */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Clock size={22} style={{ color: '#0b2240' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#8c6239', fontWeight: 600 }}>
+                            {lang === 'hi' ? 'अवधि' : 'Duration'}
+                          </span>
+                          <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
+                            {ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Take Exam Button */}
+                    <div style={{ minWidth: '220px', display: 'flex', justifyContent: 'flex-end', marginLeft: '24px' }}>
+                      {ex.attemptStatus === 'COMPLETED' ? (
+                        <div style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'flex-end' }}>
+                          <div style={{
+                            backgroundColor: '#147a33',
+                            color: '#ffffff',
+                            height: '52px',
+                            padding: '0 24px',
+                            borderRadius: '10px',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexGrow: 1
+                          }}>
+                            {t.completed}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
+                                  headers: { Authorization: `Bearer ${token}` }
+                                })
+                                const data = await res.json()
+                                if (data.success) {
+                                  setCompletedAttempt(data.certificate)
+                                }
+                              } catch (err) {
+                                console.error(err)
+                              }
+                            }}
+                            style={{
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #f2bb50',
+                              color: '#0b2240',
+                              width: '52px',
+                              height: '52px',
+                              borderRadius: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              outline: 'none'
+                            }}
+                            title="Certificate Details"
+                          >
+                            <Award size={22} style={{ color: '#f2bb50' }} />
+                          </button>
                         </div>
                       ) : (
-                        <>
-                          <FileEdit size={20} style={{ color: '#f5d782' }} />
-                          <span>{lang === 'hi' ? 'परीक्षा दें' : 'TAKE EXAM'}</span>
-                          <ChevronRight size={20} />
-                        </>
+                        <button
+                          onClick={() => handleStartExam(ex.id)}
+                          disabled={startingExamId !== null}
+                          style={{
+                            backgroundColor: '#0b2240',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            height: '52px',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(11, 34, 64, 0.15)',
+                            outline: 'none'
+                          }}
+                        >
+                          {startingExamId === ex.id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="spinner-small" style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}></span>
+                              <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading...'}</span>
+                            </div>
+                          ) : (
+                            <>
+                              <FileEdit size={20} style={{ color: '#f5d782' }} />
+                              <span>{lang === 'hi' ? 'परीक्षा दें' : 'TAKE EXAM'}</span>
+                              <ChevronRight size={20} />
+                            </>
+                          )}
+                        </button>
                       )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Right Column: Resources */}
+          <div style={{ flex: 1.5, minWidth: '320px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: '2rem' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-serif, Georgia, serif)',
+                fontSize: '2rem',
+                fontWeight: 700,
+                color: '#0b2240',
+                margin: 0
+              }}>
+                {t.tabResources}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+                <div style={{ width: '60px', height: '2px', background: '#c59f2d' }}></div>
+                <svg viewBox="0 0 100 100" style={{ width: '24px', height: '24px', fill: '#d4af37' }}>
+                  <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+                  <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+                  <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+                  <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+                  <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+                </svg>
+                <div style={{ width: '60px', height: '2px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
+              </div>
+            </div>
+
+            <div style={{ maxHeight: '650px', overflowY: 'auto', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {resources.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(197, 160, 89, 0.2)',
+                  borderRadius: '16px',
+                  padding: '3rem',
+                  textAlign: 'center',
+                  color: '#a0aec0',
+                  fontSize: '1.1rem'
+                }}>
+                  {t.noResources}
+                </div>
+              ) : (
+                resources.map((res) => {
+                  const title = (lang === 'hi' && res.titleHindi) ? res.titleHindi : res.title;
+                  const link = (lang === 'hi' && res.linkHindi) ? res.linkHindi : res.link;
+                  const description = (lang === 'hi' && res.descriptionHindi) ? res.descriptionHindi : res.description;
+                  
+                  return (
+                    <div key={res.id} style={{
+                      backgroundColor: '#ffffff',
+                      border: '1px solid rgba(197, 160, 89, 0.25)',
+                      borderRadius: '16px',
+                      padding: '24px',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
+                    }}>
+                      <h4 style={{
+                        fontFamily: 'var(--font-serif, Georgia, serif)',
+                        fontSize: '1.35rem',
+                        fontWeight: 700,
+                        color: '#0b2240',
+                        margin: 0,
+                        lineHeight: 1.3
+                      }}>
+                        {title}
+                      </h4>
+                      
+                      {description && (
+                        <p style={{ fontSize: '0.95rem', color: '#4a5568', margin: 0, lineHeight: 1.5 }}>
+                          {description}
+                        </p>
+                      )}
+                      
+                      {link && (
+                        <a 
+                          href={link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ 
+                            alignSelf: 'flex-start',
+                            color: '#c59f2d', 
+                            textDecoration: 'none', 
+                            fontWeight: 600, 
+                            fontSize: '0.95rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginTop: '4px'
+                          }}
+                        >
+                          <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
+                          <ChevronRight size={18} />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+        </div>
       </div>
     )
   }
@@ -611,6 +817,23 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
         {/* Header section with Welcome, and Student Name */}
         <div className="mobile-dashboard-header">
+          {user.branch && (
+            <div className="branch-badge" style={{
+              fontFamily: 'var(--font-sans, sans-serif)',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              color: '#ffffff',
+              backgroundColor: '#c5a059',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              marginBottom: '0.5rem',
+              display: 'inline-block',
+              width: 'fit-content'
+            }}>
+              {user.branch}
+            </div>
+          )}
           <p className="welcome-text">{lang === 'hi' ? 'स्वागत है,' : 'Welcome,'}</p>
           <h1 className="student-name">{user.name}</h1>
         </div>
@@ -654,94 +877,177 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
         {error && <div className="alert alert-danger" style={{ marginBottom: '1rem', width: '100%' }}>{error}</div>}
 
-        {exams.length === 0 ? (
-          <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0' }}>
-            {t.noExams}
-          </div>
-        ) : (
-          exams.map((ex) => (
-            <div key={ex.id} className="mobile-dashboard-card">
-
-              {/* Exam Name */}
-              <h3 className="mobile-exam-name">{ex.name}</h3>
-
-              <div className="mobile-exam-divider"></div>
-
-              {/* Exam Metadata Row */}
-              <div className="mobile-exam-metadata">
-                <div className="meta-col">
-                  <div className="meta-icon">
-                    <Calendar size={20} />
-                  </div>
-                  <div className="meta-labels">
-                    <span className="label">{lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}</span>
-                    <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                  </div>
-                </div>
-
-                <div className="meta-divider"></div>
-
-                <div className="meta-col">
-                  <div className="meta-icon">
-                    <Clock size={20} />
-                  </div>
-                  <div className="meta-labels">
-                    <span className="label">{lang === 'hi' ? 'अवधि' : 'Duration'}</span>
-                    <span className="val">{ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              {ex.attemptStatus === 'COMPLETED' ? (
-                <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
-                  <div className="badge badge-success" style={{ flexGrow: 1, display: 'inline-flex', alignContent: 'center', justifyContent: 'center', height: '48px', alignItems: 'center', borderRadius: '10px', fontSize: '1rem', fontWeight: 'bold' }}>
-                    {t.completed}
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
-                          headers: { Authorization: `Bearer ${token}` }
-                        })
-                        const data = await res.json()
-                        if (data.success) {
-                          setCompletedAttempt(data.certificate)
-                        }
-                      } catch (err) {
-                        console.error(err)
-                      }
-                    }}
-                    className="btn btn-secondary"
-                    style={{ padding: '0 16px', height: '48px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="Certificate Details"
-                  >
-                    <Award size={20} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleStartExam(ex.id)}
-                  disabled={startingExamId !== null}
-                  className="take-exam-dark-btn"
-                >
-                  {startingExamId === ex.id ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto' }}>
-                      <span className="spinner-small" style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}></span>
-                      <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading...'}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <FileEdit size={20} style={{ color: '#f5d782' }} />
-                      <span style={{ flexGrow: 1, textAlign: 'center' }}>{lang === 'hi' ? 'परीक्षा शुरू करें' : 'TAKE EXAM'}</span>
-                      <ChevronRight size={20} />
-                    </>
-                  )}
-                </button>
-              )}
+        {/* Exams list inside scrollable wrapper */}
+        <div style={{ maxHeight: '420px', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
+          {exams.length === 0 ? (
+            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0' }}>
+              {t.noExams}
             </div>
-          ))
-        )}
+          ) : (
+            exams.map((ex) => (
+              <div key={ex.id} className="mobile-dashboard-card">
+                {ex.categoryName && (
+                  <span className="badge badge-outline" style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>
+                    {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
+                  </span>
+                )}
+
+                {/* Exam Name */}
+                <h3 className="mobile-exam-name" style={{ marginTop: ex.categoryName ? 0 : '12px' }}>{ex.name}</h3>
+
+                <div className="mobile-exam-divider"></div>
+
+                {/* Exam Metadata Row */}
+                <div className="mobile-exam-metadata">
+                  <div className="meta-col">
+                    <div className="meta-icon">
+                      <Calendar size={20} />
+                    </div>
+                    <div className="meta-labels">
+                      <span className="label">{lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}</span>
+                      <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </div>
+                  </div>
+
+                  <div className="meta-divider"></div>
+
+                  <div className="meta-col">
+                    <div className="meta-icon">
+                      <Clock size={20} />
+                    </div>
+                    <div className="meta-labels">
+                      <span className="label">{lang === 'hi' ? 'अवधि' : 'Duration'}</span>
+                      <span className="val">{ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                {ex.attemptStatus === 'COMPLETED' ? (
+                  <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                    <div className="badge badge-success" style={{ flexGrow: 1, display: 'inline-flex', alignContent: 'center', justifyContent: 'center', height: '48px', alignItems: 'center', borderRadius: '10px', fontSize: '1rem', fontWeight: 'bold' }}>
+                      {t.completed}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          })
+                          const data = await res.json()
+                          if (data.success) {
+                            setCompletedAttempt(data.certificate)
+                          }
+                        } catch (err) {
+                          console.error(err)
+                        }
+                      }}
+                      className="btn btn-secondary"
+                      style={{ padding: '0 16px', height: '48px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title="Certificate Details"
+                    >
+                      <Award size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleStartExam(ex.id)}
+                    disabled={startingExamId !== null}
+                    className="take-exam-dark-btn"
+                  >
+                    {startingExamId === ex.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto' }}>
+                        <span className="spinner-small" style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}></span>
+                        <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading...'}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <FileEdit size={20} style={{ color: '#f5d782' }} />
+                        <span style={{ flexGrow: 1, textAlign: 'center' }}>{lang === 'hi' ? 'परीक्षा शुरू करें' : 'TAKE EXAM'}</span>
+                        <ChevronRight size={20} />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Resources Section Title */}
+        <div className="mobile-section-title" style={{ marginTop: '2rem' }}>
+          {t.tabResources}
+        </div>
+        
+        {/* Gold Lotus Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '1.25rem', gap: '8px' }}>
+          <div style={{ width: '20px', height: '1px', background: '#c59f2d' }}></div>
+          <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', fill: '#d4af37' }}>
+            <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+            <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+            <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+            <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+            <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+          </svg>
+          <div style={{ width: '80px', height: '1px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
+        </div>
+
+        {/* Resources Section container with max height scroll */}
+        <div style={{ maxHeight: '350px', overflowY: 'auto', width: '100%', paddingRight: '4px', marginBottom: '2rem' }}>
+          {resources.length === 0 ? (
+            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0' }}>
+              {t.noResources}
+            </div>
+          ) : (
+            resources.map((res) => {
+              const title = (lang === 'hi' && res.titleHindi) ? res.titleHindi : res.title;
+              const link = (lang === 'hi' && res.linkHindi) ? res.linkHindi : res.link;
+              const description = (lang === 'hi' && res.descriptionHindi) ? res.descriptionHindi : res.description;
+
+              return (
+                <div key={res.id} className="mobile-dashboard-card" style={{ padding: '1.25rem 1rem', gap: '8px' }}>
+                  <h4 style={{
+                    fontFamily: 'var(--font-serif, Georgia, serif)',
+                    fontSize: '1.15rem',
+                    fontWeight: 700,
+                    color: '#0b2240',
+                    margin: 0
+                  }}>
+                    {title}
+                  </h4>
+                  
+                  {description && (
+                    <p style={{ fontSize: '0.85rem', color: '#4a5568', margin: 0, lineHeight: '1.4' }}>
+                      {description}
+                    </p>
+                  )}
+                  
+                  {link && (
+                    <a 
+                      href={link} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      style={{ 
+                        alignSelf: 'flex-start',
+                        color: '#c59f2d', 
+                        textDecoration: 'none', 
+                        fontWeight: 600, 
+                        fontSize: '0.85rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
+                      <ChevronRight size={14} />
+                    </a>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     )
   }
@@ -764,86 +1070,153 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
       {error && <div className="alert alert-danger" style={{ maxWidth: '600px' }}>{error}</div>}
 
-      <h3 style={{ fontFamily: 'var(--font-serif)', marginBottom: '1.5rem' }}>{t.pushedExams}</h3>
-
-      {exams.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
-          {t.noExams}
-        </div>
-      ) : (
-        <div className="grid-3">
-          {exams.map((ex) => (
-            <div key={ex.id} className="card flex-between" style={{ flexDirection: 'column', alignItems: 'flex-start', minHeight: '230px' }}>
-              <div style={{ width: '100%' }}>
-                <span className="badge badge-outline" style={{ marginBottom: '0.75rem' }}>
-                  {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
-                </span>
-                <h4 className="card-title" style={{ border: 'none', padding: 0 }}>{ex.name}</h4>
-                <div className="card-metadata">
-                  <span><Clock size={14} /> {ex.duration} {t.mins}</span>
-                  <span><TrophyIcon size={14} /> {t.maxMarks}: {ex.totalMarks}</span>
-                </div>
+      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/* Left Column: Exams */}
+        <div style={{ flex: '2', minWidth: '300px' }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', marginBottom: '1.5rem' }}>{t.pushedExams}</h3>
+          
+          <div style={{ maxHeight: '500px', overflowY: 'auto', paddingRight: '8px' }}>
+            {exams.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                {t.noExams}
               </div>
-
-              <div style={{ width: '100%', marginTop: '1rem' }}>
-                {ex.attemptStatus === 'COMPLETED' ? (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <div className="badge badge-success" style={{ flexGrow: 1, display: 'inline-flex', alignContent: 'center', justifyContent: 'center', height: '40px', alignItems: 'center' }}>
-                      {t.completed}
+            ) : (
+              <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                {exams.map((ex) => (
+                  <div key={ex.id} className="card flex-between" style={{ flexDirection: 'column', alignItems: 'flex-start', minHeight: '230px', margin: 0 }}>
+                    <div style={{ width: '100%' }}>
+                      <span className="badge badge-outline" style={{ marginBottom: '0.75rem' }}>
+                        {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
+                      </span>
+                      <h4 className="card-title" style={{ border: 'none', padding: 0 }}>{ex.name}</h4>
+                      <div className="card-metadata">
+                        <span><Clock size={14} /> {ex.duration} {t.mins}</span>
+                        <span><TrophyIcon size={14} /> {t.maxMarks}: {ex.totalMarks}</span>
+                      </div>
                     </div>
-                    <button
-                      onClick={async () => {
-                        // Fetch certificate details dynamically
-                        try {
-                          const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                          })
-                          const data = await res.json()
-                          if (data.success) {
-                            setCompletedAttempt(data.certificate)
-                          }
-                        } catch (err) {
-                          console.error(err)
-                        }
-                      }}
-                      className="btn btn-secondary"
-                      style={{ padding: '0.5rem 0.75rem', height: '40px' }}
-                      title="Certificate Details"
-                    >
-                      <Award size={16} />
-                    </button>
+
+                    <div style={{ width: '100%', marginTop: '1rem' }}>
+                      {ex.attemptStatus === 'COMPLETED' ? (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <div className="badge badge-success" style={{ flexGrow: 1, display: 'inline-flex', alignContent: 'center', justifyContent: 'center', height: '40px', alignItems: 'center' }}>
+                            {t.completed}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
+                                  headers: { Authorization: `Bearer ${token}` }
+                                })
+                                const data = await res.json()
+                                if (data.success) {
+                                  setCompletedAttempt(data.certificate)
+                                }
+                              } catch (err) {
+                                console.error(err)
+                              }
+                            }}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.5rem 0.75rem', height: '40px' }}
+                            title="Certificate Details"
+                          >
+                            <Award size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleStartExam(ex.id)}
+                          disabled={startingExamId !== null}
+                          className="btn btn-primary w-full"
+                          style={{
+                            width: '100%',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          {startingExamId === ex.id ? (
+                            <>
+                              <span className="spinner-small"></span>
+                              <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading Exam...'}</span>
+                            </>
+                          ) : (
+                            <>
+                              {ex.attemptStatus === 'IN_PROGRESS' ? t.inProgress : t.notStarted} <ChevronRight size={16} />
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => handleStartExam(ex.id)}
-                    disabled={startingExamId !== null}
-                    className="btn btn-primary w-full"
-                    style={{
-                      width: '100%',
-                      height: '40px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {startingExamId === ex.id ? (
-                      <>
-                        <span className="spinner-small"></span>
-                        <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading Exam...'}</span>
-                      </>
-                    ) : (
-                      <>
-                        {ex.attemptStatus === 'IN_PROGRESS' ? t.inProgress : t.notStarted} <ChevronRight size={16} />
-                      </>
-                    )}
-                  </button>
-                )}
+                ))}
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Right Column: Resources */}
+        <div style={{ flex: '1', minWidth: '300px' }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', marginBottom: '1.5rem' }}>{t.tabResources}</h3>
+          
+          <div style={{ maxHeight: '500px', overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {resources.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                {t.noResources}
+              </div>
+            ) : (
+              resources.map((res) => {
+                const title = (lang === 'hi' && res.titleHindi) ? res.titleHindi : res.title;
+                const link = (lang === 'hi' && res.linkHindi) ? res.linkHindi : res.link;
+                const description = (lang === 'hi' && res.descriptionHindi) ? res.descriptionHindi : res.description;
+
+                return (
+                  <div key={res.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <h4 style={{
+                      fontFamily: 'var(--font-serif, Georgia, serif)',
+                      fontSize: '1.2rem',
+                      fontWeight: 700,
+                      color: 'var(--primary-navy, #0b2240)',
+                      margin: 0
+                    }}>
+                      {title}
+                    </h4>
+                    
+                    {description && (
+                      <p style={{ fontSize: '0.9rem', color: '#4a5568', margin: 0, lineHeight: '1.4' }}>
+                        {description}
+                      </p>
+                    )}
+                    
+                    {link && (
+                      <a 
+                        href={link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{ 
+                          alignSelf: 'flex-start',
+                          color: 'var(--accent-gold, #c59f2d)', 
+                          textDecoration: 'none', 
+                          fontWeight: 600, 
+                          fontSize: '0.9rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          marginTop: '4px'
+                        }}
+                      >
+                        <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
+                        <ChevronRight size={14} />
+                      </a>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -701,6 +701,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const [mobile, setMobile] = useState('')
   const [password, setPassword] = useState('')
   const [userCountLimit, setUserCountLimit] = useState('')
+  const [branch, setBranch] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -854,6 +855,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
           mobile,
           password,
           userCountLimit: userCountLimit ? parseInt(userCountLimit) : null,
+          branch: branch || undefined,
         }),
       })
       const data = await res.json()
@@ -863,6 +865,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         setMobile('')
         setPassword('')
         setUserCountLimit('')
+        setBranch('')
         fetchDashboardData()
       } else {
         setError(data.error || 'Failed to create admin.')
@@ -880,6 +883,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     setMobile(adm.mobile)
     setPassword('') // Leave blank unless changing
     setUserCountLimit(adm.userCountLimit !== null ? String(adm.userCountLimit) : '')
+    setBranch(adm.branch || '')
     setError('')
     setSuccess('')
   }
@@ -890,6 +894,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     setMobile('')
     setPassword('')
     setUserCountLimit('')
+    setBranch('')
     setError('')
     setSuccess('')
   }
@@ -913,6 +918,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
           mobile,
           password: password || undefined,
           userCountLimit: userCountLimit ? parseInt(userCountLimit) : null,
+          branch: branch || '',
         }),
       })
       const data = await res.json()
@@ -1133,6 +1139,16 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                   Maximum number of attempts allowed for this admin's schools.
                 </span>
               </div>
+              <div className="form-group">
+                <label className="form-label">Branch (Optional)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  placeholder="e.g. Science, Commerce, Central"
+                />
+              </div>
               <button type="submit" className="btn btn-primary w-full" style={{ width: '100%' }} disabled={submitting}>
                 {submitting ? (editingAdminId ? 'Updating Admin...' : 'Creating Admin...') : (editingAdminId ? 'Update Admin' : 'Create Admin')}
               </button>
@@ -1157,6 +1173,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                 <thead>
                   <tr>
                     <th>Admin Detail</th>
+                    <th>Branch</th>
                     <th>Limit Allocation</th>
                     <th>Registered Date</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
@@ -1165,7 +1182,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                 <tbody>
                   {admins.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No administrators found.</td>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No administrators found.</td>
                     </tr>
                   ) : (
                     admins.map((adm) => (
@@ -1173,6 +1190,13 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                         <td>
                           <strong>{adm.email}</strong>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Mob: {adm.mobile}</div>
+                        </td>
+                        <td style={{ fontSize: '0.85rem' }}>
+                          {adm.branch ? (
+                            <span className="badge badge-success">{adm.branch}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>-</span>
+                          )}
                         </td>
                         <td>
                           {adm.userCountLimit === null ? (
@@ -2385,7 +2409,7 @@ function AdminApprovalsTab({ token, lang }: { token: string | null; lang: Langua
 }
 
 export function AdminDashboard({ token, lang }: { token: string | null; lang: Language }) {
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS' | 'PASSWORD_RESET'>('ANALYTICS')
+  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS' | 'RESOURCES' | 'PASSWORD_RESET'>('ANALYTICS')
   const t = translations[lang]
 
   return (
@@ -2471,6 +2495,19 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
           {t.approvals}
         </button>
         <button
+          onClick={() => setActiveTab('RESOURCES')}
+          className="btn-text"
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1rem',
+            padding: '1rem 1.5rem',
+            color: activeTab === 'RESOURCES' ? 'var(--primary-navy)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'RESOURCES' ? '2px solid var(--accent-gold)' : 'none',
+          }}
+        >
+          {t.tabResources}
+        </button>
+        <button
           onClick={() => setActiveTab('PASSWORD_RESET')}
           className="btn-text"
           style={{
@@ -2491,6 +2528,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
       {activeTab === 'CATEGORIES' && <AdminCategoriesTab token={token} lang={lang} />}
       {activeTab === 'EXAMS' && <AdminExamsTab token={token} lang={lang} />}
       {activeTab === 'APPROVALS' && <AdminApprovalsTab token={token} lang={lang} />}
+      {activeTab === 'RESOURCES' && <AdminResourcesTab token={token} lang={lang} />}
       {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang={lang} />}
 
       <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%' }}>
@@ -6326,6 +6364,387 @@ export function AdminPasswordResetTab({ token, lang }: { token: string | null; l
           {lang === 'hi' ? 'कोई छात्र नहीं मिला।' : 'No students found.'}
         </div>
       )}
+    </div>
+  )
+}
+
+function AdminResourcesTab({ token, lang }: { token: string | null; lang: Language }) {
+  const t = translations[lang]
+  const [resources, setResources] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  
+  // Form states
+  const [title, setTitle] = useState('')
+  const [titleHindi, setTitleHindi] = useState('')
+  const [description, setDescription] = useState('')
+  const [descriptionHindi, setDescriptionHindi] = useState('')
+  const [link, setLink] = useState('')
+  const [linkHindi, setLinkHindi] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [editingResource, setEditingResource] = useState<any | null>(null)
+
+  // Uploading states and refs
+  const [uploadingEn, setUploadingEn] = useState(false)
+  const [uploadingHi, setUploadingHi] = useState(false)
+  const fileInputRefEn = useRef<HTMLInputElement>(null)
+  const fileInputRefHi = useRef<HTMLInputElement>(null)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'en' | 'hi') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase()
+    if (fileExt !== 'pdf') {
+      setError(lang === 'hi' ? 'केवल PDF फ़ाइलें ही स्वीकार की जाती हैं' : 'Only PDF files are allowed')
+      return
+    }
+
+    setError('')
+    if (field === 'en') setUploadingEn(true)
+    else setUploadingHi(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/admin/resources/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (field === 'en') {
+          setLink(data.fileUrl)
+        } else {
+          setLinkHindi(data.fileUrl)
+        }
+      } else {
+        setError(data.error || 'Upload failed')
+      }
+    } catch (err) {
+      setError('Connection failed')
+    } finally {
+      if (field === 'en') setUploadingEn(false)
+      else setUploadingHi(false)
+      // reset file input
+      e.target.value = ''
+    }
+  }
+  
+  const fetchResources = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/resources', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setResources(data.resources)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  useEffect(() => {
+    fetchResources()
+  }, [token])
+  
+  const resetForm = () => {
+    setTitle('')
+    setTitleHindi('')
+    setDescription('')
+    setDescriptionHindi('')
+    setLink('')
+    setLinkHindi('')
+    setEditingResource(null)
+    setError('')
+  }
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    if (!title.trim()) {
+      setError(lang === 'hi' ? 'शीर्षक आवश्यक है' : 'Title is required')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const payload = {
+        id: editingResource?.id,
+        title,
+        titleHindi,
+        description,
+        descriptionHindi,
+        link,
+        linkHindi
+      }
+      const method = editingResource ? 'PUT' : 'POST'
+      const res = await fetch('/api/admin/resources', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(editingResource ? t.resourceUpdatedSuccess : t.resourceCreatedSuccess)
+        resetForm()
+        fetchResources()
+      } else {
+        setError(data.error || 'Operation failed')
+      }
+    } catch (err) {
+      setError('Connection failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  
+  const handleEdit = (resource: any) => {
+    setEditingResource(resource)
+    setTitle(resource.title || '')
+    setTitleHindi(resource.titleHindi || '')
+    setDescription(resource.description || '')
+    setDescriptionHindi(resource.descriptionHindi || '')
+    setLink(resource.link || '')
+    setLinkHindi(resource.linkHindi || '')
+    setError('')
+    setSuccess('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  
+  const handleDelete = async (id: string) => {
+    const confirmMsg = lang === 'hi' ? 'क्या आप वाकई इस संसाधन को हटाना चाहते हैं?' : 'Are you sure you want to delete this resource?'
+    if (!window.confirm(confirmMsg)) return
+    try {
+      const res = await fetch(`/api/admin/resources?id=${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(t.resourceDeletedSuccess)
+        fetchResources()
+      } else {
+        setError(data.error || 'Delete failed')
+      }
+    } catch (e) {
+      setError('Connection failed')
+    }
+  }
+  
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div className="card" style={{ padding: '2rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', color: 'var(--primary-navy)' }}>
+          {editingResource ? t.editResource : t.addResource}
+        </h3>
+        
+        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+        {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>{success}</div>}
+        
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="grid-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--primary-navy)' }}>{t.resourceTitle} (English) <span style={{ color: 'red' }}>*</span></label>
+              <input 
+                type="text" 
+                className="form-control" 
+                value={title} 
+                onChange={e => setTitle(e.target.value)} 
+                placeholder="e.g. Science Syllabus 2026"
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--primary-navy)' }}>{t.resourceTitleHindi} (Hindi)</label>
+              <input 
+                type="text" 
+                className="form-control" 
+                value={titleHindi} 
+                onChange={e => setTitleHindi(e.target.value)} 
+                placeholder="जैसे: विज्ञान पाठ्यक्रम 2026"
+              />
+            </div>
+          </div>
+          
+          <div className="grid-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--primary-navy)' }}>{t.resourceLink} (English)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={link} 
+                  onChange={e => setLink(e.target.value)} 
+                  placeholder="https://example.com/syllabus-en"
+                  style={{ flex: 1 }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={() => fileInputRefEn.current?.click()}
+                  style={{ whiteSpace: 'nowrap', padding: '0 12px' }}
+                  disabled={uploadingEn}
+                >
+                  {uploadingEn ? '...' : 'Upload PDF'}
+                </button>
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRefEn} 
+                style={{ display: 'none' }} 
+                accept=".pdf"
+                onChange={(e) => handleFileUpload(e, 'en')}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--primary-navy)' }}>{t.resourceLinkHindi} (Hindi)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={linkHindi} 
+                  onChange={e => setLinkHindi(e.target.value)} 
+                  placeholder="https://example.com/syllabus-hi"
+                  style={{ flex: 1 }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  onClick={() => fileInputRefHi.current?.click()}
+                  style={{ whiteSpace: 'nowrap', padding: '0 12px' }}
+                  disabled={uploadingHi}
+                >
+                  {uploadingHi ? '...' : 'Upload PDF'}
+                </button>
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRefHi} 
+                style={{ display: 'none' }} 
+                accept=".pdf"
+                onChange={(e) => handleFileUpload(e, 'hi')}
+              />
+            </div>
+          </div>
+
+          <div className="grid-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--primary-navy)' }}>{t.resourceDescription} (English)</label>
+              <textarea 
+                className="form-control" 
+                style={{ minHeight: '80px' }}
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                placeholder="Enter English description..."
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--primary-navy)' }}>{t.resourceDescriptionHindi} (Hindi)</label>
+              <textarea 
+                className="form-control" 
+                style={{ minHeight: '80px' }}
+                value={descriptionHindi} 
+                onChange={e => setDescriptionHindi(e.target.value)} 
+                placeholder="हिंदी विवरण दर्ज करें..."
+              />
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? (editingResource ? t.updatingResource : t.creatingResource) : (editingResource ? t.editResource : t.addResource)}
+            </button>
+            {(editingResource || title || titleHindi || link || linkHindi || description || descriptionHindi) && (
+              <button type="button" className="btn btn-outline" onClick={resetForm}>
+                {t.adminCancelBtn}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+      
+      <div className="card" style={{ padding: '2rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', color: 'var(--primary-navy)' }}>
+          {t.tabResources}
+        </h3>
+        
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <span className="spinner-small"></span>
+          </div>
+        ) : resources.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            {t.noResources}
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>{t.resourceTitle}</th>
+                  <th>{t.resourceLink}</th>
+                  <th>{t.resourceDescription}</th>
+                  <th style={{ textAlign: 'right' }}>{t.schoolsColActions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resources.map((res) => (
+                  <tr key={res.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{res.title}</div>
+                      {res.titleHindi && <div style={{ fontSize: '0.85rem', color: '#666' }}>{res.titleHindi}</div>}
+                    </td>
+                    <td>
+                      {res.link && (
+                        <div style={{ marginBottom: '4px' }}>
+                          <a href={res.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-gold)', textDecoration: 'underline', fontSize: '0.9rem' }}>
+                            EN Link
+                          </a>
+                        </div>
+                      )}
+                      {res.linkHindi && (
+                        <div>
+                          <a href={res.linkHindi} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-gold)', textDecoration: 'underline', fontSize: '0.9rem' }}>
+                            HI Link
+                          </a>
+                        </div>
+                      )}
+                      {!res.link && !res.linkHindi && '-'}
+                    </td>
+                    <td>
+                      {res.description && <div style={{ fontSize: '0.9rem', marginBottom: '4px' }}>EN: {res.description}</div>}
+                      {res.descriptionHindi && <div style={{ fontSize: '0.9rem', color: '#555' }}>HI: {res.descriptionHindi}</div>}
+                      {!res.description && !res.descriptionHindi && '-'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem' }} onClick={() => handleEdit(res)}>
+                          {t.adminEditBtn}
+                        </button>
+                        <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.85rem' }} onClick={() => handleDelete(res.id)}>
+                          {t.adminDeleteBtn}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

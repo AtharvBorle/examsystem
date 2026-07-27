@@ -27,6 +27,7 @@ model Admin {
   email          String       @unique
   mobile         String       @unique
   password       String
+  branch         String?
   userCountLimit Int?         // Limit on exam attempts across all schools managed by this admin (null = unlimited)
   userCountUsed  Int          @default(0)
   createdById    String
@@ -38,6 +39,7 @@ model Admin {
   groups         Group[]
   exams          Exam[]
   classrooms     Classroom[]
+  resources      Resource[]
 }
 
 model School {
@@ -256,6 +258,19 @@ model Otp {
   expiresAt DateTime
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Resource {
+  id               String   @id @default(uuid())
+  title            String
+  titleHindi       String?
+  description      String?
+  descriptionHindi String?
+  link             String?
+  linkHindi        String?
+  adminId          String
+  admin            Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
 }
 
 

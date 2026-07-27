@@ -12,9 +12,7 @@ import { LanguageSelector } from './LanguageSelector'
 export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegister: () => void; lang: Language; onChangeLang: (lang: Language) => void }) {
   const { login } = useAuth()
   const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,13 +37,13 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier }),
       })
       const data = await res.json()
       if (data.success) {
         login(data.token, data.user)
       } else {
-        setError(data.error || 'Login failed. Please check credentials.')
+        setError(data.error || (lang === 'hi' ? 'लॉगिन विफल।' : 'Login failed.'))
       }
     } catch (err) {
       setError('Connection to server failed.')
@@ -93,6 +91,7 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
           {error && <div className="alert alert-danger" style={{ width: '100%', fontSize: '0.85rem', padding: '0.75rem', borderRadius: '10px', marginBottom: '1.1rem' }}>{error}</div>}
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            {/* Mobile / Identifier input with phone icon */}
             {/* Mobile Number input with phone icon */}
             <div className="new-login-input-wrapper">
               <span className="input-icon">
@@ -111,32 +110,11 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
               />
             </div>
 
-            {/* Password input with lock icon and eye toggle */}
-            <div className="new-login-input-wrapper">
-              <span className="input-icon">
-                <Lock size={18} strokeWidth={1.5} />
-              </span>
-              <input
-                type={showPassword ? "text" : "password"}
-                className="input-field"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={lang === 'hi' ? 'पासवर्ड' : 'Password'}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="password-toggle"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
             <button
               type="submit"
               className="new-login-btn"
               disabled={submitting}
+              style={{ marginTop: '1rem' }}
             >
               {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
             </button>
@@ -206,40 +184,11 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             />
           </div>
 
-          <div className="mobile-input-wrapper">
-            <span className="mobile-input-icon">
-              <Lock size={20} strokeWidth={1.5} />
-            </span>
-            <input
-              type={showPassword ? "text" : "password"}
-              className="mobile-input-field"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={lang === 'hi' ? 'पासवर्ड' : 'Password'}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="mobile-password-toggle"
-            >
-              {showPassword ? (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              )}
-            </button>
-          </div>
-
           <button
             type="submit"
             className="mobile-login-btn"
             disabled={submitting}
+            style={{ marginTop: '1rem' }}
           >
             {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
           </button>
@@ -518,12 +467,6 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
       return
     }
 
-    // Password validation
-    if (password.length < 6) {
-      setError(translations[lang].errPasswordInvalid)
-      return
-    }
-
     setSubmitting(true)
 
     try {
@@ -538,7 +481,6 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
           district,
           tehsil,
           mobile,
-          password,
           language: lang,
         }),
       })
@@ -1227,49 +1169,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">{t.password}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                className="form-input"
-                style={{ paddingRight: '2.5rem' }}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t.choosePassword}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
+
 
           <button
             type="submit"
@@ -1295,6 +1195,235 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
             {t.loginHere}
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ==========================================
+   VIEW: ADMIN LOGIN
+   ========================================== */
+export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChangeLang: (lang: Language) => void }) {
+  const { login } = useAuth()
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (!identifier || !password) {
+      setError(lang === 'hi' ? 'कृपया पहचानकर्ता और पासवर्ड दोनों दर्ज करें।' : 'Please enter both identifier and password.')
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        // Ensure the logged in user is actually an Admin or Super Admin
+        if (data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN') {
+          login(data.token, data.user)
+        } else {
+          setError(lang === 'hi' ? 'अनधिकृत। केवल एडमिन ही लॉग इन कर सकते हैं।' : 'Unauthorized. Only administrators can log in here.')
+        }
+      } else {
+        setError(data.error || (lang === 'hi' ? 'लॉगिन विफल।' : 'Login failed.'))
+      }
+    } catch (err) {
+      setError('Connection to server failed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
+
+  if (isNew) {
+    return (
+      <div className="mobile-login-container new-bg">
+        {/* Top bar with LanguageSelector */}
+        <div className="mobile-login-topbar" style={{ justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
+          </div>
+        </div>
+
+        {/* Spacer to skip pre-printed logo on the background */}
+        <div style={{ height: '110px' }}></div>
+
+        <div className="mobile-login-card">
+          {/* Top Gold Lotus decoration */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '0.75rem', gap: '8px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, #d4af37)' }}></div>
+            <svg viewBox="0 0 100 100" style={{ width: '28px', height: '28px', fill: '#d4af37' }}>
+              <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+              <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+              <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+              <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+              <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+            </svg>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, #d4af37)' }}></div>
+          </div>
+
+          <h2 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: '2.4rem', color: '#0f3d7a', margin: '0 0 8px 0', fontWeight: 700 }}>
+            {lang === 'hi' ? 'एडमिन लॉगिन' : 'Admin Login'}
+          </h2>
+          <p className="sub" style={{ fontSize: '1rem', color: '#8c6239', fontWeight: 600, margin: '0 0 1.5rem 0', textTransform: 'none', lineHeight: '1.4', textAlign: 'center' }}>
+            {lang === 'hi' ? 'ऑनलाइन परीक्षा प्रबंधन प्रणाली' : 'Online Exam Management System'}
+          </p>
+
+          {error && <div className="alert alert-danger" style={{ width: '100%', fontSize: '0.85rem', padding: '0.75rem', borderRadius: '10px', marginBottom: '1.1rem' }}>{error}</div>}
+
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            {/* Identifier input with phone icon */}
+            <div className="new-login-input-wrapper">
+              <span className="input-icon">
+                <Phone size={18} strokeWidth={1.5} />
+              </span>
+              <input
+                type="text"
+                className="input-field"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={lang === 'hi' ? 'मोबाइल नंबर या ईमेल' : 'Mobile Number or Email'}
+                required
+              />
+            </div>
+
+            {/* Password input with lock icon and eye toggle */}
+            <div className="new-login-input-wrapper">
+              <span className="input-icon">
+                <Lock size={18} strokeWidth={1.5} />
+              </span>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="input-field"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={lang === 'hi' ? 'पासवर्ड' : 'Password'}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="password-toggle"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              className="new-login-btn"
+              disabled={submitting}
+              style={{ marginTop: '1rem' }}
+            >
+              {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
+            </button>
+          </form>
+
+          {/* Bottom Gold Lotus decoration */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: '1.25rem', gap: '8px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, transparent, #e0c080)' }}></div>
+            <svg viewBox="0 0 100 100" style={{ width: '20px', height: '20px', fill: '#e0c080' }}>
+              <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+              <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+              <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+              <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+              <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+            </svg>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, #e0c080)' }}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mobile-login-container">
+      {/* Top bar with LanguageSelector */}
+      <div className="mobile-login-topbar" style={{ justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
+        </div>
+      </div>
+
+      <div className="mobile-login-card">
+        <h2>{lang === 'hi' ? 'एडमिन लॉगिन' : 'Admin Login'}</h2>
+        <p className="sub">
+          {lang === 'hi' ? (
+            <>ऑनलाइन परीक्षा<br />प्रबंधन प्रणाली</>
+          ) : (
+            <>Online Exam<br />Management System</>
+          )}
+        </p>
+
+        {error && <div className="alert alert-danger" style={{ width: '100%', fontSize: '0.85rem', padding: '0.75rem', borderRadius: '10px' }}>{error}</div>}
+
+        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          <div className="mobile-input-wrapper">
+            <span className="mobile-input-icon">
+              <Phone size={20} strokeWidth={1.5} />
+            </span>
+            <input
+              type="text"
+              className="mobile-input-field"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder={lang === 'hi' ? 'ईमेल या मोबाइल' : 'Email or Mobile'}
+              required
+            />
+          </div>
+
+          <div className="mobile-input-wrapper">
+            <span className="mobile-input-icon">
+              <Lock size={20} strokeWidth={1.5} />
+            </span>
+            <input
+              type={showPassword ? "text" : "password"}
+              className="mobile-input-field"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={lang === 'hi' ? 'पासवर्ड' : 'Password'}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="mobile-password-toggle"
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            className="mobile-login-btn"
+            disabled={submitting}
+            style={{ marginTop: '1rem' }}
+          >
+            {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
+          </button>
+        </form>
       </div>
     </div>
   )

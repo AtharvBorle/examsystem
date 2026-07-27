@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth, User } from './context/AuthContext'
 import { translations, Language } from './utils/localization'
 import { LogOut } from 'lucide-react'
-import { LoginView, RegisterView } from './components/AuthViews'
+import { LoginView, RegisterView, AdminLoginView } from './components/AuthViews'
 import { StandaloneSchoolDetailView, SuperAdminDashboard, AdminDashboard } from './components/AdminViews'
 import { StudentDashboard } from './components/StudentViews'
 
@@ -117,7 +117,7 @@ function App() {
 
 function MainLayout() {
   const { user, token, logout, loading, login } = useAuth()
-  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD'>('LOGIN')
+  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN'>('LOGIN')
   const [directSchoolUdise, setDirectSchoolUdise] = useState<string | null>(null)
 
   const [lang, setLang] = useState<Language>('en')
@@ -174,12 +174,32 @@ function MainLayout() {
   }, [])
 
   useEffect(() => {
-    if (user) {
-      setCurrentView('DASHBOARD')
-    } else {
-      setCurrentView('LOGIN')
+    const handleLocationChange = () => {
+      const path = window.location.pathname
+      if (path === '/admin') {
+        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+          setCurrentView('ADMIN_LOGIN')
+        } else {
+          setCurrentView('DASHBOARD')
+        }
+      } else {
+        if (user) {
+          setCurrentView('DASHBOARD')
+        } else {
+          if (currentView !== 'REGISTER') {
+            setCurrentView('LOGIN')
+          }
+        }
+      }
     }
-  }, [user])
+
+    handleLocationChange()
+
+    window.addEventListener('popstate', handleLocationChange)
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+    }
+  }, [user, currentView])
 
   if (loading) {
     return (
@@ -209,6 +229,12 @@ function MainLayout() {
           {currentView === 'LOGIN' && (
             <LoginView 
               onViewRegister={() => setCurrentView('REGISTER')} 
+              lang={lang} 
+              onChangeLang={handleLanguageChange} 
+            />
+          )}
+          {currentView === 'ADMIN_LOGIN' && (
+            <AdminLoginView 
               lang={lang} 
               onChangeLang={handleLanguageChange} 
             />
