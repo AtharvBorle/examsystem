@@ -27,6 +27,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [activeMobileTab, setActiveMobileTab] = useState<'exams' | 'resources'>('exams')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [isEditingName, setIsEditingName] = useState(false)
   const [editFirstName, setEditFirstName] = useState('')
   const [editMotherName, setEditMotherName] = useState('')
@@ -73,13 +75,11 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     }
   }
 
-  const handleRequestDeletion = async () => {
-    const msg = lang === 'hi' 
-      ? 'क्या आप वाकई खाता हटाने का अनुरोध करना चाहते हैं? आपका खाता सॉफ्ट-डिलीट कर दिया जाएगा और 30 दिनों के बाद स्थायी रूप से हटा दिया जाएगा। इस अवधि के दौरान फिर से लॉगिन करने से हटाने का अनुरोध रद्द हो जाएगा।'
-      : 'Are you sure you want to request account deletion? Your account will be soft-deleted and permanently removed after 30 days. Logging in again during these 30 days will cancel the deletion request.'
-    
-    if (!window.confirm(msg)) return
-    
+  const handleRequestDeletion = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const executeRequestDeletion = async () => {
     setDeletingAccount(true)
     try {
       const res = await fetch('/api/student/delete-account', {
@@ -91,13 +91,13 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       })
       const data = await res.json()
       if (data.success) {
-        alert(lang === 'hi' ? 'खाता हटाने का अनुरोध पंजीकृत हो गया है। आपको लॉगआउट किया जा रहा है।' : 'Account deletion requested. You will be logged out now.')
-        if (onLogout) onLogout()
+        setShowSettingsModal(false)
+        setShowSuccessModal(true)
       } else {
-        alert(data.error || 'Failed to request account deletion.')
+        setNameError(data.error || 'Failed to request account deletion.')
       }
     } catch (err) {
-      alert('Connection failed.')
+      setNameError('Connection failed.')
     } finally {
       setDeletingAccount(false)
     }
@@ -188,20 +188,54 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     if (!showSettingsModal) return null
 
     return (
-      <div className="modal-overlay" style={{ zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-        <div className="modal-content" style={{ 
-          maxWidth: '400px', 
-          width: '100%', 
-          borderRadius: '16px', 
-          backgroundColor: '#fffdfa', 
-          border: '1px solid #f2e2cc',
-          padding: '1.25rem',
-          boxShadow: '0 8px 30px rgba(140, 98, 57, 0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '85vh',
-          overflowY: 'auto'
-        }}>
+      <div 
+        className="modal-overlay" 
+        style={{ 
+          zIndex: 2000, 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex', 
+          justifyContent: 'flex-start',
+          alignItems: 'stretch',
+          animation: 'fadeIn 0.2s ease-out'
+        }}
+        onClick={() => setShowSettingsModal(false)}
+      >
+        <div 
+          className="modal-content" 
+          style={{ 
+            width: '280px', 
+            maxWidth: '85vw', 
+            backgroundColor: '#fffdfa', 
+            borderRight: '1px solid #f2e2cc',
+            padding: '1.25rem',
+            boxShadow: '4px 0 25px rgba(140, 98, 57, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflowY: 'auto',
+            animation: 'slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <style>
+            {`
+              @keyframes slideInLeft {
+                from { transform: translateX(-100%); }
+                to { transform: translateX(0); }
+              }
+              @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+            `}
+          </style>
+          
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f2e2cc', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
             <h3 style={{ margin: 0, color: '#0f3d7a', fontFamily: 'var(--font-serif, serif)', fontSize: '1.25rem', fontWeight: 700 }}>
@@ -373,7 +407,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
 
           {/* 2. Support Section */}
-          <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid #f4efea', paddingBottom: '1rem' }}>
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.5rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
               <Mail size={18} />
               <span>{lang === 'hi' ? 'सहायता एवं सहयोग' : 'Support & Assistance'}</span>
@@ -388,6 +422,185 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
               info@neopaceinfotech.com
             </a>
           </div>
+
+          {/* 3. About Section */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.5rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
+              <FileText size={18} />
+              <span>{lang === 'hi' ? 'ऐप के बारे में' : 'About App'}</span>
+            </h4>
+            <div style={{ fontSize: '0.85rem', color: '#4a5568', lineHeight: 1.4 }}>
+              <div>{lang === 'hi' ? 'संस्करण' : 'Version'}: <strong>1.0.0</strong></div>
+              <div style={{ marginTop: '4px' }}>
+                {lang === 'hi' ? 'द्वारा विकसित:' : 'Developed by:'} <strong style={{ color: '#0f3d7a' }}>Neopace Infotech LLP</strong>
+              </div>
+              <div style={{ marginTop: '4px' }}>
+                <a 
+                  href="https://neopaceinfotech.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 'bold' }}
+                >
+                  https://neopaceinfotech.com/
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderDeleteConfirmModal = () => {
+    if (!showDeleteConfirm) return null
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 3000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        animation: 'fadeIn 0.2s ease-out'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #fca5a5',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          padding: '1.5rem',
+          maxWidth: '360px',
+          width: '100%',
+          textAlign: 'center',
+          animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <style>
+            {`
+              @keyframes scaleUp {
+                from { transform: scale(0.95); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+              }
+            `}
+          </style>
+          
+          <AlertTriangle size={48} style={{ color: '#dc2626', marginBottom: '1rem' }} />
+          
+          <h3 style={{ margin: '0 0 0.75rem 0', color: '#991b1b', fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-serif)' }}>
+            {lang === 'hi' ? 'खाता हटाने की चेतावनी' : 'Delete Account Warning'}
+          </h3>
+          
+          <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5', margin: '0 0 1.5rem 0' }}>
+            {lang === 'hi' 
+              ? 'क्या आप वाकई खाता हटाने का अनुरोध करना चाहते हैं? आपका खाता सॉफ्ट-डिलीट कर दिया जाएगा और 30 दिनों के बाद स्थायी रूप से हटा दिया जाएगा। इस अवधि के दौरान फिर से लॉगिन करने से हटाने का अनुरोध रद्द हो जाएगा।'
+              : 'Are you sure you want to request account deletion? Your account will be soft-deleted and permanently removed after 30 days. Logging in again during these 30 days will cancel the deletion request.'}
+          </p>
+          
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                executeRequestDeletion()
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: '#dc2626',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.6rem 1rem',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              {lang === 'hi' ? 'हाँ, हटाएँ' : 'Yes, Delete'}
+            </button>
+            
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              style={{
+                flex: 1,
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '0.6rem 1rem',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              {lang === 'hi' ? 'रद्द करें' : 'Cancel'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderSuccessModal = () => {
+    if (!showSuccessModal) return null
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 3500,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        animation: 'fadeIn 0.2s ease-out'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e0c080',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          padding: '1.5rem',
+          maxWidth: '360px',
+          width: '100%',
+          textAlign: 'center',
+          animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <CheckCircle size={48} style={{ color: '#16a34a', marginBottom: '1rem' }} />
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#14532d', fontSize: '1.25rem', fontWeight: 700 }}>
+            {lang === 'hi' ? 'अनुरोध सफल' : 'Request Successful'}
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+            {lang === 'hi' 
+              ? 'खाता हटाने का अनुरोध पंजीकृत हो गया है। आपको लॉगआउट किया जा रहा है।' 
+              : 'Account deletion requested. You will be logged out now.'}
+          </p>
+          <button
+            onClick={() => {
+              setShowSuccessModal(false)
+              if (onLogout) onLogout()
+            }}
+            style={{
+              backgroundColor: '#0f3d7a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.5rem 1.5rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            OK
+          </button>
         </div>
       </div>
     )
@@ -1688,6 +1901,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         )}
         {renderResourceModal()}
         {renderSettingsModal()}
+        {renderDeleteConfirmModal()}
+        {renderSuccessModal()}
         <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#8c6239', padding: '0.5rem 0', marginTop: 'auto', opacity: 0.85, fontWeight: 'bold' }}>
           Powered by Neopace Infotech LLP
         </div>
@@ -1866,6 +2081,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         </div>
       {renderResourceModal()}
       {renderSettingsModal()}
+      {renderDeleteConfirmModal()}
+      {renderSuccessModal()}
       <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted, #718096)', padding: '2rem 0 1rem 0', marginTop: '3rem', borderTop: '1px solid var(--border-muted, #e2e8f0)', width: '100%', fontWeight: 'bold' }}>
         Powered by Neopace Infotech LLP
       </div>
