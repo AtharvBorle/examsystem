@@ -15,6 +15,7 @@ import webDashboardBg from '../assets/rss_web_dashboard.png'
    VIEW: STUDENT DASHBOARD
    ========================================== */
 export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: { token: string | null; user: User; lang: Language; onChangeLang: (lang: Language) => void; onLogout?: () => void }) {
+  const { login } = useAuth()
   const [exams, setExams] = useState<any[]>([])
   const [resources, setResources] = useState<any[]>([])
   const [activeSession, setActiveSession] = useState<any | null>(null)
@@ -26,6 +27,13 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [activeMobileTab, setActiveMobileTab] = useState<'exams' | 'resources'>('exams')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editFirstName, setEditFirstName] = useState('')
+  const [editMotherName, setEditMotherName] = useState('')
+  const [editFatherName, setEditFatherName] = useState('')
+  const [editLastName, setEditLastName] = useState('')
+  const [updatingName, setUpdatingName] = useState(false)
+  const [nameError, setNameError] = useState('')
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
 
@@ -95,6 +103,87 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     }
   }
 
+  const parseNameParts = (fullName: string) => {
+    const parts = (fullName || '').trim().split(/\s+/)
+    return {
+      fName: parts[0] || '',
+      mName: parts[1] || '',
+      faName: parts[2] || '',
+      lName: parts.slice(3).join(' ') || ''
+    }
+  }
+
+  const startEditName = () => {
+    const parsed = parseNameParts(user.name || '')
+    setEditFirstName(parsed.fName)
+    setEditMotherName(parsed.mName)
+    setEditFatherName(parsed.faName)
+    setEditLastName(parsed.lName)
+    setNameError('')
+    setIsEditingName(true)
+  }
+
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setNameError('')
+    
+    const trimmedFirstName = editFirstName.trim()
+    const trimmedMotherName = editMotherName.trim()
+    const trimmedFatherName = editFatherName.trim()
+    const trimmedLastName = editLastName.trim()
+    
+    if (!trimmedFirstName || !trimmedMotherName || !trimmedFatherName || !trimmedLastName) {
+      setNameError(lang === 'hi' ? 'सभी फ़ील्ड आवश्यक हैं।' : 'All fields are required.')
+      return
+    }
+
+    const nameRegex = /^[A-Za-z\s\u0900-\u097F]+$/
+    if (trimmedFirstName.length < 1 || trimmedFirstName.length > 25 || !nameRegex.test(trimmedFirstName)) {
+      setNameError(lang === 'hi' ? 'प्रथम नाम में केवल अक्षर होने चाहिए।' : 'First name must contain only letters.')
+      return
+    }
+    if (trimmedMotherName.length < 1 || trimmedMotherName.length > 25 || !nameRegex.test(trimmedMotherName)) {
+      setNameError(lang === 'hi' ? 'माता के नाम में केवल अक्षर होने चाहिए।' : 'Mother\'s name must contain only letters.')
+      return
+    }
+    if (trimmedFatherName.length < 1 || trimmedFatherName.length > 25 || !nameRegex.test(trimmedFatherName)) {
+      setNameError(lang === 'hi' ? 'पिता के नाम में केवल अक्षर होने चाहिए।' : 'Father\'s name must contain only letters.')
+      return
+    }
+    if (trimmedLastName.length < 1 || trimmedLastName.length > 25 || !nameRegex.test(trimmedLastName)) {
+      setNameError(lang === 'hi' ? 'अंतिम नाम में केवल अक्षर होने चाहिए।' : 'Last name must contain only letters.')
+      return
+    }
+
+    setUpdatingName(true)
+    try {
+      const res = await fetch('/api/student/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          firstName: trimmedFirstName,
+          motherName: trimmedMotherName,
+          fatherName: trimmedFatherName,
+          lastName: trimmedLastName
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        login(token || '', { ...user, name: data.name })
+        setIsEditingName(false)
+      } else {
+        setNameError(data.error || 'Failed to update name')
+      }
+    } catch (err) {
+      setNameError('Connection failed')
+    } finally {
+      setUpdatingName(false)
+    }
+  }
+
   const renderSettingsModal = () => {
     if (!showSettingsModal) return null
 
@@ -141,13 +230,121 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
               <UserIcon size={18} />
               <span>{lang === 'hi' ? 'प्रोफ़ाइल' : 'Profile'}</span>
             </h4>
-            <div style={{ fontSize: '0.85rem', color: '#2d3748', backgroundColor: '#fffcf6', border: '1px solid #f2e2cc', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <div><strong>{lang === 'hi' ? 'नाम' : 'Name'}:</strong> {user.name}</div>
-              <div><strong>{lang === 'hi' ? 'मोबाइल' : 'Mobile'}:</strong> {user.mobile}</div>
-              <div><strong>{lang === 'hi' ? 'कक्षा' : 'Class'}:</strong> {user.classroom?.name}</div>
-              <div><strong>{lang === 'hi' ? 'स्कूल' : 'School'}:</strong> {user.school?.name}</div>
-              {user.branch && <div><strong>{lang === 'hi' ? 'शाखा' : 'Branch'}:</strong> {user.branch}</div>}
-            </div>
+            {!isEditingName ? (
+              <div style={{ fontSize: '0.85rem', color: '#2d3748', backgroundColor: '#fffcf6', border: '1px solid #f2e2cc', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <div><strong>{lang === 'hi' ? 'नाम' : 'Name'}:</strong> {user.name}</div>
+                <div><strong>{lang === 'hi' ? 'मोबाइल' : 'Mobile'}:</strong> {user.mobile}</div>
+                <div><strong>{lang === 'hi' ? 'कक्षा' : 'Class'}:</strong> {user.classroom?.name}</div>
+                <div><strong>{lang === 'hi' ? 'स्कूल' : 'School'}:</strong> {user.school?.name}</div>
+                {user.branch && <div><strong>{lang === 'hi' ? 'शाखा' : 'Branch'}:</strong> {user.branch}</div>}
+                
+                <button
+                  type="button"
+                  onClick={startEditName}
+                  style={{
+                    marginTop: '0.5rem',
+                    backgroundColor: '#ffffff',
+                    color: '#0f3d7a',
+                    border: '1px solid #0f3d7a',
+                    borderRadius: '6px',
+                    padding: '0.35rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  {lang === 'hi' ? 'नाम बदलें' : 'Update Name'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveName} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: '#fffcf6', border: '1px solid #f2e2cc', borderRadius: '8px', padding: '0.75rem' }}>
+                {nameError && <div style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: 'bold' }}>{nameError}</div>}
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '0.75rem', color: '#8c6239' }}>{lang === 'hi' ? 'प्रथम नाम' : 'First Name'}</label>
+                  <input
+                    type="text"
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '0.75rem', color: '#8c6239' }}>{lang === 'hi' ? 'माता का नाम' : "Mother's Name"}</label>
+                  <input
+                    type="text"
+                    value={editMotherName}
+                    onChange={(e) => setEditMotherName(e.target.value)}
+                    style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '0.75rem', color: '#8c6239' }}>{lang === 'hi' ? 'पिता का नाम' : "Father's Name"}</label>
+                  <input
+                    type="text"
+                    value={editFatherName}
+                    onChange={(e) => setEditFatherName(e.target.value)}
+                    style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <label style={{ fontWeight: 'bold', fontSize: '0.75rem', color: '#8c6239' }}>{lang === 'hi' ? 'अंतिम नाम' : 'Last Name'}</label>
+                  <input
+                    type="text"
+                    value={editLastName}
+                    onChange={(e) => setEditLastName(e.target.value)}
+                    style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="submit"
+                    disabled={updatingName}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#0f3d7a',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.4rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      outline: 'none'
+                    }}
+                  >
+                    {updatingName ? (lang === 'hi' ? 'सहेज जा रहा है...' : 'Saving...') : (lang === 'hi' ? 'सहेजें' : 'Save')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingName(false)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#e2e8f0',
+                      color: '#4a5568',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.4rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      outline: 'none'
+                    }}
+                  >
+                    {lang === 'hi' ? 'रद्द करें' : 'Cancel'}
+                  </button>
+                </div>
+              </form>
+            )}
             
             <button
               onClick={handleRequestDeletion}
