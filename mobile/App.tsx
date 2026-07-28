@@ -72,6 +72,178 @@ function App() {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const timerRef = useRef<any>(null);
 
+  // Vande Mataram Pledge Screen States & Refs
+  const [showPledge, setShowPledge] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<any>(null);
+  const pledgeScrollRef = useRef<ScrollView>(null);
+  const pledgeScrollY = useRef(0);
+
+  // Auto-scroll loop for the pledge text
+  useEffect(() => {
+    if (showPledge) {
+      const timer = setInterval(() => {
+        pledgeScrollY.current += 0.85; // smooth slow scroll
+        pledgeScrollRef.current?.scrollTo({
+          y: pledgeScrollY.current,
+          animated: true,
+        });
+      }, 50);
+      return () => clearInterval(timer);
+    }
+  }, [showPledge]);
+
+  const handlePledgeScroll = (event: any) => {
+    pledgeScrollY.current = event.nativeEvent.contentOffset.y;
+  };
+
+  const renderPledgeScreen = () => {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0b1a30' }}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        <ImageBackground
+          source={require('./imges/rss_00.png')}
+          style={{ flex: 1 }}
+          resizeMode="cover"
+        >
+          {/* Top Bar for Skip Button */}
+          <View style={[styles.topBar, { 
+            position: 'absolute', 
+            top: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24), 
+            right: 16, 
+            zIndex: 10 
+          }]}>
+            <TouchableOpacity 
+              onPress={() => setShowPledge(false)} 
+              style={[styles.skipButton, { backgroundColor: 'rgba(0, 0, 0, 0.45)', borderColor: '#ffffff', borderWidth: 1 }]}
+            >
+              <Text style={[styles.skipText, { color: '#ffffff' }]}>Skip</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Scrolling Content */}
+          <ScrollView
+            ref={pledgeScrollRef}
+            contentContainerStyle={{ 
+              paddingTop: screenHeight * 0.43, 
+              paddingBottom: screenHeight * 0.55, 
+              paddingHorizontal: 28,
+              alignItems: 'center' 
+            }}
+            showsVerticalScrollIndicator={false}
+            onScroll={handlePledgeScroll}
+            scrollEventThrottle={16}
+          >
+            <Text style={{
+              fontSize: 22,
+              fontWeight: 'bold',
+              color: '#e67300', // premium flag saffron color matching the image mockup
+              marginBottom: 20,
+              fontFamily: Platform.OS === 'ios' ? 'System' : 'serif',
+              textAlign: 'center'
+            }}>
+              वन्दे मातरम्
+            </Text>
+
+            <Text style={{
+              fontSize: 16,
+              lineHeight: 28,
+              fontWeight: 'bold',
+              color: '#e67300',
+              textAlign: 'center',
+              fontFamily: Platform.OS === 'ios' ? 'System' : 'serif',
+            }}>
+              {`वन्दे मातरम् सुजलां सुफलां\nमलयजशीतलाम् शस्यश्यामलां\nमातरम्\n\nशुभ्रज्योत्स्नापुलकितयामिनीं\nफुल्लकुसुमितद्रुमदलशोभिनीं\nसुहासिनीं सुमधुर भाषिणीं\nसुखदां वरदां मातरम् । १\n\nवन्दे मातरम्\n\nसप्तकोटिकण्ठकलकलनिनादकराले\nद्विसप्तकोटिभुजैर्धृत-खरकरवाले\nके बोले मा तुमी अबले\n(अबला केन मा एत बले)\nबहुबलधारिणीं नमामि तारिणीं\nरिपुदलवारिणीं मातरम् । २\n\nवन्दे मातरम्\n\nतुमि विद्या, तुमि धर्म\nतुमि हृदि, तुमि मर्म\nत्वं हि प्राणा: शरीरे\nबाहुते तुमि मा शक्ति\nहृदये तुमि मा भक्ति\nतोमारई प्रतिमा गडि मन्दिरे-मन्दिरे\nमातरम् । ३\n\nवन्दे मातरम्\n\nत्वं हि दुर्गा दशप्रहरणधारिणी\nकमला कमलदलविहारिणी\nवाणी विद्यादायिनी\nनमामि त्वां नमामि कमलां\nअमलां अतुलां सुजलां सुफलां\nमातरम्\n\nवन्दे मातरम्\n\nश्यामलां सरलां सुस्मितां भूषितां\nधरणीं भरणीं मातरम्\n\nवन्दे मातरम्`}
+            </Text>
+          </ScrollView>
+
+          {/* Mute/Unmute Floating Button at Bottom Right */}
+          <View style={{
+            position: 'absolute',
+            bottom: Platform.OS === 'ios' ? 40 : 24,
+            right: 24,
+            zIndex: 10
+          }}>
+            <TouchableOpacity
+              onPress={() => {
+                const nextMuted = !isMuted;
+                setIsMuted(nextMuted);
+                audioRef.current?.postMessage(nextMuted ? 'mute' : 'unmute');
+              }}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                borderColor: '#ffffff',
+                borderWidth: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 5
+              }}
+            >
+              <Text style={{ fontSize: 20, color: '#ffffff' }}>
+                {isMuted ? '🔇' : '🔊'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Hidden Webview for Playing Audio */}
+          <WebView
+            ref={audioRef}
+            style={{ width: 0, height: 0, position: 'absolute', opacity: 0 }}
+            source={{ html: `
+              <html>
+                <body>
+                  <audio id="audio" loop autoplay src="file:///android_asset/www/vande.mp3.mpeg" onerror="this.src='https://bvpindia.org/vande.mp3.mpeg'"></audio>
+                  <script>
+                    // Auto-unlock play restrictions inside WebView
+                    document.addEventListener('touchstart', function() {
+                      var audio = document.getElementById('audio');
+                      if (audio && audio.paused) {
+                        audio.play();
+                      }
+                    }, { once: true });
+                    
+                    document.addEventListener('message', function(e) {
+                      var audio = document.getElementById('audio');
+                      if (!audio) return;
+                      if (e.data === 'mute') {
+                        audio.muted = true;
+                      } else if (e.data === 'unmute') {
+                        audio.muted = false;
+                        audio.play().catch(function(err){});
+                      }
+                    });
+                    
+                    window.addEventListener('message', function(e) {
+                      var audio = document.getElementById('audio');
+                      if (!audio) return;
+                      if (e.data === 'mute') {
+                        audio.muted = true;
+                      } else if (e.data === 'unmute') {
+                        audio.muted = false;
+                        audio.play().catch(function(err){});
+                      }
+                    });
+                  </script>
+                </body>
+              </html>
+            ` }}
+            allowFileAccess={true}
+            allowUniversalAccessFromFileURLs={true}
+            javaScriptEnabled={true}
+            mediaPlaybackRequiresUserAction={false}
+          />
+        </ImageBackground>
+      </View>
+    );
+  };
+
   const resetAutoplayTimer = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -93,7 +265,7 @@ function App() {
           return prevIndex;
         }
       });
-    }, 3500);
+    }, 1500);
   };
 
   // Start timer on active onboarding
@@ -378,6 +550,10 @@ function App() {
       </View>
     </View>
   );
+
+  if (showPledge) {
+    return renderPledgeScreen();
+  }
 
   if (showOnboarding) {
     const isNew = SPLASH_SCREEN_VERSION === 'new';
