@@ -282,13 +282,13 @@ export async function generateCertificatePDF(data: {
   ctx.fillText(subtitleText, scale(297 / 2), scale(68))
 
   // 4. Presentation line
-  setCanvasFont('normal', 11)
-  ctx.fillStyle = 'rgb(74, 85, 104)'
+  setCanvasFont('bold', 13.5)
+  ctx.fillStyle = 'rgb(12, 34, 64)' // Bolder, darker navy color
   const presentText = isHindi ? 'यह प्रमाण पत्र गर्व से प्रदान किया जाता है' : 'This certificate is proudly presented to'
   ctx.fillText(presentText, scale(297 / 2), scale(79))
 
   // 5. Student Name
-  setCanvasFont('bold', 28)
+  setCanvasFont('bold', 30) // Slightly larger student name
   ctx.fillStyle = 'rgb(197, 160, 89)' // Elegant Gold
   ctx.fillText(data.studentName, scale(297 / 2), scale(94))
 
@@ -301,22 +301,22 @@ export async function generateCertificatePDF(data: {
   ctx.stroke()
 
   // 6. Description Text
-  setCanvasFont('normal', 11)
-  ctx.fillStyle = 'rgb(74, 85, 104)'
+  setCanvasFont('bold', 13.5)
+  ctx.fillStyle = 'rgb(12, 34, 64)' // Darker navy, bold
   const descText = isHindi 
     ? 'प्रतियोगिता में सक्रिय रूप से भाग लेने के लिए, जो भारत के सामान्य ज्ञान पर केंद्रित है।' 
     : 'For actively participating in the competition, which focuses on general knowledge about India.'
   ctx.fillText(descText, scale(297 / 2), scale(113))
 
   // 7. Exam Name
-  setCanvasFont('bold', 18)
+  setCanvasFont('bold', 20) // Bolder and larger exam name
   ctx.fillStyle = 'rgb(12, 34, 64)'
   const displayExam = isHindi ? translateExamToHindi(data.examName) : data.examName
   ctx.fillText(displayExam, scale(297 / 2), scale(125))
 
   // 8. Date Row
-  setCanvasFont('normal', 11)
-  ctx.fillStyle = 'rgb(74, 85, 104)'
+  setCanvasFont('bold', 12.5)
+  ctx.fillStyle = 'rgb(12, 34, 64)' // Darker navy, bold
   const formattedDate = new Date(data.completedAt).toLocaleDateString(
     isHindi ? 'hi-IN' : 'en-US',
     {
@@ -329,8 +329,8 @@ export async function generateCertificatePDF(data: {
   ctx.fillText(dateText, scale(297 / 2), scale(135))
 
   // 9. Class / School / Geography Details Row
-  setCanvasFont('normal', 10)
-  ctx.fillStyle = 'rgb(45, 55, 72)'
+  setCanvasFont('bold', 11.5)
+  ctx.fillStyle = 'rgb(12, 34, 64)' // Darker navy, bold
   const displayClassroom = isHindi ? translateClassroomToHindi(data.classroomName) : data.classroomName
   const displaySchool = isHindi ? translateSchoolToHindi(data.schoolName) : data.schoolName
   const displayDistrict = data.district || ''
@@ -367,7 +367,7 @@ export async function generateCertificatePDF(data: {
   }
   setCanvasFont('bold', 11)
   ctx.fillStyle = 'rgb(45, 55, 72)'
-  ctx.fillText('President/अध्यक्ष', scale(65), scale(180))
+  ctx.fillText(isHindi ? 'अध्यक्ष' : 'President', scale(65), scale(180))
 
   setCanvasFont('normal', 10)
   ctx.fillStyle = 'rgb(74, 85, 104)'
@@ -385,7 +385,7 @@ export async function generateCertificatePDF(data: {
   }
   setCanvasFont('bold', 11)
   ctx.fillStyle = 'rgb(45, 55, 72)'
-  ctx.fillText('Secretary/सचिव', scale(297 - 65), scale(180))
+  ctx.fillText(isHindi ? 'सचिव' : 'Secretary', scale(297 - 65), scale(180))
 
   setCanvasFont('normal', 10)
   ctx.fillStyle = 'rgb(74, 85, 104)'
