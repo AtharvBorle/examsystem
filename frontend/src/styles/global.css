@@ -1229,7 +1229,7 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .mobile-dashboard-header {
-  padding-top: 0.25rem;
+  padding-top: 2.25rem;
   margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;

@@ -373,7 +373,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
 
           {/* 2. Support Section */}
-          <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid #f4efea', paddingBottom: '1rem' }}>
+          <div style={{ marginBottom: '0.5rem' }}>
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.5rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
               <Mail size={18} />
               <span>{lang === 'hi' ? 'सहायता एवं सहयोग' : 'Support & Assistance'}</span>
@@ -387,21 +387,6 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             >
               info@neopaceinfotech.com
             </a>
-          </div>
-
-          {/* 3. About Section */}
-          <div style={{ marginBottom: '0.5rem' }}>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.5rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
-              <FileText size={18} />
-              <span>{lang === 'hi' ? 'ऐप के बारे में' : 'About App'}</span>
-            </h4>
-            <div style={{ fontSize: '0.85rem', color: '#4a5568', lineHeight: 1.4 }}>
-              <div><strong>{lang === 'hi' ? 'लतूर परीक्षा पोर्टल' : 'Latur Examination Portal'}</strong></div>
-              <div>{lang === 'hi' ? 'संस्करण' : 'Version'}: 1.0.0</div>
-              <div style={{ marginTop: '0.25rem', fontStyle: 'italic', fontSize: '0.8rem', color: '#718096' }}>
-                {lang === 'hi' ? 'हम बाद में इस एप्लिकेशन के बारे में और विवरण जोड़ेंगे।' : 'We will add more details about this application later.'}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1333,23 +1318,27 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             style={{
               background: '#ffffff',
               border: '1px solid #dcd1ba',
-              borderRadius: '8px',
-              width: '40px',
-              height: '40px',
+              borderRadius: '6px',
+              width: '32px',
+              height: '32px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               color: '#8c6239',
               boxShadow: '0 2px 4px rgba(140, 98, 57, 0.05)',
-              outline: 'none'
+              outline: 'none',
+              padding: 0
             }}
             title={lang === 'hi' ? 'सेटिंग्स' : 'Settings'}
           >
-            <Settings size={20} />
+            <Settings size={16} />
           </button>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: '#8c6239', fontWeight: 'bold', fontFamily: 'var(--font-sans, sans-serif)' }}>
+              {lang === 'hi' ? 'भाषा बदलें:' : 'Language:'}
+            </span>
             <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
             {onLogout && (
               <button 
@@ -1358,19 +1347,20 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   background: '#ffffff',
                   border: '1px solid #dcd1ba',
                   borderRadius: '8px',
-                  width: '40px',
-                  height: '40px',
+                  width: '32px',
+                  height: '32px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   color: '#8c6239',
                   boxShadow: '0 2px 4px rgba(140, 98, 57, 0.05)',
-                  outline: 'none'
+                  outline: 'none',
+                  padding: 0
                 }}
                 title={lang === 'hi' ? 'लॉगआउट' : 'Logout'}
               >
-                <LogOut size={20} />
+                <LogOut size={16} />
               </button>
             )}
           </div>

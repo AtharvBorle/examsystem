@@ -35,7 +35,7 @@ export function LanguageSelector({
         title={lang === 'hi' ? 'भाषा चुनें' : 'Choose Language'}
         onClick={() => setIsOpen(!isOpen)}
         style={{
-          padding: '0.35rem 0.75rem',
+          padding: '0.35rem 0.5rem',
           borderRadius: '6px',
           border: `1px solid ${themeBorder}`,
           backgroundColor: themeBg,
@@ -48,7 +48,7 @@ export function LanguageSelector({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          minWidth: '110px',
+          minWidth: '80px',
           justifyContent: 'space-between',
         }}
       >
