@@ -37,6 +37,8 @@ export async function GET(
                 name: true,
                 udise: true,
                 language: true,
+                district: true,
+                tehsil: true,
                 admin: {
                   select: {
                     branch: true,
