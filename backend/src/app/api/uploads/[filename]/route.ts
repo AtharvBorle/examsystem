@@ -5,7 +5,7 @@ import { existsSync } from 'fs'
 
 export const dynamic = 'force-dynamic'
 
-// GET /uploads/[filename] - Dynamically serve uploaded files from public/uploads at runtime to bypass Next.js production cache
+// GET /api/uploads/[filename] - Serve uploaded files dynamically from public/uploads at runtime
 export async function GET(
   req: NextRequest,
   { params }: { params: { filename: string } }

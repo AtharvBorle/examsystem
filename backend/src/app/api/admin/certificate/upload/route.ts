@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
     // Write file to server disk
     await writeFile(filePath, buffer)
 
-    // Return static URL path
-    const fileUrl = `/uploads/${filename}`
+    // Return dynamic API URL path instead of direct public folder URL
+    const fileUrl = `/api/uploads/${filename}`
     return successResponse({ fileUrl })
   } catch (error: any) {
     console.error('Signature upload error:', error)

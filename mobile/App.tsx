@@ -110,23 +110,29 @@ function App() {
           <View style={[styles.topBar, { 
             position: 'absolute', 
             top: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24), 
-            right: 16, 
+            left: 0,
+            right: 0, 
             zIndex: 10 
           }]}>
-            <TouchableOpacity 
-              onPress={() => setShowPledge(false)} 
-              style={[styles.skipButton, { backgroundColor: 'rgba(0, 0, 0, 0.45)', borderColor: '#ffffff', borderWidth: 1 }]}
-            >
-              <Text style={[styles.skipText, { color: '#ffffff' }]}>Skip</Text>
+            <TouchableOpacity onPress={() => setShowPledge(false)} style={styles.skipButton}>
+              <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
           </View>
 
           {/* Scrolling Content */}
           <ScrollView
             ref={pledgeScrollRef}
+            style={{
+              position: 'absolute',
+              top: screenHeight * 0.26,
+              bottom: screenHeight * 0.24,
+              left: 0,
+              right: 0,
+              overflow: 'hidden',
+            }}
             contentContainerStyle={{ 
-              paddingTop: screenHeight * 0.43, 
-              paddingBottom: screenHeight * 0.55, 
+              paddingTop: screenHeight * 0.48, 
+              paddingBottom: screenHeight * 0.52, 
               paddingHorizontal: 28,
               alignItems: 'center' 
             }}
@@ -186,9 +192,27 @@ function App() {
                 elevation: 5
               }}
             >
-              <Text style={{ fontSize: 20, color: '#ffffff' }}>
-                {isMuted ? '🔇' : '🔊'}
-              </Text>
+              <View style={{ position: 'relative', width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}>
+                <Image 
+                  source={require('./imges/speaker.png')} 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    tintColor: '#ffffff',
+                  }}
+                  resizeMode="contain"
+                />
+                {isMuted && (
+                  <View style={{
+                    position: 'absolute',
+                    width: 30,
+                    height: 2.5,
+                    backgroundColor: '#ef4444',
+                    transform: [{ rotate: '-45deg' }],
+                    borderRadius: 1.5,
+                  }} />
+                )}
+              </View>
             </TouchableOpacity>
           </View>
 
