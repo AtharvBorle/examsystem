@@ -1459,8 +1459,8 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 
 
 
-      <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%' }}>
-        powered by Neopace Infotech LLP
+      <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
+        Powered by Neopace Infotech LLP
       </div>
     </div>
   )
@@ -2590,8 +2590,8 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
       {activeTab === 'RESOURCES' && <AdminResourcesTab token={token} lang={lang} />}
       {/* {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang={lang} />} */}
 
-      <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%' }}>
-        powered by Neopace Infotech LLP
+      <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
+        Powered by Neopace Infotech LLP
       </div>
     </div>
   )

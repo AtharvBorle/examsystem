@@ -5,7 +5,7 @@ import { generateCertificatePDF, generateAnswersheetPDF } from '../utils/pdfGene
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
-  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download
+  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon
 } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 import downloadCertBg from '../assets/rss_download_cert.png'
@@ -24,6 +24,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [viewingResourceUrl, setViewingResourceUrl] = useState<string | null>(null)
   const [viewingResourceTitle, setViewingResourceTitle] = useState<string>('')
   const [activeMobileTab, setActiveMobileTab] = useState<'exams' | 'resources'>('exams')
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
 
@@ -61,6 +63,152 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     } catch (err) {
       console.error(err)
     }
+  }
+
+  const handleRequestDeletion = async () => {
+    const msg = lang === 'hi' 
+      ? 'क्या आप वाकई खाता हटाने का अनुरोध करना चाहते हैं? आपका खाता सॉफ्ट-डिलीट कर दिया जाएगा और 30 दिनों के बाद स्थायी रूप से हटा दिया जाएगा। इस अवधि के दौरान फिर से लॉगिन करने से हटाने का अनुरोध रद्द हो जाएगा।'
+      : 'Are you sure you want to request account deletion? Your account will be soft-deleted and permanently removed after 30 days. Logging in again during these 30 days will cancel the deletion request.'
+    
+    if (!window.confirm(msg)) return
+    
+    setDeletingAccount(true)
+    try {
+      const res = await fetch('/api/student/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await res.json()
+      if (data.success) {
+        alert(lang === 'hi' ? 'खाता हटाने का अनुरोध पंजीकृत हो गया है। आपको लॉगआउट किया जा रहा है।' : 'Account deletion requested. You will be logged out now.')
+        if (onLogout) onLogout()
+      } else {
+        alert(data.error || 'Failed to request account deletion.')
+      }
+    } catch (err) {
+      alert('Connection failed.')
+    } finally {
+      setDeletingAccount(false)
+    }
+  }
+
+  const renderSettingsModal = () => {
+    if (!showSettingsModal) return null
+
+    return (
+      <div className="modal-overlay" style={{ zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div className="modal-content" style={{ 
+          maxWidth: '400px', 
+          width: '100%', 
+          borderRadius: '16px', 
+          backgroundColor: '#fffdfa', 
+          border: '1px solid #f2e2cc',
+          padding: '1.25rem',
+          boxShadow: '0 8px 30px rgba(140, 98, 57, 0.15)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '85vh',
+          overflowY: 'auto'
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f2e2cc', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: '#0f3d7a', fontFamily: 'var(--font-serif, serif)', fontSize: '1.25rem', fontWeight: 700 }}>
+              {lang === 'hi' ? 'सेटिंग्स' : 'Settings'}
+            </h3>
+            <button 
+              onClick={() => setShowSettingsModal(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#8c6239',
+                padding: 0,
+                lineHeight: 1,
+                outline: 'none'
+              }}
+            >
+              &times;
+            </button>
+          </div>
+
+          {/* 1. Profile Section */}
+          <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid #f4efea', paddingBottom: '1rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.75rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
+              <UserIcon size={18} />
+              <span>{lang === 'hi' ? 'प्रोफ़ाइल' : 'Profile'}</span>
+            </h4>
+            <div style={{ fontSize: '0.85rem', color: '#2d3748', backgroundColor: '#fffcf6', border: '1px solid #f2e2cc', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <div><strong>{lang === 'hi' ? 'नाम' : 'Name'}:</strong> {user.name}</div>
+              <div><strong>{lang === 'hi' ? 'मोबाइल' : 'Mobile'}:</strong> {user.mobile}</div>
+              <div><strong>{lang === 'hi' ? 'कक्षा' : 'Class'}:</strong> {user.classroom?.name}</div>
+              <div><strong>{lang === 'hi' ? 'स्कूल' : 'School'}:</strong> {user.school?.name}</div>
+              {user.branch && <div><strong>{lang === 'hi' ? 'शाखा' : 'Branch'}:</strong> {user.branch}</div>}
+            </div>
+            
+            <button
+              onClick={handleRequestDeletion}
+              disabled={deletingAccount}
+              style={{
+                marginTop: '0.75rem',
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                padding: '0.5rem 1rem',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                outline: 'none'
+              }}
+            >
+              <AlertTriangle size={16} />
+              {deletingAccount ? (lang === 'hi' ? 'अनुरोध भेजा जा रहा है...' : 'Requesting...') : (lang === 'hi' ? 'खाता हटाने का अनुरोध करें (30 दिन)' : 'Request Account Deletion (30 Days)')}
+            </button>
+          </div>
+
+          {/* 2. Support Section */}
+          <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid #f4efea', paddingBottom: '1rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.5rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
+              <Mail size={18} />
+              <span>{lang === 'hi' ? 'सहायता एवं सहयोग' : 'Support & Assistance'}</span>
+            </h4>
+            <p style={{ fontSize: '0.85rem', color: '#4a5568', margin: '0 0 0.25rem 0', lineHeight: 1.4 }}>
+              {lang === 'hi' ? 'किसी भी प्रश्न या सहायता के लिए, कृपया हमें ईमेल करें:' : 'For any queries or assistance, please mail to:'}
+            </p>
+            <a 
+              href="mailto:info@neopaceinfotech.com"
+              style={{ fontSize: '0.85rem', color: '#0f3d7a', fontWeight: 'bold', textDecoration: 'underline' }}
+            >
+              info@neopaceinfotech.com
+            </a>
+          </div>
+
+          {/* 3. About Section */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 0.5rem 0', color: '#8c6239', fontSize: '1rem', fontWeight: 700 }}>
+              <FileText size={18} />
+              <span>{lang === 'hi' ? 'ऐप के बारे में' : 'About App'}</span>
+            </h4>
+            <div style={{ fontSize: '0.85rem', color: '#4a5568', lineHeight: 1.4 }}>
+              <div><strong>{lang === 'hi' ? 'लतूर परीक्षा पोर्टल' : 'Latur Examination Portal'}</strong></div>
+              <div>{lang === 'hi' ? 'संस्करण' : 'Version'}: 1.0.0</div>
+              <div style={{ marginTop: '0.25rem', fontStyle: 'italic', fontSize: '0.8rem', color: '#718096' }}>
+                {lang === 'hi' ? 'हम बाद में इस एप्लिकेशन के बारे में और विवरण जोड़ेंगे।' : 'We will add more details about this application later.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   useEffect(() => {
@@ -981,31 +1129,54 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   if (isNew) {
     return (
       <div className="mobile-dashboard-container">
-        {/* Top bar with LanguageSelector and Logout button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', marginBottom: '1rem', gap: '12px' }}>
-          <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
-          {onLogout && (
-            <button 
-              onClick={onLogout} 
-              style={{
-                background: '#ffffff',
-                border: '1px solid #dcd1ba',
-                borderRadius: '8px',
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#8c6239',
-                boxShadow: '0 2px 4px rgba(140, 98, 57, 0.05)',
-                outline: 'none'
-              }}
-              title={lang === 'hi' ? 'लॉगआउट' : 'Logout'}
-            >
-              <LogOut size={20} />
-            </button>
-          )}
+        {/* Top bar with Settings, LanguageSelector and Logout button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
+          <button 
+            onClick={() => setShowSettingsModal(true)} 
+            style={{
+              background: '#ffffff',
+              border: '1px solid #dcd1ba',
+              borderRadius: '8px',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#8c6239',
+              boxShadow: '0 2px 4px rgba(140, 98, 57, 0.05)',
+              outline: 'none'
+            }}
+            title={lang === 'hi' ? 'सेटिंग्स' : 'Settings'}
+          >
+            <Settings size={20} />
+          </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
+            {onLogout && (
+              <button 
+                onClick={onLogout} 
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #dcd1ba',
+                  borderRadius: '8px',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#8c6239',
+                  boxShadow: '0 2px 4px rgba(140, 98, 57, 0.05)',
+                  outline: 'none'
+                }}
+                title={lang === 'hi' ? 'लॉगआउट' : 'Logout'}
+              >
+                <LogOut size={20} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Header section with Welcome, and Student Name */}
@@ -1053,27 +1224,27 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         {/* Horizontally Scrollable Section Tabs */}
         <div style={{
           display: 'flex',
-          gap: '1.75rem',
+          gap: '1.25rem',
           overflowX: 'auto',
           width: '100%',
-          paddingBottom: '0.25rem',
+          paddingBottom: '0.15rem',
           borderBottom: '1px solid var(--border-muted, #e2e8f0)',
-          marginBottom: '1.5rem',
+          marginBottom: '0.5rem',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           whiteSpace: 'nowrap',
-          marginTop: '1.5rem'
+          marginTop: '0.5rem'
         }}>
           <button
             onClick={() => setActiveMobileTab('exams')}
             style={{
               fontFamily: 'var(--font-serif, Georgia, serif)',
-              fontSize: '1.25rem',
+              fontSize: '1.1rem',
               fontWeight: 700,
               color: activeMobileTab === 'exams' ? '#0b2240' : '#718096',
               background: 'none',
               border: 'none',
-              padding: '0 0 0.75rem 0',
+              padding: '0 0 0.4rem 0',
               borderBottom: activeMobileTab === 'exams' ? '3.5px solid #c59f2d' : '3.5px solid transparent',
               cursor: 'pointer',
               outline: 'none',
@@ -1087,12 +1258,12 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             onClick={() => setActiveMobileTab('resources')}
             style={{
               fontFamily: 'var(--font-serif, Georgia, serif)',
-              fontSize: '1.25rem',
+              fontSize: '1.1rem',
               fontWeight: 700,
               color: activeMobileTab === 'resources' ? '#0b2240' : '#718096',
               background: 'none',
               border: 'none',
-              padding: '0 0 0.75rem 0',
+              padding: '0 0 0.4rem 0',
               borderBottom: activeMobileTab === 'resources' ? '3.5px solid #c59f2d' : '3.5px solid transparent',
               cursor: 'pointer',
               outline: 'none',
@@ -1103,15 +1274,15 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </button>
         </div>
 
-        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem', width: '100%' }}>{error}</div>}
+        {error && <div className="alert alert-danger" style={{ marginBottom: '0.5rem', width: '100%' }}>{error}</div>}
 
         {/* Tab Content Block */}
         {activeMobileTab === 'exams' ? (
           <div>
             {/* Gold Lotus Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '1.25rem', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '0.5rem', gap: '8px' }}>
               <div style={{ width: '20px', height: '1px', background: '#c59f2d' }}></div>
-              <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', fill: '#d4af37' }}>
+              <svg viewBox="0 0 100 100" style={{ width: '18px', height: '18px', fill: '#d4af37' }}>
                 <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
                 <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
                 <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
@@ -1329,6 +1500,10 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
         )}
         {renderResourceModal()}
+        {renderSettingsModal()}
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#8c6239', padding: '0.5rem 0', marginTop: 'auto', opacity: 0.85, fontWeight: 'bold' }}>
+          Powered by Neopace Infotech LLP
+        </div>
       </div>
     )
   }
@@ -1503,6 +1678,10 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
         </div>
       {renderResourceModal()}
+      {renderSettingsModal()}
+      <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted, #718096)', padding: '2rem 0 1rem 0', marginTop: '3rem', borderTop: '1px solid var(--border-muted, #e2e8f0)', width: '100%', fontWeight: 'bold' }}>
+        Powered by Neopace Infotech LLP
+      </div>
       </div>
     </div>
   )

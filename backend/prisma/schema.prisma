@@ -196,6 +196,7 @@ model Student {
   language    String   @default("en")
   approved    Boolean  @default(true)
   createdAt   DateTime @default(now())
+  deletedAt   DateTime?
   
   attempts    ExamAttempt[]
 }

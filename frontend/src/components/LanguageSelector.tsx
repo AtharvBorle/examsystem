@@ -32,6 +32,7 @@ export function LanguageSelector({
     <div ref={dropdownRef} className="custom-lang-selector" style={{ position: 'relative', display: 'inline-block' }}>
       <button
         type="button"
+        title={lang === 'hi' ? 'भाषा चुनें' : 'Choose Language'}
         onClick={() => setIsOpen(!isOpen)}
         style={{
           padding: '0.35rem 0.75rem',
@@ -47,11 +48,11 @@ export function LanguageSelector({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          minWidth: '70px',
+          minWidth: '110px',
           justifyContent: 'space-between',
         }}
       >
-        <span>{lang === 'hi' ? 'HI' : 'EN'}</span>
+        <span>{lang === 'hi' ? 'हिन्दी' : 'English'}</span>
         <span style={{ fontSize: '0.65rem', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
       </button>
       {isOpen && (
@@ -65,7 +66,7 @@ export function LanguageSelector({
             borderRadius: '8px',
             boxShadow: '0 8px 16px rgba(0,0,0,0.25)',
             zIndex: 99999,
-            minWidth: '110px',
+            minWidth: '140px',
             overflow: 'hidden',
             animation: 'dropdownFadeIn 0.15s ease-out',
           }}
@@ -78,6 +79,17 @@ export function LanguageSelector({
               }
             `}
           </style>
+          <div style={{
+            padding: '0.5rem 0.75rem 0.35rem 0.75rem',
+            fontSize: '0.75rem',
+            color: isDark ? '#a0aec0' : '#718096',
+            fontWeight: '700',
+            borderBottom: `1px solid ${themeBorder}`,
+            backgroundColor: isDark ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.02)',
+            whiteSpace: 'nowrap'
+          }}>
+            {lang === 'hi' ? 'भाषा चुनें' : 'Choose Language'}
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -123,7 +135,7 @@ export function LanguageSelector({
               fontFamily: 'var(--font-sans)',
             }}
           >
-            <span>हिंदी (HI)</span>
+            <span>हिन्दी</span>
             {lang === 'hi' && <span style={{ color: '#c5a059', fontWeight: 'bold' }}>✓</span>}
           </button>
         </div>

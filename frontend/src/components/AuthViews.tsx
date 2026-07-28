@@ -140,6 +140,9 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, transparent, #e0c080)' }}></div>
           </div>
         </div>
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#8c6239', padding: '0.5rem 0', marginTop: 'auto', opacity: 0.85, fontWeight: 'bold' }}>
+          Powered by Neopace Infotech LLP
+        </div>
       </div>
     )
   }
@@ -199,6 +202,9 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
           <button onClick={onViewRegister} className="mobile-register-link">
             {lang === 'hi' ? 'यहाँ पंजीकरण करें' : 'Register Here'}
           </button>
+        </div>
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '1.25rem', opacity: 0.85, fontWeight: 'bold' }}>
+          Powered by Neopace Infotech LLP
         </div>
       </div>
     </div>
@@ -912,6 +918,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
             </button>
           </div>
         </div>
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#8c6239', padding: '0.5rem 0', marginTop: 'auto', opacity: 0.85, fontWeight: 'bold' }}>
+          Powered by Neopace Infotech LLP
+        </div>
       </div>
     )
   }
@@ -1252,6 +1261,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
             {t.loginHere}
           </button>
         </div>
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '1.25rem', opacity: 0.85, fontWeight: 'bold' }}>
+          Powered by Neopace Infotech LLP
+        </div>
       </div>
     </div>
   )
@@ -1484,6 +1496,9 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
             {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
           </button>
         </form>
+      </div>
+      <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#8c6239', padding: '0.5rem 0', marginTop: 'auto', opacity: 0.85, fontWeight: 'bold' }}>
+        Powered by Neopace Infotech LLP
       </div>
     </div>
   )

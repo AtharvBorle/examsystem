@@ -6,6 +6,22 @@ import bcrypt from 'bcryptjs'
 import { translateClassroomName } from '@/lib/class-translator'
 import { upsertSchoolTranslation } from '@/lib/school-translator'
 
+async function checkAndRestoreStudent(student: any) {
+  if (student.deletedAt) {
+    const daysDiff = (new Date().getTime() - new Date(student.deletedAt).getTime()) / (1000 * 60 * 60 * 24)
+    if (daysDiff >= 30) {
+      return { deleted: true }
+    } else {
+      await prisma.student.update({
+        where: { id: student.id },
+        data: { deletedAt: null }
+      })
+      student.deletedAt = null
+    }
+  }
+  return { deleted: false }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { identifier, password, language } = await req.json()
@@ -28,6 +44,16 @@ export async function POST(req: NextRequest) {
         },
       })
       if (student) {
+        const check = await checkAndRestoreStudent(student)
+        if (check.deleted) {
+          return errorResponse(
+            language === 'hi' 
+              ? 'यह खाता स्थायी रूप से हटा दिया गया है।' 
+              : 'This account has been permanently deleted.',
+            400
+          )
+        }
+
         const token = signToken({
           userId: student.id,
           role: 'STUDENT',
@@ -172,6 +198,16 @@ export async function POST(req: NextRequest) {
         },
       })
       if (student && (await bcrypt.compare(password, student.password))) {
+        const check = await checkAndRestoreStudent(student)
+        if (check.deleted) {
+          return errorResponse(
+            language === 'hi' 
+              ? 'यह खाता स्थायी रूप से हटा दिया गया है।' 
+              : 'This account has been permanently deleted.',
+            400
+          )
+        }
+
         const token = signToken({
           userId: student.id,
           role: 'STUDENT',
