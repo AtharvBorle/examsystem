@@ -1824,6 +1824,13 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
           examName: data.certificate.examName,
           completedAt: data.certificate.completedAt,
           language: lang,
+          district: data.certificate.district,
+          tehsil: data.certificate.tehsil,
+          branch: data.certificate.branch,
+          presidentName: data.certificate.presidentName,
+          presidentSignature: data.certificate.presidentSignature,
+          secretaryName: data.certificate.secretaryName,
+          secretarySignature: data.certificate.secretarySignature,
         })
       } else {
         alert(data.error || 'Failed to fetch certificate details')
@@ -2466,7 +2473,7 @@ function AdminApprovalsTab({ token, lang }: { token: string | null; lang: Langua
 }
 
 export function AdminDashboard({ token, lang }: { token: string | null; lang: Language }) {
-  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS' | 'RESOURCES' | 'PASSWORD_RESET'>('ANALYTICS')
+  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'SCHOOLS' | 'CLASSROOMS' | 'CATEGORIES' | 'EXAMS' | 'APPROVALS' | 'RESOURCES' | 'PASSWORD_RESET' | 'CERTIFICATE'>('ANALYTICS')
   const t = translations[lang]
 
   return (
@@ -2564,6 +2571,19 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
         >
           {t.tabResources}
         </button>
+        <button
+          onClick={() => setActiveTab('CERTIFICATE')}
+          className="btn-text"
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1rem',
+            padding: '1rem 1.5rem',
+            color: activeTab === 'CERTIFICATE' ? 'var(--primary-navy)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'CERTIFICATE' ? '2px solid var(--accent-gold)' : 'none',
+          }}
+        >
+          {lang === 'hi' ? 'प्रमाण पत्र' : 'Certificate'}
+        </button>
         {/* 
         <button
           onClick={() => setActiveTab('PASSWORD_RESET')}
@@ -2588,6 +2608,7 @@ export function AdminDashboard({ token, lang }: { token: string | null; lang: La
       {activeTab === 'EXAMS' && <AdminExamsTab token={token} lang={lang} />}
       {activeTab === 'APPROVALS' && <AdminApprovalsTab token={token} lang={lang} />}
       {activeTab === 'RESOURCES' && <AdminResourcesTab token={token} lang={lang} />}
+      {activeTab === 'CERTIFICATE' && <AdminCertificateTab token={token} lang={lang} />}
       {/* {activeTab === 'PASSWORD_RESET' && <AdminPasswordResetTab token={token} lang={lang} />} */}
 
       <div style={{ textAlign: 'center', marginTop: '3rem', padding: '1.5rem 0', borderTop: '1px solid var(--border-muted)', color: '#888888', fontSize: '0.85rem', width: '100%', fontWeight: 'bold' }}>
@@ -6806,6 +6827,249 @@ function AdminResourcesTab({ token, lang }: { token: string | null; lang: Langua
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function AdminCertificateTab({ token, lang }: { token: string | null; lang: Language }) {
+  const [presidentName, setPresidentName] = useState('')
+  const [presidentNameHindi, setPresidentNameHindi] = useState('')
+  const [presidentSignature, setPresidentSignature] = useState('')
+  const [secretaryName, setSecretaryName] = useState('')
+  const [secretaryNameHindi, setSecretaryNameHindi] = useState('')
+  const [secretarySignature, setSecretarySignature] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploadingPres, setUploadingPres] = useState(false)
+  const [uploadingSec, setUploadingSec] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/admin/certificate/config', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (data.success && data.config) {
+          setPresidentName(data.config.presidentName || '')
+          setPresidentNameHindi(data.config.presidentNameHindi || '')
+          setPresidentSignature(data.config.presidentSignature || '')
+          setSecretaryName(data.config.secretaryName || '')
+          setSecretaryNameHindi(data.config.secretaryNameHindi || '')
+          setSecretarySignature(data.config.secretarySignature || '')
+        }
+      } catch (err) {
+        console.error('Failed to load certificate configurations', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchConfig()
+  }, [token])
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, role: 'president' | 'secretary') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    if (role === 'president') {
+      setUploadingPres(true)
+    } else {
+      setUploadingSec(true)
+    }
+
+    try {
+      const res = await fetch('/api/admin/certificate/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      })
+      const data = await res.json()
+      if (data.success) {
+        if (role === 'president') {
+          setPresidentSignature(data.fileUrl)
+        } else {
+          setSecretarySignature(data.fileUrl)
+        }
+      } else {
+        alert(data.error || 'Failed to upload signature file')
+      }
+    } catch (err) {
+      alert('Upload failed')
+    } finally {
+      if (role === 'president') {
+        setUploadingPres(false)
+      } else {
+        setUploadingSec(false)
+      }
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setSaving(true)
+
+    try {
+      const res = await fetch('/api/admin/certificate/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          presidentName,
+          presidentNameHindi,
+          presidentSignature,
+          secretaryName,
+          secretaryNameHindi,
+          secretarySignature
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(lang === 'hi' ? 'प्रमाण पत्र सेटिंग्स सफलतापूर्वक सहेजी गईं!' : 'Certificate configurations saved successfully!')
+      } else {
+        setError(data.error || 'Failed to save config')
+      }
+    } catch (err) {
+      setError('Connection failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '3rem' }}>Loading certificate config...</div>
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 0 }}>
+      <h3 className="card-title">{lang === 'hi' ? 'प्रमाण पत्र हस्ताक्षर सेटिंग्स' : 'Certificate Signatory Settings'}</h3>
+      {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+          
+          {/* President Details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderRight: '1px solid #f2e2cc', paddingRight: '2rem' }}>
+            <h4 style={{ color: '#0f3d7a', fontFamily: 'var(--font-serif)', borderBottom: '1px solid #e0c080', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={18} />
+              <span>{lang === 'hi' ? 'अध्यक्ष विवरण (President)' : 'President Details'}</span>
+            </h4>
+            
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'नाम (अंग्रेजी)' : 'Name (English)'}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={presidentName}
+                onChange={(e) => setPresidentName(e.target.value)}
+                placeholder="e.g. Dr. Ramesh Patil"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'नाम (हिंदी)' : 'Name (Hindi)'}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={presidentNameHindi}
+                onChange={(e) => setPresidentNameHindi(e.target.value)}
+                placeholder="उदा. डॉ. रमेश पाटील"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'हस्ताक्षर छवि अपलोड करें' : 'Upload Signature Image'}</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'president')}
+                style={{ width: '100%' }}
+              />
+              {uploadingPres && <div style={{ fontSize: '0.8rem', color: '#c59f2d', marginTop: '4px' }}>Uploading signature...</div>}
+              {presidentSignature && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#666', display: 'block', marginBottom: '4px' }}>Preview:</span>
+                  <img
+                    src={presidentSignature}
+                    alt="President Signature"
+                    style={{ maxHeight: '60px', maxWidth: '160px', border: '1px dashed #c59f2d', padding: '4px', backgroundColor: '#fff' }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Secretary Details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h4 style={{ color: '#0f3d7a', fontFamily: 'var(--font-serif)', borderBottom: '1px solid #e0c080', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={18} />
+              <span>{lang === 'hi' ? 'सचिव विवरण (Secretary)' : 'Secretary Details'}</span>
+            </h4>
+            
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'नाम (अंग्रेजी)' : 'Name (English)'}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={secretaryName}
+                onChange={(e) => setSecretaryName(e.target.value)}
+                placeholder="e.g. Prof. Sunita Deshmukh"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'नाम (हिंदी)' : 'Name (Hindi)'}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={secretaryNameHindi}
+                onChange={(e) => setSecretaryNameHindi(e.target.value)}
+                placeholder="उदा. प्रो. सुनीता देशमुख"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'हस्ताक्षर छवि अपलोड करें' : 'Upload Signature Image'}</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'secretary')}
+                style={{ width: '100%' }}
+              />
+              {uploadingSec && <div style={{ fontSize: '0.8rem', color: '#c59f2d', marginTop: '4px' }}>Uploading signature...</div>}
+              {secretarySignature && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#666', display: 'block', marginBottom: '4px' }}>Preview:</span>
+                  <img
+                    src={secretarySignature}
+                    alt="Secretary Signature"
+                    style={{ maxHeight: '60px', maxWidth: '160px', border: '1px dashed #c59f2d', padding: '4px', backgroundColor: '#fff' }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={saving}
+          style={{ alignSelf: 'flex-start', padding: '0.75rem 2rem', marginTop: '1rem' }}
+        >
+          {saving ? (lang === 'hi' ? 'सहेजा जा रहा है...' : 'Saving Details...') : (lang === 'hi' ? 'सेटिंग्स सहेजें' : 'Save Settings')}
+        </button>
+      </form>
     </div>
   )
 }

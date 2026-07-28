@@ -709,6 +709,13 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             examName: data.certificate.examName,
             completedAt: data.certificate.completedAt,
             language: lang,
+            district: data.certificate.district,
+            tehsil: data.certificate.tehsil,
+            branch: data.certificate.branch,
+            presidentName: data.certificate.presidentName,
+            presidentSignature: data.certificate.presidentSignature,
+            secretaryName: data.certificate.secretaryName,
+            secretarySignature: data.certificate.secretarySignature,
           })
           return
         }

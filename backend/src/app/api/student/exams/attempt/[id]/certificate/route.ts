@@ -29,12 +29,26 @@ export async function GET(
           select: {
             id: true,
             name: true,
+            district: true,
+            tehsil: true,
             school: {
               select: {
                 id: true,
                 name: true,
                 udise: true,
                 language: true,
+                admin: {
+                  select: {
+                    branch: true,
+                    branchHindi: true,
+                    presidentName: true,
+                    presidentNameHindi: true,
+                    presidentSignature: true,
+                    secretaryName: true,
+                    secretaryNameHindi: true,
+                    secretarySignature: true,
+                  }
+                }
               },
             },
             classroom: { select: { name: true } },
@@ -86,6 +100,19 @@ export async function GET(
         examName: (targetLang === 'hi' && attempt.exam.nameHindi) ? attempt.exam.nameHindi : attempt.exam.name,
         completedAt: attempt.submittedAt,
         language: targetLang,
+        district: attempt.student.district,
+        tehsil: attempt.student.tehsil,
+        branch: (targetLang === 'hi' && attempt.student.school.admin.branchHindi)
+          ? attempt.student.school.admin.branchHindi
+          : (attempt.student.school.admin.branch || ''),
+        presidentName: (targetLang === 'hi' && attempt.student.school.admin.presidentNameHindi)
+          ? attempt.student.school.admin.presidentNameHindi
+          : (attempt.student.school.admin.presidentName || ''),
+        presidentSignature: attempt.student.school.admin.presidentSignature || '',
+        secretaryName: (targetLang === 'hi' && attempt.student.school.admin.secretaryNameHindi)
+          ? attempt.student.school.admin.secretaryNameHindi
+          : (attempt.student.school.admin.secretaryName || ''),
+        secretarySignature: attempt.student.school.admin.secretarySignature || '',
       },
     })
   } catch (error: any) {

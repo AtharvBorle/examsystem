@@ -41,6 +41,14 @@ model Admin {
   exams          Exam[]
   classrooms     Classroom[]
   resources      Resource[]
+  
+  // Certificate configurations
+  presidentName       String?
+  presidentNameHindi  String?
+  presidentSignature  String?
+  secretaryName       String?
+  secretaryNameHindi  String?
+  secretarySignature  String?
 }
 
 model School {

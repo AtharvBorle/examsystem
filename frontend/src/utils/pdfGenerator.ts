@@ -1,4 +1,6 @@
 import { jsPDF } from 'jspdf'
+import certificateBg from '../assets/Certificatebackground.jpg'
+
 
 // Helper to translate classroom names to Hindi (Frontend-safe version)
 function translateClassroomToHindi(name: string): string {
@@ -192,13 +194,20 @@ function translateExamToHindi(name: string): string {
   return mappedTokens.join(' ')
 }
 
-export function generateCertificatePDF(data: {
+export async function generateCertificatePDF(data: {
   studentName: string
   schoolName: string
   classroomName: string
   examName: string
   completedAt: string | Date
   language?: string
+  district?: string
+  tehsil?: string
+  branch?: string
+  presidentName?: string
+  presidentSignature?: string
+  secretaryName?: string
+  secretarySignature?: string
 }) {
   // Check if we are running in a browser environment
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -212,21 +221,24 @@ export function generateCertificatePDF(data: {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  // Fill white background
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, 2000, 1414)
+  // Load backdrop template image
+  const bgImg = new Image()
+  bgImg.src = certificateBg
+  await new Promise<void>((resolve) => {
+    bgImg.onload = () => {
+      ctx.drawImage(bgImg, 0, 0, 2000, 1414)
+      resolve()
+    }
+    bgImg.onerror = () => {
+      console.error('Failed to load certificate background image')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, 2000, 1414)
+      resolve()
+    }
+  })
 
   const scale = (mm: number) => mm * 6.734
   const scaleSize = (pt: number) => Math.round(pt * 2.37)
-
-  // Draw elegant double border
-  ctx.strokeStyle = 'rgb(197, 168, 128)' // Muted Gold (#c5a880)
-  
-  ctx.lineWidth = scale(0.5)
-  ctx.strokeRect(scale(10), scale(10), scale(277), scale(190))
-
-  ctx.lineWidth = scale(1.5)
-  ctx.strokeRect(scale(12), scale(12), scale(273), scale(186))
 
   const isHindi = data.language === 'hi'
   const fontStack = isHindi 
@@ -249,55 +261,62 @@ export function generateCertificatePDF(data: {
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  // Certificate Header
-  setCanvasFont('italic', 20)
-  ctx.fillStyle = 'rgb(110, 107, 100)' // Muted gray
-  const headerText = isHindi ? 'सहभागिता का प्रमाण पत्र' : 'Certificate of Participation'
-  ctx.fillText(headerText, scale(297 / 2), scale(45))
+  // 1. Branch Name
+  setCanvasFont('bold', 13)
+  ctx.fillStyle = 'rgb(12, 34, 64)' // Blue theme matching the curves
+  const branchNameText = data.branch 
+    ? data.branch 
+    : (isHindi ? 'भारत विकास परिषद शाखा' : 'Bharat Vikas Parishad Branch')
+  ctx.fillText(branchNameText, scale(297 / 2), scale(35))
 
-  // Large Bold Title
-  setCanvasFont('bold', 32)
-  ctx.fillStyle = 'rgb(27, 45, 66)' // Primary Navy
-  const titleText = isHindi ? 'सहभागिता प्रमाण पत्र' : 'PARTICIPATION CERTIFICATE'
-  ctx.fillText(titleText, scale(297 / 2), scale(62))
+  // 2. Large Bold Title
+  setCanvasFont('bold', 34)
+  ctx.fillStyle = 'rgb(12, 34, 64)'
+  const titleText = isHindi ? 'सहभागिता प्रमाण पत्र' : 'CERTIFICATE'
+  ctx.fillText(titleText, scale(297 / 2), scale(54))
 
-  // Presentation line
-  setCanvasFont('normal', 15)
-  ctx.fillStyle = 'rgb(44, 44, 44)'
-  const presentText = isHindi ? 'यह प्रमाण पत्र गर्व से प्रदान किया जाता है' : 'This is proudly presented to'
-  ctx.fillText(presentText, scale(297 / 2), scale(80))
+  // 3. Subtitle
+  setCanvasFont('bold', 15)
+  ctx.fillStyle = 'rgb(12, 34, 64)'
+  const subtitleText = isHindi ? 'सहभागिता का' : 'OF PARTICIPATION'
+  ctx.fillText(subtitleText, scale(297 / 2), scale(68))
 
-  // Student Name
-  setCanvasFont('bolditalic', 26)
-  ctx.fillStyle = 'rgb(179, 146, 102)' // Gold
-  ctx.fillText(data.studentName, scale(297 / 2), scale(98))
+  // 4. Presentation line
+  setCanvasFont('normal', 11)
+  ctx.fillStyle = 'rgb(74, 85, 104)'
+  const presentText = isHindi ? 'यह प्रमाण पत्र गर्व से प्रदान किया जाता है' : 'This certificate is proudly presented to'
+  ctx.fillText(presentText, scale(297 / 2), scale(79))
 
-  // Divider line
-  ctx.strokeStyle = 'rgb(197, 168, 128)'
-  ctx.lineWidth = scale(0.5)
+  // 5. Student Name
+  setCanvasFont('bold', 28)
+  ctx.fillStyle = 'rgb(197, 160, 89)' // Elegant Gold
+  ctx.fillText(data.studentName, scale(297 / 2), scale(94))
+
+  // Name Underline
+  ctx.strokeStyle = 'rgb(226, 232, 240)'
+  ctx.lineWidth = scale(0.4)
   ctx.beginPath()
-  ctx.moveTo(scale(297 / 2 - 60), scale(103))
-  ctx.lineTo(scale(297 / 2 + 60), scale(103))
+  ctx.moveTo(scale(297 / 2 - 100), scale(102))
+  ctx.lineTo(scale(297 / 2 + 100), scale(102))
   ctx.stroke()
 
-  // Description
-  setCanvasFont('normal', 14)
-  ctx.fillStyle = 'rgb(44, 44, 44)'
+  // 6. Description Text
+  setCanvasFont('normal', 11)
+  ctx.fillStyle = 'rgb(74, 85, 104)'
   const descText = isHindi 
-    ? 'ऑनलाइन परीक्षा में सक्रिय रूप से भाग लेने के लिए:' 
-    : 'for actively participating in the online examination:'
-  ctx.fillText(descText, scale(297 / 2), scale(115))
+    ? 'प्रतियोगिता में सक्रिय रूप से भाग लेने के लिए, जो भारत के सामान्य ज्ञान पर केंद्रित है।' 
+    : 'For actively participating in the competition, which focuses on general knowledge about India.'
+  ctx.fillText(descText, scale(297 / 2), scale(113))
 
-  // Exam Name
+  // 7. Exam Name
   setCanvasFont('bold', 18)
-  ctx.fillStyle = 'rgb(27, 45, 66)'
+  ctx.fillStyle = 'rgb(12, 34, 64)'
   const displayExam = isHindi ? translateExamToHindi(data.examName) : data.examName
-  ctx.fillText(displayExam, scale(297 / 2), scale(127))
+  ctx.fillText(displayExam, scale(297 / 2), scale(125))
 
-  // Date
-  setCanvasFont('normal', 14)
-  ctx.fillStyle = 'rgb(44, 44, 44)'
-  
+  // 8. Date Row
+  setCanvasFont('normal', 11)
+  ctx.fillStyle = 'rgb(74, 85, 104)'
   const formattedDate = new Date(data.completedAt).toLocaleDateString(
     isHindi ? 'hi-IN' : 'en-US',
     {
@@ -306,42 +325,72 @@ export function generateCertificatePDF(data: {
       day: 'numeric',
     }
   )
-  const dateText = isHindi ? `आयोजन तिथि: ${formattedDate}` : `held on ${formattedDate}.`
-  ctx.fillText(dateText, scale(297 / 2), scale(137))
+  const dateText = isHindi ? `आयोजन तिथि: ${formattedDate}` : `Held On ${formattedDate}`
+  ctx.fillText(dateText, scale(297 / 2), scale(135))
 
-  // School and Class Metadata
-  setCanvasFont('italic', 12)
-  ctx.fillStyle = 'rgb(44, 44, 44)'
+  // 9. Class / School / Geography Details Row
+  setCanvasFont('normal', 10)
+  ctx.fillStyle = 'rgb(45, 55, 72)'
   const displayClassroom = isHindi ? translateClassroomToHindi(data.classroomName) : data.classroomName
   const displaySchool = isHindi ? translateSchoolToHindi(data.schoolName) : data.schoolName
-  const metaText = isHindi 
-    ? `कक्षा: ${displayClassroom}   |   विद्यालय: ${displaySchool}`
-    : `Classroom: ${displayClassroom}   |   School: ${displaySchool}`
-  ctx.fillText(metaText, scale(297 / 2), scale(155))
+  const displayDistrict = data.district || ''
+  const displayTehsil = data.tehsil || ''
 
-  // Footer signatures lines and labels
-  ctx.strokeStyle = 'rgb(197, 168, 128)'
-  ctx.lineWidth = scale(0.3)
-  
-  // Left signature line
-  ctx.beginPath()
-  ctx.moveTo(scale(40), scale(180))
-  ctx.lineTo(scale(90), scale(180))
-  ctx.stroke()
-  
-  setCanvasFont('normal', 12)
-  ctx.fillStyle = 'rgb(44, 44, 44)'
-  const signatoryText = isHindi ? 'अधिकृत हस्ताक्षरकर्ता' : 'Authorized Signatory'
-  ctx.fillText(signatoryText, scale(65), scale(186))
+  const detailsText = isHindi 
+    ? `कक्षा : ${displayClassroom}      विद्यालय : ${displaySchool}      जिला : ${displayDistrict}      तालुका : ${displayTehsil}`
+    : `Classroom : ${displayClassroom}      School : ${displaySchool}      District : ${displayDistrict}      Taluka : ${displayTehsil}`
+  ctx.fillText(detailsText, scale(297 / 2), scale(149))
 
-  // Right signature line
-  ctx.beginPath()
-  ctx.moveTo(scale(297 - 90), scale(180))
-  ctx.lineTo(scale(297 - 40), scale(180))
-  ctx.stroke()
-  
-  const coordinatorText = isHindi ? 'परीक्षा समन्वयक' : 'Exam Coordinator'
-  ctx.fillText(coordinatorText, scale(297 - 65), scale(186))
+  // Helpers to load dynamic signatory images from server disk
+  const loadSigImg = (src: string) => {
+    return new Promise<HTMLImageElement | null>((resolve) => {
+      if (!src) return resolve(null)
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = () => resolve(null)
+      if (src.startsWith('/')) {
+        img.src = window.location.origin + src
+      } else {
+        img.src = src
+      }
+    })
+  }
+
+  // 10. Left Signature (President/अध्यक्ष)
+  if (data.presidentSignature) {
+    const presSig = await loadSigImg(data.presidentSignature)
+    if (presSig) {
+      // Draw signature image centered above the title
+      ctx.drawImage(presSig, scale(65) - 20, scale(160), 40 * 6.734, 15 * 6.734)
+    }
+  }
+  setCanvasFont('bold', 11)
+  ctx.fillStyle = 'rgb(45, 55, 72)'
+  ctx.fillText('President/अध्यक्ष', scale(65), scale(180))
+
+  setCanvasFont('normal', 10)
+  ctx.fillStyle = 'rgb(74, 85, 104)'
+  const presName = data.presidentName || ''
+  ctx.fillText(presName, scale(65), scale(187))
+
+
+  // 11. Right Signature (Secretary/सचिव)
+  if (data.secretarySignature) {
+    const secSig = await loadSigImg(data.secretarySignature)
+    if (secSig) {
+      // Draw signature image centered above the title
+      ctx.drawImage(secSig, scale(297 - 65) - 20, scale(160), 40 * 6.734, 15 * 6.734)
+    }
+  }
+  setCanvasFont('bold', 11)
+  ctx.fillStyle = 'rgb(45, 55, 72)'
+  ctx.fillText('Secretary/सचिव', scale(297 - 65), scale(180))
+
+  setCanvasFont('normal', 10)
+  ctx.fillStyle = 'rgb(74, 85, 104)'
+  const secName = data.secretaryName || ''
+  ctx.fillText(secName, scale(297 - 65), scale(187))
 
   // Convert canvas to image and add to PDF
   const imgData = canvas.toDataURL('image/jpeg', 0.98)
@@ -371,6 +420,7 @@ export function generateCertificatePDF(data: {
     doc.save(filename);
   }
 }
+
 
 export function generateAnswersheetPDF(data: {
   studentName: string
