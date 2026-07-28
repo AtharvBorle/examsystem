@@ -72,6 +72,8 @@ export async function GET(
 
     const currentSchool = attempt.student.school
     let schoolName = currentSchool.name
+    let district = currentSchool.district || attempt.student.district || ''
+    let tehsil = currentSchool.tehsil || attempt.student.tehsil || ''
 
     const { searchParams } = new URL(req.url)
     const queryLang = searchParams.get('lang')
@@ -86,7 +88,65 @@ export async function GET(
       })
       if (targetSchool) {
         schoolName = targetSchool.name
+        if (targetSchool.district) district = targetSchool.district
+        if (targetSchool.tehsil) tehsil = targetSchool.tehsil
       }
+    }
+
+    const GEOGRAPHY_MAP: { [key: string]: { en: string; hi: string } } = {
+      amravati: { en: 'Amravati', hi: 'अमरावती' },
+      latur: { en: 'Latur', hi: 'लातूर' },
+      pune: { en: 'Pune', hi: 'पुणे' },
+      mumbai: { en: 'Mumbai', hi: 'मुंबई' },
+      nagpur: { en: 'Nagpur', hi: 'नागपुर' },
+      snagpur: { en: 'Nagpur', hi: 'नागपुर' },
+      nashik: { en: 'Nashik', hi: 'नाशिक' },
+      thane: { en: 'Thane', hi: 'ठाणे' },
+      aurangabad: { en: 'Aurangabad', hi: 'औरंगाबाद' },
+      'chhatrapati sambhajinagar': { en: 'Chhatrapati Sambhajinagar', hi: 'छत्रपति संभाजीनगर' },
+      solapur: { en: 'Solapur', hi: 'सोलापुर' },
+      kolhapur: { en: 'Kolhapur', hi: 'कोल्हापुर' },
+      jalgaon: { en: 'Jalgaon', hi: 'जलगांव' },
+      nanded: { en: 'Nanded', hi: 'नांदेड' },
+      satara: { en: 'Satara', hi: 'सतारा' },
+      sangli: { en: 'Sangli', hi: 'सांगली' },
+      akola: { en: 'Akola', hi: 'अकोला' },
+      yavatmal: { en: 'Yavatmal', hi: 'यवतमाल' },
+      buldhana: { en: 'Buldhana', hi: 'बुलढाणा' },
+      washim: { en: 'Washim', hi: 'वाशिम' },
+      wardha: { en: 'Wardha', hi: 'वर्धा' },
+      bhandara: { en: 'Bhandara', hi: 'भंडारा' },
+      gondia: { en: 'Gondia', hi: 'गोंदिया' },
+      chandrapur: { en: 'Chandrapur', hi: 'चंद्रपुर' },
+      gadchiroli: { en: 'Gadchiroli', hi: 'गडचिरोली' },
+      osmanabad: { en: 'Osmanabad', hi: 'उस्मानाबाद' },
+      dharashiv: { en: 'Dharashiv', hi: 'धाराशिव' },
+      beed: { en: 'Beed', hi: 'बीड' },
+      jalna: { en: 'Jalna', hi: 'जालना' },
+      parbhani: { en: 'Parbhani', hi: 'परभणी' },
+      hingoli: { en: 'Hingoli', hi: 'हिंगोली' },
+      ahmednagar: { en: 'Ahmednagar', hi: 'अहमदनगर' },
+      dhule: { en: 'Dhule', hi: 'धुले' },
+      nandurbar: { en: 'Nandurbar', hi: 'नंदुरबार' },
+      ratnagiri: { en: 'Ratnagiri', hi: 'रत्नागिरी' },
+      sindhudurg: { en: 'Sindhudurg', hi: 'सिंधुदुर्ग' },
+      raigad: { en: 'Raigad', hi: 'रायगढ़' },
+      palghar: { en: 'Palghar', hi: 'पालघर' },
+    }
+
+    const translateGeography = (val: string, lang: string): string => {
+      if (!val) return ''
+      const cleaned = val.trim().toLowerCase()
+      const toHindi = lang === 'hi'
+      if (GEOGRAPHY_MAP[cleaned]) {
+        return toHindi ? GEOGRAPHY_MAP[cleaned].hi : GEOGRAPHY_MAP[cleaned].en
+      }
+      for (const item of Object.values(GEOGRAPHY_MAP)) {
+        if (item.hi.toLowerCase() === cleaned || item.en.toLowerCase() === cleaned) {
+          return toHindi ? item.hi : item.en
+        }
+      }
+      return val
     }
 
     const classroomName = translateClassroomName(attempt.student.classroom.name, targetLang)
@@ -100,8 +160,8 @@ export async function GET(
         examName: (targetLang === 'hi' && attempt.exam.nameHindi) ? attempt.exam.nameHindi : attempt.exam.name,
         completedAt: attempt.submittedAt,
         language: targetLang,
-        district: attempt.student.district,
-        tehsil: attempt.student.tehsil,
+        district: translateGeography(district, targetLang),
+        tehsil: translateGeography(tehsil, targetLang),
         branch: (targetLang === 'hi' && attempt.student.school.admin.branchHindi)
           ? attempt.student.school.admin.branchHindi
           : (attempt.student.school.admin.branch || ''),

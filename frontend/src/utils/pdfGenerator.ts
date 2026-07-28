@@ -194,6 +194,61 @@ function translateExamToHindi(name: string): string {
   return mappedTokens.join(' ')
 }
 
+const GEOGRAPHY_MAP: { [key: string]: { en: string; hi: string } } = {
+  amravati: { en: 'Amravati', hi: 'अमरावती' },
+  latur: { en: 'Latur', hi: 'लातूर' },
+  pune: { en: 'Pune', hi: 'पुणे' },
+  mumbai: { en: 'Mumbai', hi: 'मुंबई' },
+  nagpur: { en: 'Nagpur', hi: 'नागपुर' },
+  snagpur: { en: 'Nagpur', hi: 'नागपुर' },
+  nashik: { en: 'Nashik', hi: 'नाशिक' },
+  thane: { en: 'Thane', hi: 'ठाणे' },
+  aurangabad: { en: 'Aurangabad', hi: 'औरंगाबाद' },
+  'chhatrapati sambhajinagar': { en: 'Chhatrapati Sambhajinagar', hi: 'छत्रपति संभाजीनगर' },
+  solapur: { en: 'Solapur', hi: 'सोलापुर' },
+  kolhapur: { en: 'Kolhapur', hi: 'कोल्हापुर' },
+  jalgaon: { en: 'Jalgaon', hi: 'जलगांव' },
+  nanded: { en: 'Nanded', hi: 'नांंदेड' },
+  satara: { en: 'Satara', hi: 'सतारा' },
+  sangli: { en: 'सांगली', hi: 'सांगली' },
+  akola: { en: 'Akola', hi: 'अकोला' },
+  yavatmal: { en: 'Yavatmal', hi: 'यवतमाल' },
+  buldhana: { en: 'Buldhana', hi: 'बुलढाणा' },
+  washim: { en: 'Washim', hi: 'वाशिम' },
+  wardha: { en: 'Wardha', hi: 'वर्धा' },
+  bhandara: { en: 'Bhandara', hi: 'भंडारा' },
+  gondia: { en: 'Gondia', hi: 'गोंदिया' },
+  chandrapur: { en: 'Chandrapur', hi: 'चंद्रपुर' },
+  gadchiroli: { en: 'Gadchiroli', hi: 'गडचिरोली' },
+  osmanabad: { en: 'Osmanabad', hi: 'उस्मानाबाद' },
+  dharashiv: { en: 'Dharashiv', hi: 'धाराशिव' },
+  beed: { en: 'Beed', hi: 'बीड' },
+  jalna: { en: 'Jalna', hi: 'जालना' },
+  parbhani: { en: 'Parbhani', hi: 'परभणी' },
+  hingoli: { en: 'Hingoli', hi: 'हिंगोली' },
+  ahmednagar: { en: 'Ahmednagar', hi: 'अहमदनगर' },
+  dhule: { en: 'Dhule', hi: 'धुले' },
+  nandurbar: { en: 'Nandurbar', hi: 'नंदुरबार' },
+  ratnagiri: { en: 'Ratnagiri', hi: 'रत्नागिरी' },
+  sindhudurg: { en: 'Sindhudurg', hi: 'सिंधुदुर्ग' },
+  raigad: { en: 'Raigad', hi: 'रायगढ़' },
+  palghar: { en: 'Palghar', hi: 'पालघर' },
+}
+
+function translateGeography(value: string, toHindi: boolean): string {
+  if (!value) return ''
+  const cleaned = value.trim().toLowerCase()
+  if (GEOGRAPHY_MAP[cleaned]) {
+    return toHindi ? GEOGRAPHY_MAP[cleaned].hi : GEOGRAPHY_MAP[cleaned].en
+  }
+  for (const item of Object.values(GEOGRAPHY_MAP)) {
+    if (item.hi.toLowerCase() === cleaned || item.en.toLowerCase() === cleaned) {
+      return toHindi ? item.hi : item.en
+    }
+  }
+  return value
+}
+
 export async function generateCertificatePDF(data: {
   studentName: string
   schoolName: string
@@ -333,8 +388,8 @@ export async function generateCertificatePDF(data: {
   ctx.fillStyle = 'rgb(12, 34, 64)' // Darker navy, bold
   const displayClassroom = isHindi ? translateClassroomToHindi(data.classroomName) : data.classroomName
   const displaySchool = isHindi ? translateSchoolToHindi(data.schoolName) : data.schoolName
-  const displayDistrict = data.district || ''
-  const displayTehsil = data.tehsil || ''
+  const displayDistrict = translateGeography(data.district || '', isHindi)
+  const displayTehsil = translateGeography(data.tehsil || '', isHindi)
 
   const detailsText = isHindi 
     ? `कक्षा : ${displayClassroom}      विद्यालय : ${displaySchool}      जिला : ${displayDistrict}      तालुका : ${displayTehsil}`

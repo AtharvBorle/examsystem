@@ -76,6 +76,54 @@ function App() {
   const [showPledge, setShowPledge] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<any>(null);
+  const pledgeScrollRef = useRef<ScrollView>(null);
+  const pledgeScrollY = useRef(0);
+  const isUserInteracting = useRef(false);
+  const interactionTimeoutRef = useRef<any>(null);
+
+  // Auto-scroll loop for the pledge text
+  useEffect(() => {
+    if (showPledge) {
+      const timer = setInterval(() => {
+        if (!isUserInteracting.current) {
+          pledgeScrollY.current += 0.85; // smooth slow scroll
+          pledgeScrollRef.current?.scrollTo({
+            y: pledgeScrollY.current,
+            animated: true,
+          });
+        }
+      }, 50);
+      return () => clearInterval(timer);
+    }
+  }, [showPledge]);
+
+  const handlePledgeScroll = (event: any) => {
+    pledgeScrollY.current = event.nativeEvent.contentOffset.y;
+  };
+
+  const handleInteractionStart = () => {
+    isUserInteracting.current = true;
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+  };
+
+  const handleInteractionEnd = () => {
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    interactionTimeoutRef.current = setTimeout(() => {
+      isUserInteracting.current = false;
+    }, 2500); // Resume auto-scroll after 2.5s of touch inactivity
+  };
+
+  useEffect(() => {
+    return () => {
+      if (interactionTimeoutRef.current) {
+        clearTimeout(interactionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const renderPledgeScreen = () => {
     return (
@@ -99,23 +147,34 @@ function App() {
             </TouchableOpacity>
           </View>
 
-          {/* Static Centered Text Area (No Scroll) */}
-          <View
+          {/* Scrolling Content */}
+          <ScrollView
+            ref={pledgeScrollRef}
             style={{
               position: 'absolute',
               top: screenHeight * 0.26,
               bottom: screenHeight * 0.24,
               left: 0,
               right: 0,
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingHorizontal: 24,
               overflow: 'hidden',
             }}
+            contentContainerStyle={{ 
+              paddingTop: screenHeight * 0.15, 
+              paddingBottom: screenHeight * 0.35, 
+              paddingHorizontal: 24,
+              alignItems: 'center' 
+            }}
+            showsVerticalScrollIndicator={false}
+            onScroll={handlePledgeScroll}
+            scrollEventThrottle={16}
+            onScrollBeginDrag={handleInteractionStart}
+            onScrollEndDrag={handleInteractionEnd}
+            onMomentumScrollBegin={handleInteractionStart}
+            onMomentumScrollEnd={handleInteractionEnd}
           >
             <Text style={{
-              fontSize: screenHeight < 720 ? 11.5 : 13.5,
-              lineHeight: screenHeight < 720 ? 18.5 : 21.5,
+              fontSize: 16,
+              lineHeight: 25,
               fontWeight: 'bold',
               color: '#e67300', // premium flag saffron color matching the image mockup
               textAlign: 'center',
@@ -123,7 +182,7 @@ function App() {
             }}>
               {`वन्दे मातरम्\nवन्दे मातरम्\n\nवन्दे मातरम् सुजलां सुफलां मलयजशीतलाम् शस्यश्यामलां\nमातरम्\nशुभ्रज्योत्स्नापुलकितयामिनीं फुल्लकुसुमितद्रुमदलशोभिनीं\nसुहासिनीं सुमधुर भाषिणीं सुखदां वरदां मातरम् । १\n\nवन्दे मातरम्\nकोटि-कोटि-कण्ठ-कल-कल-निनाद-कराले कोटि-कोटि-\nभुजैर्धृत-खरकरवाले, अबला केन मा एत बले\nबहुबलधारिणीं नमामि तारिणीं रिपुदलवारिणीं मातरम् । २\n\nवन्दे मातरम्\nतुमि विद्या, तुमि धर्म तुमि हृदि, तुमि मर्म त्वं हि प्राणा: शरीरे\nबाहुते तुमि मा शक्ति, हृदये तुमि मा भक्ति, तोमारई प्रतिमा\nगडि मन्दिरे-मन्दिरे मातरम् । ३`}
             </Text>
-          </View>
+          </ScrollView>
 
           {/* Mute/Unmute Floating Button at Bottom Right */}
           <View style={{
