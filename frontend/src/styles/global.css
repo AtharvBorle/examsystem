@@ -1246,7 +1246,7 @@ input::-webkit-credentials-auto-fill-button {
 
 .mobile-dashboard-header .student-name {
   font-family: var(--font-serif, serif);
-  font-size: 2.6rem;
+  font-size: 1.5rem;
   color: #0f3d7a;
   font-weight: 700;
   margin: 2px 0 0 0;

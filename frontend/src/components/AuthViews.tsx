@@ -211,6 +211,8 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
 export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin: () => void; lang: Language; onChangeLang: (lang: Language) => void }) {
   const { login } = useAuth()
   const [firstName, setFirstName] = useState('')
+  const [motherName, setMotherName] = useState('')
+  const [fatherName, setFatherName] = useState('')
   const [lastName, setLastName] = useState('')
   const [district, setDistrict] = useState('')
   const [tehsil, setTehsil] = useState('')
@@ -440,8 +442,10 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
       return
     }
 
-    // First and last name validations
+    // First, mother, father and last name validations
     const trimmedFirstName = firstName.trim()
+    const trimmedMotherName = motherName.trim()
+    const trimmedFatherName = fatherName.trim()
     const trimmedLastName = lastName.trim()
     const nameRegex = /^[A-Za-z\s\u0900-\u097F]+$/
     if (trimmedFirstName.length < 1 || trimmedFirstName.length > 25 || !nameRegex.test(trimmedFirstName)) {
@@ -452,8 +456,16 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
       setError(translations[lang].errLastNameInvalid)
       return
     }
-    const fullName = `${trimmedFirstName} ${trimmedLastName}`
-    if (fullName.length < 2 || fullName.length > 50) {
+    if (trimmedMotherName.length < 1 || trimmedMotherName.length > 25 || !nameRegex.test(trimmedMotherName)) {
+      setError(translations[lang].errMotherNameInvalid)
+      return
+    }
+    if (trimmedFatherName.length < 1 || trimmedFatherName.length > 25 || !nameRegex.test(trimmedFatherName)) {
+      setError(translations[lang].errFatherNameInvalid)
+      return
+    }
+    const fullName = `${trimmedFirstName} ${trimmedMotherName} ${trimmedFatherName} ${trimmedLastName}`.replace(/\s+/g, ' ').trim()
+    if (fullName.length < 4 || fullName.length > 100) {
       setError(translations[lang].errNameInvalid)
       return
     }
@@ -473,6 +485,8 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstName: trimmedFirstName,
+          motherName: trimmedMotherName,
+          fatherName: trimmedFatherName,
           lastName: trimmedLastName,
           schoolId: selectedSchool.id,
           classroomId: selectedClassroom,
@@ -574,6 +588,51 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                     }
                   }}
                   placeholder={t.placeholderLastName}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Mother and Father Name Grid */}
+            <div className="new-grid-2" style={{ marginTop: '0.75rem' }}>
+              <div className="new-form-group">
+                <label className="field-label">
+                  <User size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                  {t.motherName}
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={motherName}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
+                    if (filtered.length <= 25) {
+                      setMotherName(filtered)
+                    }
+                  }}
+                  placeholder={t.placeholderMotherName}
+                  required
+                />
+              </div>
+
+              <div className="new-form-group">
+                <label className="field-label">
+                  <User size={14} style={{ marginRight: '6px', color: '#c59f2d' }} />
+                  {t.fatherName}
+                </label>
+                <input
+                  type="text"
+                  className="input-field"
+                  value={fatherName}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
+                    if (filtered.length <= 25) {
+                      setFatherName(filtered)
+                    }
+                  }}
+                  placeholder={t.placeholderFatherName}
                   required
                 />
               </div>
@@ -905,6 +964,43 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   }
                 }}
                 placeholder={t.placeholderLastName}
+                required
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '0.75rem' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">{t.motherName}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={motherName}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
+                  if (filtered.length <= 25) {
+                    setMotherName(filtered)
+                  }
+                }}
+                placeholder={t.placeholderMotherName}
+                required
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">{t.fatherName}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={fatherName}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
+                  if (filtered.length <= 25) {
+                    setFatherName(filtered)
+                  }
+                }}
+                placeholder={t.placeholderFatherName}
                 required
               />
             </div>

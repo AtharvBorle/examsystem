@@ -251,6 +251,98 @@ function App() {
           // iOS sharing
           await saveToCacheAndShare(base64Content, filename);
         }
+      } else if (data.type === 'DOWNLOAD_FILE') {
+        const { url, filename } = data;
+        if (Platform.OS === 'android') {
+          const tempPath = `${RNFS.CachesDirectoryPath}/${filename}`;
+          try {
+            const sdkVersion = Platform.Version;
+            let hasPermission = true;
+            if (typeof sdkVersion === 'number' && sdkVersion < 33) {
+              const checked = await PermissionsAndroid.check(
+                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+              );
+              if (!checked) {
+                const status = await PermissionsAndroid.request(
+                  PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                  {
+                    title: 'Storage Permission Required',
+                    message: 'This application needs storage permission to save study resources to your Downloads folder.',
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                  }
+                );
+                hasPermission = status === PermissionsAndroid.RESULTS.GRANTED;
+              }
+            }
+
+            if (!hasPermission) {
+              webViewRef.current?.injectJavaScript(`
+                alert("Permission denied. Could not save file.");
+                true;
+              `);
+              return;
+            }
+
+            const downloadResult = await RNFS.downloadFile({
+              fromUrl: url,
+              toFile: tempPath,
+            }).promise;
+
+            if (downloadResult.statusCode === 200) {
+              const base64Content = await RNFS.readFile(tempPath, 'base64');
+              let savedSuccessfully = false;
+              try {
+                await NativeModules.FileSaver.saveBase64ToDownloads(base64Content, filename);
+                savedSuccessfully = true;
+                webViewRef.current?.injectJavaScript(`
+                  alert("File downloaded and saved to Downloads folder:\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"')}");
+                  true;
+                `);
+              } catch (writeErr) {
+                // Fallback to application files
+              }
+
+              if (!savedSuccessfully) {
+                const fallbackPath = `${RNFS.ExternalDirectoryPath}/${filename}`;
+                await RNFS.writeFile(fallbackPath, base64Content, 'base64');
+                webViewRef.current?.injectJavaScript(`
+                  alert("File saved to Application Storage:\\nAndroid/data/com.onlineexamsystem.app/files/\\n${filename.replace(/'/g, "\\'").replace(/"/g, '\\"')}");
+                  true;
+                `);
+              }
+            } else {
+              webViewRef.current?.injectJavaScript(`
+                alert("Download failed. Server returned status code: ${downloadResult.statusCode}");
+                true;
+              `);
+            }
+          } catch (downloadErr) {
+            console.log(downloadErr);
+            webViewRef.current?.injectJavaScript(`
+              alert("Error downloading file: " + "${String(downloadErr).replace(/'/g, "\\'").replace(/"/g, '\\"')}");
+              true;
+            `);
+          }
+        } else {
+          // iOS sharing
+          const tempPath = `${RNFS.DocumentDirectoryPath}/${filename}`;
+          try {
+            const downloadResult = await RNFS.downloadFile({
+              fromUrl: url,
+              toFile: tempPath,
+            }).promise;
+            if (downloadResult.statusCode === 200) {
+              await Share.share({
+                url: tempPath,
+                title: filename,
+              });
+            }
+          } catch (err) {
+            console.log(err);
+          }
+        }
       }
     } catch (err) {
       webViewRef.current?.injectJavaScript(`

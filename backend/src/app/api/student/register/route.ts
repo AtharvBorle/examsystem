@@ -10,15 +10,17 @@ import { upsertSchoolTranslation } from '@/lib/school-translator'
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstName, lastName, schoolId, classroomId, district, tehsil, mobile, password, language } = await req.json()
+    const { firstName, motherName, fatherName, lastName, schoolId, classroomId, district, tehsil, mobile, password, language } = await req.json()
 
     const registrationPassword = password || 'student_default_pass_2026'
 
-    if (!firstName || !lastName || !schoolId || !classroomId || !district || !tehsil || !mobile) {
+    if (!firstName || !motherName || !fatherName || !lastName || !schoolId || !classroomId || !district || !tehsil || !mobile) {
       return errorResponse('All fields are required', 400)
     }
 
     const trimmedFirstName = firstName.trim()
+    const trimmedMotherName = motherName.trim()
+    const trimmedFatherName = fatherName.trim()
     const trimmedLastName = lastName.trim()
     const nameRegex = /^[A-Za-z\s\u0900-\u097F]+$/
 
@@ -28,10 +30,16 @@ export async function POST(req: NextRequest) {
     if (trimmedLastName.length < 1 || trimmedLastName.length > 25 || !nameRegex.test(trimmedLastName)) {
       return errorResponse('Last name must be between 1 and 25 characters and contain only letters and spaces', 400)
     }
+    if (trimmedMotherName.length < 1 || trimmedMotherName.length > 25 || !nameRegex.test(trimmedMotherName)) {
+      return errorResponse('Mother\'s name must be between 1 and 25 characters and contain only letters and spaces', 400)
+    }
+    if (trimmedFatherName.length < 1 || trimmedFatherName.length > 25 || !nameRegex.test(trimmedFatherName)) {
+      return errorResponse('Father\'s name must be between 1 and 25 characters and contain only letters and spaces', 400)
+    }
 
-    const name = `${trimmedFirstName} ${trimmedLastName}`
-    if (name.length < 2 || name.length > 50) {
-      return errorResponse('Combined name must be between 2 and 50 characters', 400)
+    const name = `${trimmedFirstName} ${trimmedMotherName} ${trimmedFatherName} ${trimmedLastName}`.replace(/\s+/g, ' ').trim()
+    if (name.length < 4 || name.length > 100) {
+      return errorResponse('Combined name must be between 4 and 100 characters', 400)
     }
 
     // Mobile field restrictions (10-digit Indian phone number starting with 6-9)

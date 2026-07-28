@@ -2170,7 +2170,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
               <CustomSelectObject
                 value={selectedExamId}
                 onChange={setSelectedExamId}
-                options={exams.filter(e => (e.language || 'en') === lang).map(e => ({ id: e.id, name: e.name }))}
+                options={exams.map(e => ({ id: e.id, name: (lang === 'hi' && e.nameHindi) ? e.nameHindi : e.name }))}
                 placeholder={t.analyticsSelectExamPlaceholder}
                 maxWidth="100%"
               />
@@ -5523,8 +5523,8 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
   }, [schools, lang])
 
   const filteredExams = React.useMemo(() => {
-    return exams.filter(ex => (ex.language || 'en') === lang)
-  }, [exams, lang])
+    return exams
+  }, [exams])
 
   const fetchData = async () => {
     try {
@@ -5972,10 +5972,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
                 filteredExams.map((ex) => (
                   <tr key={ex.id}>
                     <td>
-                      <strong>{ex.name}</strong>
-                      <span className="badge badge-outline" style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
-                        {ex.language?.toUpperCase() || 'EN'}
-                      </span>
+                      <strong>{(lang === 'hi' && ex.nameHindi) ? ex.nameHindi : ex.name}</strong>
+                      {ex.nameHindi && (
+                        <span className="badge badge-outline" style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
+                          HI
+                        </span>
+                      )}
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {ex.categoryName} {ex.subcategoryName ? `> ${ex.subcategoryName}` : ''}
                       </div>

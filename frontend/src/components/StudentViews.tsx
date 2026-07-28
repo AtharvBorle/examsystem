@@ -5,7 +5,7 @@ import { generateCertificatePDF, generateAnswersheetPDF } from '../utils/pdfGene
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
-  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home
+  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download
 } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 import downloadCertBg from '../assets/rss_download_cert.png'
@@ -23,6 +23,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [startingExamId, setStartingExamId] = useState<string | null>(null)
   const [viewingResourceUrl, setViewingResourceUrl] = useState<string | null>(null)
   const [viewingResourceTitle, setViewingResourceTitle] = useState<string>('')
+  const [activeMobileTab, setActiveMobileTab] = useState<'exams' | 'resources'>('exams')
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
 
@@ -234,15 +235,38 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const renderResourceModal = () => {
     if (!viewingResourceUrl) return null
 
+    const origin = (window.location.origin.startsWith('file:') || window.location.hostname === '')
+      ? 'https://bvpindia.org'
+      : window.location.origin
+
     const absoluteUrl = viewingResourceUrl.startsWith('/') 
-      ? `${window.location.origin}${viewingResourceUrl}` 
+      ? `${origin}${viewingResourceUrl}` 
       : viewingResourceUrl
 
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1')
     const isPdf = absoluteUrl.toLowerCase().endsWith('.pdf') || absoluteUrl.toLowerCase().includes('/uploads/')
     const iframeSrc = (isPdf && !isLocalhost)
       ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(absoluteUrl)}`
       : absoluteUrl
+
+    const handleDownload = () => {
+      const filename = absoluteUrl.split('/').pop() || 'study_resource.pdf'
+      if ((window as any).ReactNativeWebView) {
+        (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'DOWNLOAD_FILE',
+          url: absoluteUrl,
+          filename
+        }))
+      } else {
+        const link = document.createElement('a')
+        link.href = absoluteUrl
+        link.download = filename
+        link.target = '_blank'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    }
 
     return (
       <div style={{
@@ -276,30 +300,56 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: '75%'
+            maxWidth: '60%'
           }}>
             {viewingResourceTitle || (lang === 'hi' ? 'अध्ययन संसाधन' : 'Study Resource')}
           </h3>
-          <button 
-            onClick={() => {
-              setViewingResourceUrl(null)
-              setViewingResourceTitle('')
-            }}
-            style={{
-              backgroundColor: '#1b6c3a',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              outline: 'none',
-              textTransform: 'uppercase'
-            }}
-          >
-            {lang === 'hi' ? 'बंद करें' : 'Close'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {isPdf && (
+              <button 
+                onClick={handleDownload}
+                style={{
+                  backgroundColor: '#f2bb50',
+                  color: '#0b2240',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  outline: 'none',
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Download size={14} />
+                <span>{lang === 'hi' ? 'डाउनलोड' : 'Download'}</span>
+              </button>
+            )}
+            
+            <button 
+              onClick={() => {
+                setViewingResourceUrl(null)
+                setViewingResourceTitle('')
+              }}
+              style={{
+                backgroundColor: '#1b6c3a',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none',
+                textTransform: 'uppercase'
+              }}
+            >
+              {lang === 'hi' ? 'बंद करें' : 'Close'}
+            </button>
+          </div>
         </div>
 
         {/* Modal Body / iframe */}
@@ -314,6 +364,18 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             }}
             sandbox="allow-scripts allow-same-origin allow-popups"
           />
+          {/* Overlay to block the Google redirect/pop-out button at top-right */}
+          {isPdf && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '75px',
+              height: '75px',
+              backgroundColor: 'transparent',
+              zIndex: 10
+            }} />
+          )}
         </div>
       </div>
     )
@@ -988,235 +1050,284 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
         </div>
 
-        {/* Section title "My Examination" with gold lotus divider */}
-        <div className="mobile-section-title">
-          {lang === 'hi' ? 'मेरी परीक्षा' : 'My Examination'}
-        </div>
-        
-        {/* Gold Lotus Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '1.25rem', gap: '8px' }}>
-          <div style={{ width: '20px', height: '1px', background: '#c59f2d' }}></div>
-          <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', fill: '#d4af37' }}>
-            <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
-            <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
-            <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
-            <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
-            <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
-          </svg>
-          <div style={{ width: '80px', height: '1px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
+        {/* Horizontally Scrollable Section Tabs */}
+        <div style={{
+          display: 'flex',
+          gap: '1.75rem',
+          overflowX: 'auto',
+          width: '100%',
+          paddingBottom: '0.25rem',
+          borderBottom: '1px solid var(--border-muted, #e2e8f0)',
+          marginBottom: '1.5rem',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          whiteSpace: 'nowrap',
+          marginTop: '1.5rem'
+        }}>
+          <button
+            onClick={() => setActiveMobileTab('exams')}
+            style={{
+              fontFamily: 'var(--font-serif, Georgia, serif)',
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: activeMobileTab === 'exams' ? '#0b2240' : '#718096',
+              background: 'none',
+              border: 'none',
+              padding: '0 0 0.75rem 0',
+              borderBottom: activeMobileTab === 'exams' ? '3.5px solid #c59f2d' : '3.5px solid transparent',
+              cursor: 'pointer',
+              outline: 'none',
+              flexShrink: 0
+            }}
+          >
+            {lang === 'hi' ? 'मेरी परीक्षा' : 'My Examination'}
+          </button>
+          
+          <button
+            onClick={() => setActiveMobileTab('resources')}
+            style={{
+              fontFamily: 'var(--font-serif, Georgia, serif)',
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: activeMobileTab === 'resources' ? '#0b2240' : '#718096',
+              background: 'none',
+              border: 'none',
+              padding: '0 0 0.75rem 0',
+              borderBottom: activeMobileTab === 'resources' ? '3.5px solid #c59f2d' : '3.5px solid transparent',
+              cursor: 'pointer',
+              outline: 'none',
+              flexShrink: 0
+            }}
+          >
+            {t.tabResources}
+          </button>
         </div>
 
         {error && <div className="alert alert-danger" style={{ marginBottom: '1rem', width: '100%' }}>{error}</div>}
 
-        {/* Exams list inside horizontal scrollable wrapper */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'row', 
-          overflowX: 'auto', 
-          width: '100%', 
-          gap: '1rem',
-          paddingBottom: '1rem',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {exams.length === 0 ? (
-            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
-              {t.noExams}
+        {/* Tab Content Block */}
+        {activeMobileTab === 'exams' ? (
+          <div>
+            {/* Gold Lotus Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '1.25rem', gap: '8px' }}>
+              <div style={{ width: '20px', height: '1px', background: '#c59f2d' }}></div>
+              <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', fill: '#d4af37' }}>
+                <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+                <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+                <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+                <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+                <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+              </svg>
+              <div style={{ width: '80px', height: '1px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
             </div>
-          ) : (
-            exams.map((ex) => (
-              <div key={ex.id} className="mobile-dashboard-card" style={{ 
-                flexShrink: 0, 
-                width: '85%', 
-                maxWidth: '320px', 
-                marginBottom: 0,
-                boxSizing: 'border-box'
-              }}>
-                {ex.categoryName && (
-                  <span className="badge badge-outline" style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>
-                    {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
-                  </span>
-                )}
 
-                {/* Exam Name */}
-                <h3 className="mobile-exam-name" style={{ marginTop: ex.categoryName ? 0 : '12px' }}>{ex.name}</h3>
-
-                <div className="mobile-exam-divider"></div>
-
-                {/* Exam Metadata Row */}
-                <div className="mobile-exam-metadata">
-                  <div className="meta-col">
-                    <div className="meta-icon">
-                      <Calendar size={20} />
-                    </div>
-                    <div className="meta-labels">
-                      <span className="label">{lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}</span>
-                      <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-
-                  <div className="meta-divider"></div>
-
-                  <div className="meta-col">
-                    <div className="meta-icon">
-                      <Clock size={20} />
-                    </div>
-                    <div className="meta-labels">
-                      <span className="label">{lang === 'hi' ? 'अवधि' : 'Duration'}</span>
-                      <span className="val">{ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}</span>
-                    </div>
-                  </div>
+            {/* Exams list inside horizontal scrollable wrapper */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'row', 
+              overflowX: 'auto', 
+              width: '100%', 
+              gap: '1rem',
+              paddingBottom: '1rem',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              {exams.length === 0 ? (
+                <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
+                  {t.noExams}
                 </div>
+              ) : (
+                exams.map((ex) => (
+                  <div key={ex.id} className="mobile-dashboard-card" style={{ 
+                    flexShrink: 0, 
+                    width: '85%', 
+                    maxWidth: '320px', 
+                    marginBottom: 0,
+                    boxSizing: 'border-box'
+                  }}>
+                    {ex.categoryName && (
+                      <span className="badge badge-outline" style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>
+                        {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
+                      </span>
+                    )}
 
-                {/* Action Button */}
-                {ex.attemptStatus === 'COMPLETED' ? (
-                  <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
-                    <div className="badge badge-success" style={{ flexGrow: 1, display: 'inline-flex', alignContent: 'center', justifyContent: 'center', height: '48px', alignItems: 'center', borderRadius: '10px', fontSize: '1rem', fontWeight: 'bold' }}>
-                      {t.completed}
+                    {/* Exam Name */}
+                    <h3 className="mobile-exam-name" style={{ marginTop: ex.categoryName ? 0 : '12px' }}>{ex.name}</h3>
+
+                    <div className="mobile-exam-divider"></div>
+
+                    {/* Exam Metadata Row */}
+                    <div className="mobile-exam-metadata">
+                      <div className="meta-col">
+                        <div className="meta-icon">
+                          <Calendar size={20} />
+                        </div>
+                        <div className="meta-labels">
+                          <span className="label">{lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}</span>
+                          <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+
+                      <div className="meta-divider"></div>
+
+                      <div className="meta-col">
+                        <div className="meta-icon">
+                          <Clock size={20} />
+                        </div>
+                        <div className="meta-labels">
+                          <span className="label">{lang === 'hi' ? 'अवधि' : 'Duration'}</span>
+                          <span className="val">{ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}</span>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                          })
-                          const data = await res.json()
-                          if (data.success) {
-                            setCompletedAttempt(data.certificate)
-                          }
-                        } catch (err) {
-                          console.error(err)
-                        }
-                      }}
-                      className="btn btn-secondary"
-                      style={{ padding: '0 16px', height: '48px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      title="Certificate Details"
-                    >
-                      <Award size={20} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleStartExam(ex.id)}
-                    disabled={startingExamId !== null}
-                    className="take-exam-dark-btn"
-                  >
-                    {startingExamId === ex.id ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto' }}>
-                        <span className="spinner-small" style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}></span>
-                        <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading...'}</span>
+
+                    {/* Action Button */}
+                    {ex.attemptStatus === 'COMPLETED' ? (
+                      <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                        <div className="badge badge-success" style={{ flexGrow: 1, display: 'inline-flex', alignContent: 'center', justifyContent: 'center', height: '48px', alignItems: 'center', borderRadius: '10px', fontSize: '1rem', fontWeight: 'bold' }}>
+                          {t.completed}
+                        </div>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              })
+                              const data = await res.json()
+                              if (data.success) {
+                                setCompletedAttempt(data.certificate)
+                              }
+                            } catch (err) {
+                              console.error(err)
+                            }
+                          }}
+                          className="btn btn-secondary"
+                          style={{ padding: '0 16px', height: '48px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="Certificate Details"
+                        >
+                          <Award size={20} />
+                        </button>
                       </div>
                     ) : (
-                      <>
-                        <FileEdit size={20} style={{ color: '#f5d782' }} />
-                        <span style={{ flexGrow: 1, textAlign: 'center' }}>{lang === 'hi' ? 'परीक्षा शुरू करें' : 'TAKE EXAM'}</span>
-                        <ChevronRight size={20} />
-                      </>
+                      <button
+                        onClick={() => handleStartExam(ex.id)}
+                        disabled={startingExamId !== null}
+                        className="take-exam-dark-btn"
+                      >
+                        {startingExamId === ex.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto' }}>
+                            <span className="spinner-small" style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}></span>
+                            <span>{lang === 'hi' ? 'शुरू हो रहा है...' : 'Loading...'}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <FileEdit size={20} style={{ color: '#f5d782' }} />
+                            <span style={{ flexGrow: 1, textAlign: 'center' }}>{lang === 'hi' ? 'परीक्षा शुरू करें' : 'TAKE EXAM'}</span>
+                            <ChevronRight size={20} />
+                          </>
+                        )}
+                      </button>
                     )}
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Resources Section Title */}
-        <div className="mobile-section-title" style={{ marginTop: '2rem' }}>
-          {t.tabResources}
-        </div>
-        
-        {/* Gold Lotus Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '1.25rem', gap: '8px' }}>
-          <div style={{ width: '20px', height: '1px', background: '#c59f2d' }}></div>
-          <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', fill: '#d4af37' }}>
-            <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
-            <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
-            <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
-            <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
-            <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
-          </svg>
-          <div style={{ width: '80px', height: '1px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
-        </div>
-
-        {/* Resources Section container with horizontal scroll */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'row', 
-          overflowX: 'auto', 
-          width: '100%', 
-          gap: '1rem',
-          paddingBottom: '1rem',
-          marginBottom: '2rem',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
-          {resources.length === 0 ? (
-            <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
-              {t.noResources}
+                  </div>
+                ))
+              )}
             </div>
-          ) : (
-            resources.map((res) => {
-              const title = (lang === 'hi' && res.titleHindi) ? res.titleHindi : res.title;
-              const link = (lang === 'hi' && res.linkHindi) ? res.linkHindi : res.link;
-              const description = (lang === 'hi' && res.descriptionHindi) ? res.descriptionHindi : res.description;
+          </div>
+        ) : (
+          <div>
+            {/* Gold Lotus Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', width: '100%', marginBottom: '1.25rem', gap: '8px' }}>
+              <div style={{ width: '20px', height: '1px', background: '#c59f2d' }}></div>
+              <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', fill: '#d4af37' }}>
+                <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
+                <path d="M50 35 C30 45, 25 70, 42 80 C40 70, 42 55, 50 35 Z" />
+                <path d="M50 35 C70 45, 75 70, 58 80 C60 70, 58 55, 50 35 Z" />
+                <path d="M50 50 C20 55, 12 75, 34 82 C30 75, 36 65, 50 50 Z" />
+                <path d="M50 50 C80 55, 88 75, 66 82 C70 75, 64 65, 50 50 Z" />
+              </svg>
+              <div style={{ width: '80px', height: '1px', background: 'linear-gradient(to right, #c59f2d, transparent)' }}></div>
+            </div>
 
-              return (
-                <div key={res.id} className="mobile-dashboard-card" style={{ 
-                  padding: '1.25rem 1rem', 
-                  gap: '8px',
-                  flexShrink: 0,
-                  width: '80%',
-                  maxWidth: '280px',
-                  marginBottom: 0,
-                  boxSizing: 'border-box'
-                }}>
-                  <h4 style={{
-                    fontFamily: 'var(--font-serif, Georgia, serif)',
-                    fontSize: '1.15rem',
-                    fontWeight: 700,
-                    color: '#0b2240',
-                    margin: 0
-                  }}>
-                    {title}
-                  </h4>
-                  
-                  {description && (
-                    <p style={{ fontSize: '0.85rem', color: '#4a5568', margin: 0, lineHeight: '1.4' }}>
-                      {description}
-                    </p>
-                  )}
-                  
-                  {link && (
-                    <button 
-                      onClick={() => {
-                        setViewingResourceTitle(title)
-                        setViewingResourceUrl(link)
-                      }}
-                      style={{ 
-                        alignSelf: 'flex-start',
-                        color: '#c59f2d', 
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        fontWeight: 600, 
-                        fontSize: '0.85rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        marginTop: '4px',
-                        outline: 'none'
-                      }}
-                    >
-                      <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  )}
+            {/* Resources Section container with horizontal scroll */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'row', 
+              overflowX: 'auto', 
+              width: '100%', 
+              gap: '1rem',
+              paddingBottom: '1rem',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              {resources.length === 0 ? (
+                <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
+                  {t.noResources}
                 </div>
-              );
-            })
-          )}
-        </div>
+              ) : (
+                resources.map((res) => {
+                  const title = (lang === 'hi' && res.titleHindi) ? res.titleHindi : res.title;
+                  const link = (lang === 'hi' && res.linkHindi) ? res.linkHindi : res.link;
+                  const description = (lang === 'hi' && res.descriptionHindi) ? res.descriptionHindi : res.description;
+
+                  return (
+                    <div key={res.id} className="mobile-dashboard-card" style={{ 
+                      padding: '1.25rem 1rem', 
+                      gap: '8px',
+                      flexShrink: 0,
+                      width: '80%',
+                      maxWidth: '280px',
+                      marginBottom: 0,
+                      boxSizing: 'border-box'
+                    }}>
+                      <h4 style={{
+                        fontFamily: 'var(--font-serif, Georgia, serif)',
+                        fontSize: '1.15rem',
+                        fontWeight: 700,
+                        color: '#0b2240',
+                        margin: 0
+                      }}>
+                        {title}
+                      </h4>
+                      
+                      {description && (
+                        <p style={{ fontSize: '0.85rem', color: '#4a5568', margin: 0, lineHeight: '1.4' }}>
+                          {description}
+                        </p>
+                      )}
+                      
+                      {link && (
+                        <button 
+                          onClick={() => {
+                            setViewingResourceTitle(title)
+                            setViewingResourceUrl(link)
+                          }}
+                          style={{ 
+                            alignSelf: 'flex-start',
+                            color: '#c59f2d', 
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            fontWeight: 600, 
+                            fontSize: '0.85rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            marginTop: '4px',
+                            outline: 'none'
+                          }}
+                        >
+                          <span>{lang === 'hi' ? 'संसाधन खोलें' : 'Open Resource'}</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
         {renderResourceModal()}
       </div>
     )
