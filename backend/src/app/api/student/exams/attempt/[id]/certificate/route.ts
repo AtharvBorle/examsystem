@@ -170,11 +170,15 @@ export async function GET(
         presidentName: (targetLang === 'hi' && attempt.student.school.admin.presidentNameHindi)
           ? attempt.student.school.admin.presidentNameHindi
           : (attempt.student.school.admin.presidentName || ''),
-        presidentSignature: attempt.student.school.admin.presidentSignature || '',
+        presidentSignature: (attempt.student.school.admin.presidentSignature || '').startsWith('/uploads/') 
+          ? (attempt.student.school.admin.presidentSignature || '').replace('/uploads/', '/api/uploads/') 
+          : (attempt.student.school.admin.presidentSignature || ''),
         secretaryName: (targetLang === 'hi' && attempt.student.school.admin.secretaryNameHindi)
           ? attempt.student.school.admin.secretaryNameHindi
           : (attempt.student.school.admin.secretaryName || ''),
-        secretarySignature: attempt.student.school.admin.secretarySignature || '',
+        secretarySignature: (attempt.student.school.admin.secretarySignature || '').startsWith('/uploads/') 
+          ? (attempt.student.school.admin.secretarySignature || '').replace('/uploads/', '/api/uploads/') 
+          : (attempt.student.school.admin.secretarySignature || ''),
       },
     })
   } catch (error: any) {

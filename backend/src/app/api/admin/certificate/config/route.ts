@@ -28,7 +28,16 @@ export async function GET(req: NextRequest) {
       return errorResponse('Admin not found', 404)
     }
 
-    return successResponse({ config: admin })
+    // Dynamic path rewrite to bypass Next.js static asset /uploads/ routing conflict
+    const config = { ...admin }
+    if (config.presidentSignature && config.presidentSignature.startsWith('/uploads/')) {
+      config.presidentSignature = config.presidentSignature.replace('/uploads/', '/api/uploads/')
+    }
+    if (config.secretarySignature && config.secretarySignature.startsWith('/uploads/')) {
+      config.secretarySignature = config.secretarySignature.replace('/uploads/', '/api/uploads/')
+    }
+
+    return successResponse({ config })
   } catch (error: any) {
     console.error('Fetch certificate config error:', error)
     return errorResponse('Internal server error', 500)
@@ -72,9 +81,18 @@ export async function POST(req: NextRequest) {
       }
     })
 
+    // Dynamic path rewrite to bypass Next.js static asset /uploads/ routing conflict
+    const config = { ...updated }
+    if (config.presidentSignature && config.presidentSignature.startsWith('/uploads/')) {
+      config.presidentSignature = config.presidentSignature.replace('/uploads/', '/api/uploads/')
+    }
+    if (config.secretarySignature && config.secretarySignature.startsWith('/uploads/')) {
+      config.secretarySignature = config.secretarySignature.replace('/uploads/', '/api/uploads/')
+    }
+
     return successResponse({ 
       success: true, 
-      config: updated, 
+      config, 
       message: 'Certificate configurations updated successfully' 
     })
   } catch (error: any) {
