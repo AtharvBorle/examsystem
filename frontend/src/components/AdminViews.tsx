@@ -6873,8 +6873,14 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
     const file = e.target.files?.[0]
     if (!file) return
 
-    const formData = new FormData()
-    formData.append('file', file)
+    // Basic file validation
+    const allowedExtensions = ['.png', '.jpg', '.jpeg']
+    const filenameLower = file.name.toLowerCase()
+    const hasAllowedExtension = allowedExtensions.some(ext => filenameLower.endsWith(ext))
+    if (!hasAllowedExtension) {
+      alert('Only PNG, JPG, or JPEG image files are allowed')
+      return
+    }
 
     if (role === 'president') {
       setUploadingPres(true)
@@ -6882,31 +6888,26 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
       setUploadingSec(true)
     }
 
-    try {
-      const res = await fetch('/api/admin/certificate/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      })
-      const data = await res.json()
-      if (data.success) {
-        if (role === 'president') {
-          setPresidentSignature(data.fileUrl)
-        } else {
-          setSecretarySignature(data.fileUrl)
-        }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64Data = reader.result as string
+      if (role === 'president') {
+        setPresidentSignature(base64Data)
+        setUploadingPres(false)
       } else {
-        alert(data.error || 'Failed to upload signature file')
+        setSecretarySignature(base64Data)
+        setUploadingSec(false)
       }
-    } catch (err) {
-      alert('Upload failed')
-    } finally {
+    }
+    reader.onerror = () => {
+      alert('Failed to read file')
       if (role === 'president') {
         setUploadingPres(false)
       } else {
         setUploadingSec(false)
       }
     }
+    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
