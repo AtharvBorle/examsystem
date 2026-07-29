@@ -203,9 +203,9 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             {lang === 'hi' ? 'यहाँ पंजीकरण करें' : 'Register Here'}
           </button>
         </div>
-        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '1.25rem', opacity: 0.85, fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '1.25rem', opacity: 0.85, fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
           <div>Powered by Neopace Infotech LLP</div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             <a 
               href="/oes/T&C" 
               onClick={(e) => {
@@ -228,6 +228,42 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
               Privacy Policy
+            </a>
+            <span>•</span>
+            <a 
+              href="/oes/examprocess" 
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.pushState({}, '', '/oes/examprocess')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+              style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Exam Process
+            </a>
+            <span>•</span>
+            <a 
+              href="/oes/help&suppport" 
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.pushState({}, '', '/oes/help&suppport')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+              style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Help & Support
+            </a>
+            <span>•</span>
+            <a 
+              href="/oes/faq" 
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.pushState({}, '', '/oes/faq')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+              style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              FAQs
             </a>
           </div>
         </div>

@@ -181,12 +181,15 @@ function MainLayout() {
 
   useEffect(() => {
     const handleLocationChange = () => {
-      const path = window.location.pathname
-      const lowerPath = path.toLowerCase()
+      const rawPath = decodeURIComponent(window.location.pathname)
+      const cleanPath = rawPath.replace(/\/+$/, '')
+      const lowerPath = cleanPath.toLowerCase()
+
       if (
         lowerPath.endsWith('/faq') || 
         lowerPath.endsWith('/faqs') || 
-        lowerPath.endsWith('/frequently-asked-questions')
+        lowerPath.endsWith('/frequently-asked-questions') ||
+        lowerPath.includes('/oes/faq')
       ) {
         setCurrentView('FAQ')
       } else if (
@@ -196,20 +199,22 @@ function MainLayout() {
         lowerPath.endsWith('/support') || 
         lowerPath.endsWith('/help-support') || 
         lowerPath.endsWith('/student-guide') || 
-        path.includes('help') || 
-        path.includes('support')
+        lowerPath.includes('/oes/help') || 
+        lowerPath.includes('/oes/support')
       ) {
         setCurrentView('HELP_SUPPORT')
       } else if (
         lowerPath.endsWith('/examprocess') || 
         lowerPath.endsWith('/exam-process') || 
-        lowerPath.endsWith('/examination-process')
+        lowerPath.endsWith('/examination-process') ||
+        lowerPath.includes('/oes/examprocess')
       ) {
         setCurrentView('EXAM_PROCESS')
       } else if (
         lowerPath.endsWith('/privacypolicy') || 
         lowerPath.endsWith('/privacy-policy') || 
-        lowerPath.endsWith('/privacy')
+        lowerPath.endsWith('/privacy') ||
+        lowerPath.includes('/oes/privacypolicy')
       ) {
         setCurrentView('PRIVACY')
       } else if (
@@ -217,14 +222,14 @@ function MainLayout() {
         lowerPath.endsWith('/tc') || 
         lowerPath.endsWith('/terms') || 
         lowerPath.endsWith('/terms-and-conditions') || 
-        path.includes('/T&C')
+        cleanPath.includes('/T&C') ||
+        lowerPath.includes('/t&c') ||
+        lowerPath.includes('/tc')
       ) {
         setCurrentView('TERMS')
       } else if (
         lowerPath.endsWith('/admin') || 
-        lowerPath.endsWith('/admin/') || 
-        lowerPath.endsWith('/oes/admin') || 
-        lowerPath.endsWith('/oes/admin/')
+        lowerPath.includes('/admin')
       ) {
         if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
           setCurrentView('ADMIN_LOGIN')
@@ -249,6 +254,27 @@ function MainLayout() {
       window.removeEventListener('popstate', handleLocationChange)
     }
   }, [user, currentView])
+
+  useEffect(() => {
+    let targetPath = '/oes/'
+    if (currentView === 'ADMIN_LOGIN') {
+      targetPath = '/oes/admin'
+    } else if (currentView === 'TERMS') {
+      targetPath = '/oes/T&C'
+    } else if (currentView === 'PRIVACY') {
+      targetPath = '/oes/privacypolicy'
+    } else if (currentView === 'EXAM_PROCESS') {
+      targetPath = '/oes/examprocess'
+    } else if (currentView === 'HELP_SUPPORT') {
+      targetPath = '/oes/help&suppport'
+    } else if (currentView === 'FAQ') {
+      targetPath = '/oes/faq'
+    }
+
+    if (window.location.pathname !== targetPath && decodeURIComponent(window.location.pathname) !== targetPath) {
+      window.history.replaceState({}, '', targetPath)
+    }
+  }, [currentView])
 
   if (loading) {
     return (
