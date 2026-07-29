@@ -786,7 +786,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     if (!viewingResourceUrl) return null
 
     const origin = (window.location.origin.startsWith('file:') || window.location.hostname === '')
-      ? 'https://bvpindia.org'
+      ? 'https://bvpindia.org/oes'
       : window.location.origin
 
     const absoluteUrl = viewingResourceUrl.startsWith('/') 
