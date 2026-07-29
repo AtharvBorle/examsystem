@@ -30,17 +30,34 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Ensure upload directory exists in public/uploads
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadDir, { recursive: true })
-
     // Generate unique sanitized filename
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `${Date.now()}_${sanitizedName}`
-    const filePath = join(uploadDir, filename)
 
-    // Write file to VPS disk
-    await writeFile(filePath, buffer)
+    // Multi-directory write strategy to survive git pulls, redeployments, and process root variations
+    const potentialDirs = [
+      join(process.cwd(), 'public', 'uploads'),
+      join(process.cwd(), '..', 'public', 'uploads'),
+      '/home/bvpindia-api/htdocs/api.bvpindia.org/public/uploads',
+      join(process.cwd(), '.next', 'standalone', 'public', 'uploads'),
+      '/tmp/uploads',
+    ]
+
+    let written = false
+    for (const dir of potentialDirs) {
+      try {
+        await mkdir(dir, { recursive: true })
+        const filePath = join(dir, filename)
+        await writeFile(filePath, buffer)
+        written = true
+      } catch (err) {
+        // Silently skip if directory is not writable
+      }
+    }
+
+    if (!written) {
+      return errorResponse('Failed to write file to any storage directory', 500)
+    }
 
     // Return static URL path
     const fileUrl = `/uploads/${filename}`

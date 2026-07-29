@@ -86,7 +86,7 @@ function App() {
     if (showPledge) {
       const timer = setInterval(() => {
         if (!isUserInteracting.current) {
-          pledgeScrollY.current += 0.85; // smooth slow scroll
+          pledgeScrollY.current += 1.8; // Faster auto-scroll speed
           pledgeScrollRef.current?.scrollTo({
             y: pledgeScrollY.current,
             animated: true,
@@ -153,14 +153,14 @@ function App() {
             style={{
               position: 'absolute',
               top: screenHeight * 0.26,
-              bottom: screenHeight * 0.24,
+              height: screenHeight * 0.48,
+              width: '100%',
               left: 0,
-              right: 0,
-              overflow: 'hidden',
+              zIndex: 5, // High zIndex so finger drag is intercepted correctly
             }}
             contentContainerStyle={{ 
-              paddingTop: screenHeight * 0.15, 
-              paddingBottom: screenHeight * 0.35, 
+              paddingTop: screenHeight * 0.08, 
+              paddingBottom: screenHeight * 0.30, 
               paddingHorizontal: 24,
               alignItems: 'center' 
             }}
@@ -172,16 +172,18 @@ function App() {
             onMomentumScrollBegin={handleInteractionStart}
             onMomentumScrollEnd={handleInteractionEnd}
           >
-            <Text style={{
-              fontSize: 16,
-              lineHeight: 25,
-              fontWeight: 'bold',
-              color: '#e67300', // premium flag saffron color matching the image mockup
-              textAlign: 'center',
-              fontFamily: Platform.OS === 'ios' ? 'System' : 'serif',
-            }}>
-              {`वन्दे मातरम्\nवन्दे मातरम्\n\nवन्दे मातरम् सुजलां सुफलां मलयजशीतलाम् शस्यश्यामलां\nमातरम्\nशुभ्रज्योत्स्नापुलकितयामिनीं फुल्लकुसुमितद्रुमदलशोभिनीं\nसुहासिनीं सुमधुर भाषिणीं सुखदां वरदां मातरम् । १\n\nवन्दे मातरम्\nकोटि-कोटि-कण्ठ-कल-कल-निनाद-कराले कोटि-कोटि-\nभुजैर्धृत-खरकरवाले, अबला केन मा एत बले\nबहुबलधारिणीं नमामि तारिणीं रिपुदलवारिणीं मातरम् । २\n\nवन्दे मातरम्\nतुमि विद्या, तुमि धर्म तुमि हृदि, तुमि मर्म त्वं हि प्राणा: शरीरे\nबाहुते तुमि मा शक्ति, हृदये तुमि मा भक्ति, तोमारई प्रतिमा\nगडि मन्दिरे-मन्दिरे मातरम् । ३`}
-            </Text>
+            <View style={{ width: '100%', alignItems: 'center' }}>
+              <Text style={{
+                fontSize: 16.5,
+                lineHeight: 26,
+                fontWeight: 'bold',
+                color: '#e67300', // premium flag saffron color matching the image mockup
+                textAlign: 'center',
+                fontFamily: Platform.OS === 'ios' ? 'System' : 'serif',
+              }}>
+                {`वन्दे मातरम्\n\nवन्दे मातरम् सुजलां सुफलां मलयजशीतलाम् शस्यश्यामलां\nमातरम्\nशुभ्रज्योत्स्नापुलकितयामिनीं फुल्लकुसुमितद्रुमदलशोभिनीं\nसुहासिनीं सुमधुर भाषिणीं सुखदां वरदां मातरम् । १\n\nवन्दे मातरम्\nकोटि-कोटि-कण्ठ-कल-कल-निनाद-कराले कोटि-कोटि-\nभुजैर्धृत-खरकरवाले, अबला केन मा एत बले\nबहुबलधारिणीं नमामि तारिणीं रिपुदलवारिणीं मातरम् । २\n\nवन्दे मातरम्\nतुमि विद्या, तुमि धर्म तुमि हृदि, तुमि मर्म त्वं हि प्राणा: शरीरे\nबाहुते तुमि मा शक्ति, हृदये तुमि मा भक्ति, तोमारई प्रतिमा\nगडि मन्दिरे-मन्दिरे मातरम् । ३\n\nत्वं हि दुर्गा दशप्रहरणधारिणी कमला कमलदलविहारिणी\nवाणी विद्यादायिनी । नमामि त्वां नमामि कमलां अमलां अतुलां\nसुजलां सुफलां मातरम् ॥ वन्दे मातरम् ॥\n\nश्यामलां सरलां सुस्मितां भूषितां धरणीं भरणीं मातरम् ॥\nवन्दे मातरम् ॥`}
+              </Text>
+            </View>
           </ScrollView>
 
           {/* Mute/Unmute Floating Button at Bottom Right */}

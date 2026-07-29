@@ -18,9 +18,26 @@ export async function GET(
 
     // Sanitize filename to prevent directory traversal attacks
     const safeFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '')
-    const filePath = join(process.cwd(), 'public', 'uploads', safeFilename)
+    
+    // Multi-directory search strategy to survive git pulls, redeployments, and process root variations
+    const potentialDirs = [
+      join(process.cwd(), 'public', 'uploads'),
+      join(process.cwd(), '..', 'public', 'uploads'),
+      '/home/bvpindia-api/htdocs/api.bvpindia.org/public/uploads',
+      join(process.cwd(), '.next', 'standalone', 'public', 'uploads'),
+      '/tmp/uploads',
+    ]
 
-    if (!existsSync(filePath)) {
+    let filePath = ''
+    for (const dir of potentialDirs) {
+      const testPath = join(dir, safeFilename)
+      if (existsSync(testPath)) {
+        filePath = testPath
+        break
+      }
+    }
+
+    if (!filePath) {
       return new NextResponse('File not found', { status: 404 })
     }
 
