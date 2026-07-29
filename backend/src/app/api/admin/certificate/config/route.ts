@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
         secretaryName: true,
         secretaryNameHindi: true,
         secretarySignature: true,
+        externalLink: true,
+        externalLinkTitle: true,
       }
     })
 
@@ -58,7 +60,9 @@ export async function POST(req: NextRequest) {
       presidentSignature,
       secretaryName,
       secretaryNameHindi,
-      secretarySignature
+      secretarySignature,
+      externalLink,
+      externalLinkTitle
     } = await req.json()
 
     const updated = await prisma.admin.update({
@@ -70,6 +74,8 @@ export async function POST(req: NextRequest) {
         secretaryName: secretaryName !== undefined ? secretaryName : null,
         secretaryNameHindi: secretaryNameHindi !== undefined ? secretaryNameHindi : null,
         secretarySignature: secretarySignature !== undefined ? secretarySignature : null,
+        externalLink: externalLink !== undefined ? externalLink : null,
+        externalLinkTitle: externalLinkTitle !== undefined ? externalLinkTitle : null,
       },
       select: {
         presidentName: true,
@@ -78,6 +84,8 @@ export async function POST(req: NextRequest) {
         secretaryName: true,
         secretaryNameHindi: true,
         secretarySignature: true,
+        externalLink: true,
+        externalLinkTitle: true,
       }
     })
 

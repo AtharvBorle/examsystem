@@ -5,7 +5,7 @@ import { generateCertificatePDF, generateAnswersheetPDF } from '../utils/pdfGene
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
-  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon
+  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon, Globe, ExternalLink
 } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 import downloadCertBg from '../assets/rss_download_cert.png'
@@ -47,6 +47,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     return () => window.removeEventListener('resize', checkDesktop)
   }, [])
 
+  const [externalLink, setExternalLink] = useState<string | null>(null)
+  const [externalLinkTitle, setExternalLinkTitle] = useState<string | null>(null)
+
   const fetchExams = async () => {
     try {
       const res = await fetch('/api/student/exams', {
@@ -55,6 +58,10 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       const data = await res.json()
       if (data.success) {
         setExams(data.exams)
+        if (data.externalLink) {
+          setExternalLink(data.externalLink)
+          setExternalLinkTitle(data.externalLinkTitle || null)
+        }
       }
     } catch (err) {
       console.error(err)
@@ -1415,6 +1422,66 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                 ))
               )}
             </div>
+
+            {/* Admin Pushed External Link Banner */}
+            {externalLink && (
+              <div style={{
+                marginTop: '1.5rem',
+                backgroundColor: '#ffffff',
+                border: '2px solid #f2bb50',
+                borderRadius: '16px',
+                padding: '20px 28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 6px 20px rgba(11, 34, 64, 0.06)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    backgroundColor: '#0b2240',
+                    color: '#f5d782',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Globe size={26} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.825rem', color: '#8c6239', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {externalLinkTitle || (lang === 'hi' ? 'महत्वपूर्ण लिंक (Important Link)' : 'Important Resource Link')}
+                    </span>
+                    <span style={{ fontSize: '1.15rem', color: '#0b2240', fontWeight: 800 }}>
+                      {externalLink}
+                    </span>
+                  </div>
+                </div>
+
+                <a
+                  href={externalLink.startsWith('http') ? externalLink : `https://${externalLink}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    backgroundColor: '#0b2240',
+                    color: '#ffffff',
+                    padding: '12px 24px',
+                    borderRadius: '10px',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(11, 34, 64, 0.15)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <span>{lang === 'hi' ? 'वेबसाइट खोलें' : 'Open Link'}</span>
+                  <ExternalLink size={18} style={{ color: '#f5d782' }} />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Resources */}
@@ -1810,6 +1877,67 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                 ))
               )}
             </div>
+
+            {/* Admin Pushed External Link Banner (Mobile) */}
+            {externalLink && (
+              <div style={{
+                marginTop: '1.25rem',
+                backgroundColor: '#ffffff',
+                border: '1.5px solid #f2bb50',
+                borderRadius: '14px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 4px 12px rgba(11, 34, 64, 0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    backgroundColor: '#0b2240',
+                    color: '#f5d782',
+                    borderRadius: '10px',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Globe size={20} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#8c6239', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {externalLinkTitle || (lang === 'hi' ? 'महत्वपूर्ण लिंक' : 'Important Link')}
+                    </span>
+                    <span style={{ fontSize: '0.95rem', color: '#0b2240', fontWeight: 800, wordBreak: 'break-all' }}>
+                      {externalLink}
+                    </span>
+                  </div>
+                </div>
+
+                <a
+                  href={externalLink.startsWith('http') ? externalLink : `https://${externalLink}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    backgroundColor: '#0b2240',
+                    color: '#ffffff',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 3px 8px rgba(11, 34, 64, 0.15)'
+                  }}
+                >
+                  <span>{lang === 'hi' ? 'वेबसाइट खोलें' : 'Open Link'}</span>
+                  <ExternalLink size={16} style={{ color: '#f5d782' }} />
+                </a>
+              </div>
+            )}
           </div>
         ) : (
           <div>

@@ -5,6 +5,11 @@ import { LogOut } from 'lucide-react'
 import { LoginView, RegisterView, AdminLoginView } from './components/AuthViews'
 import { StandaloneSchoolDetailView, SuperAdminDashboard, AdminDashboard } from './components/AdminViews'
 import { StudentDashboard } from './components/StudentViews'
+import { TermsAndConditionsView } from './components/TermsAndConditionsView'
+import { PrivacyPolicyView } from './components/PrivacyPolicyView'
+import { ExamProcessView } from './components/ExamProcessView'
+import { StudentGuideHelpView } from './components/StudentGuideHelpView'
+import { FaqView } from './components/FaqView'
 
 import { LanguageSelector } from './components/LanguageSelector'
 
@@ -117,7 +122,7 @@ function App() {
 
 function MainLayout() {
   const { user, token, logout, loading, login } = useAuth()
-  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN'>('LOGIN')
+  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN' | 'TERMS' | 'PRIVACY' | 'EXAM_PROCESS' | 'HELP_SUPPORT' | 'FAQ'>('LOGIN')
   const [directSchoolUdise, setDirectSchoolUdise] = useState<string | null>(null)
 
   const [lang, setLang] = useState<Language>('en')
@@ -177,7 +182,50 @@ function MainLayout() {
   useEffect(() => {
     const handleLocationChange = () => {
       const path = window.location.pathname
-      if (path === '/admin') {
+      const lowerPath = path.toLowerCase()
+      if (
+        lowerPath.endsWith('/faq') || 
+        lowerPath.endsWith('/faqs') || 
+        lowerPath.endsWith('/frequently-asked-questions')
+      ) {
+        setCurrentView('FAQ')
+      } else if (
+        lowerPath.endsWith('/help&suppport') || 
+        lowerPath.endsWith('/help&support') || 
+        lowerPath.endsWith('/help') || 
+        lowerPath.endsWith('/support') || 
+        lowerPath.endsWith('/help-support') || 
+        lowerPath.endsWith('/student-guide') || 
+        path.includes('help') || 
+        path.includes('support')
+      ) {
+        setCurrentView('HELP_SUPPORT')
+      } else if (
+        lowerPath.endsWith('/examprocess') || 
+        lowerPath.endsWith('/exam-process') || 
+        lowerPath.endsWith('/examination-process')
+      ) {
+        setCurrentView('EXAM_PROCESS')
+      } else if (
+        lowerPath.endsWith('/privacypolicy') || 
+        lowerPath.endsWith('/privacy-policy') || 
+        lowerPath.endsWith('/privacy')
+      ) {
+        setCurrentView('PRIVACY')
+      } else if (
+        lowerPath.endsWith('/t&c') || 
+        lowerPath.endsWith('/tc') || 
+        lowerPath.endsWith('/terms') || 
+        lowerPath.endsWith('/terms-and-conditions') || 
+        path.includes('/T&C')
+      ) {
+        setCurrentView('TERMS')
+      } else if (
+        lowerPath.endsWith('/admin') || 
+        lowerPath.endsWith('/admin/') || 
+        lowerPath.endsWith('/oes/admin') || 
+        lowerPath.endsWith('/oes/admin/')
+      ) {
         if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
           setCurrentView('ADMIN_LOGIN')
         } else {
@@ -187,7 +235,7 @@ function MainLayout() {
         if (user) {
           setCurrentView('DASHBOARD')
         } else {
-          if (currentView !== 'REGISTER') {
+          if (currentView !== 'REGISTER' && currentView !== 'TERMS' && currentView !== 'PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ') {
             setCurrentView('LOGIN')
           }
         }
@@ -211,7 +259,7 @@ function MainLayout() {
   }
 
   const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
-  const showNavbar = user && (!isNew || user.role !== 'STUDENT')
+  const showNavbar = user && (!isNew || user.role !== 'STUDENT') && currentView !== 'TERMS' && currentView !== 'PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ'
 
   return (
     <div>
@@ -227,6 +275,66 @@ function MainLayout() {
         />
       ) : (
         <>
+          {currentView === 'FAQ' && (
+            <FaqView 
+              onBack={() => {
+                if (window.history.length > 1) {
+                  window.history.back()
+                } else {
+                  window.history.pushState({}, '', '/oes/')
+                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
+                }
+              }}
+            />
+          )}
+          {currentView === 'HELP_SUPPORT' && (
+            <StudentGuideHelpView 
+              onBack={() => {
+                if (window.history.length > 1) {
+                  window.history.back()
+                } else {
+                  window.history.pushState({}, '', '/oes/')
+                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
+                }
+              }}
+            />
+          )}
+          {currentView === 'EXAM_PROCESS' && (
+            <ExamProcessView 
+              onBack={() => {
+                if (window.history.length > 1) {
+                  window.history.back()
+                } else {
+                  window.history.pushState({}, '', '/oes/')
+                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
+                }
+              }}
+            />
+          )}
+          {currentView === 'TERMS' && (
+            <TermsAndConditionsView 
+              onBack={() => {
+                if (window.history.length > 1) {
+                  window.history.back()
+                } else {
+                  window.history.pushState({}, '', '/oes/')
+                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
+                }
+              }}
+            />
+          )}
+          {currentView === 'PRIVACY' && (
+            <PrivacyPolicyView 
+              onBack={() => {
+                if (window.history.length > 1) {
+                  window.history.back()
+                } else {
+                  window.history.pushState({}, '', '/oes/')
+                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
+                }
+              }}
+            />
+          )}
           {currentView === 'LOGIN' && (
             <LoginView 
               onViewRegister={() => setCurrentView('REGISTER')} 

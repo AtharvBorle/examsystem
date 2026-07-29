@@ -203,8 +203,33 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             {lang === 'hi' ? 'यहाँ पंजीकरण करें' : 'Register Here'}
           </button>
         </div>
-        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '1.25rem', opacity: 0.85, fontWeight: 'bold' }}>
-          Powered by Neopace Infotech LLP
+        <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted, #718096)', marginTop: '1.25rem', opacity: 0.85, fontWeight: 'bold', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+          <div>Powered by Neopace Infotech LLP</div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <a 
+              href="/oes/T&C" 
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.pushState({}, '', '/oes/T&C')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+              style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Terms & Conditions
+            </a>
+            <span>•</span>
+            <a 
+              href="/oes/privacypolicy" 
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.pushState({}, '', '/oes/privacypolicy')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+              style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              Privacy Policy
+            </a>
+          </div>
         </div>
       </div>
     </div>

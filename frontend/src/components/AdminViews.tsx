@@ -8,7 +8,7 @@ import {
   LogOut, Shield, Award, Users, School as SchoolIcon, 
   CheckCircle, Clock, Award as TrophyIcon, 
   ChevronRight, ChevronLeft, Search,
-  BookOpen, FileText, TrendingUp, BarChart2, PieChart
+  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe
 } from 'lucide-react'
 
 // Natural sort comparator for items with a 'name' field (e.g. Class 1, Class 2, ..., Class 10)
@@ -7037,6 +7037,8 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
   const [secretaryName, setSecretaryName] = useState('')
   const [secretaryNameHindi, setSecretaryNameHindi] = useState('')
   const [secretarySignature, setSecretarySignature] = useState('')
+  const [externalLink, setExternalLink] = useState('')
+  const [externalLinkTitle, setExternalLinkTitle] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingPres, setUploadingPres] = useState(false)
@@ -7058,6 +7060,8 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
           setSecretaryName(data.config.secretaryName || '')
           setSecretaryNameHindi(data.config.secretaryNameHindi || '')
           setSecretarySignature(data.config.secretarySignature || '')
+          setExternalLink(data.config.externalLink || '')
+          setExternalLinkTitle(data.config.externalLinkTitle || '')
         }
       } catch (err) {
         console.error('Failed to load certificate configurations', err)
@@ -7128,12 +7132,14 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
           presidentSignature,
           secretaryName,
           secretaryNameHindi,
-          secretarySignature
+          secretarySignature,
+          externalLink,
+          externalLinkTitle
         })
       })
       const data = await res.json()
       if (data.success) {
-        setSuccess(lang === 'hi' ? 'प्रमाण पत्र सेटिंग्स सफलतापूर्वक सहेजी गईं!' : 'Certificate configurations saved successfully!')
+        setSuccess(lang === 'hi' ? 'सेटिंग्स सफलतापूर्वक सहेजी गईं!' : 'Configurations saved successfully!')
       } else {
         setError(data.error || 'Failed to save config')
       }
@@ -7150,7 +7156,7 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
 
   return (
     <div className="card" style={{ marginTop: 0 }}>
-      <h3 className="card-title">{lang === 'hi' ? 'प्रमाण पत्र हस्ताक्षर सेटिंग्स' : 'Certificate Signatory Settings'}</h3>
+      <h3 className="card-title">{lang === 'hi' ? 'प्रमाण पत्र एवं पोर्टल सेटिंग्स' : 'Certificate Signatory & Portal Settings'}</h3>
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
@@ -7259,6 +7265,41 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
             </div>
           </div>
 
+        </div>
+
+        {/* External Link for Student Dashboard */}
+        <div style={{ borderTop: '1px solid #f2e2cc', paddingTop: '1.5rem', marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h4 style={{ color: '#0f3d7a', fontFamily: 'var(--font-serif)', borderBottom: '1px solid #e0c080', paddingBottom: '0.5rem', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Globe size={18} />
+            <span>{lang === 'hi' ? 'छात्र डैशबोर्ड लिंक (Student Dashboard External Link)' : 'Student Dashboard External Link'}</span>
+          </h4>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'वेबसाइट यूआरएल (Website URL)' : 'Website / Link URL'}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={externalLink}
+                onChange={(e) => setExternalLink(e.target.value)}
+                placeholder="e.g. www.bvpindia.com or https://bvpindia.com"
+              />
+              <span style={{ fontSize: '0.75rem', color: '#666', marginTop: '4px', display: 'block' }}>
+                {lang === 'hi' ? 'यह लिंक छात्रों के डैशबोर्ड पर परीक्षा कार्ड के नीचे प्रदर्शित होगा।' : 'This link will be displayed below the exam cards section on the student dashboard.'}
+              </span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{lang === 'hi' ? 'लिंक शीर्षक (वैकल्पिक)' : 'Link Display Title (Optional)'}</label>
+              <input
+                type="text"
+                className="form-input"
+                value={externalLinkTitle}
+                onChange={(e) => setExternalLinkTitle(e.target.value)}
+                placeholder="e.g. Visit Official Website / आधिकारिक वेबसाइट"
+              />
+            </div>
+          </div>
         </div>
 
         <button

@@ -42,13 +42,15 @@ model Admin {
   classrooms     Classroom[]
   resources      Resource[]
   
-  // Certificate configurations
+  // Certificate & System configurations
   presidentName       String?
   presidentNameHindi  String?
   presidentSignature  String?
   secretaryName       String?
   secretaryNameHindi  String?
   secretarySignature  String?
+  externalLink        String?
+  externalLinkTitle   String?
 }
 
 model School {

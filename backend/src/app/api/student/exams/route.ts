@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     // Find all school IDs sharing the same UDISE number as the student's school
     const studentSchool = await prisma.school.findUnique({
       where: { id: student.schoolId },
-      select: { udise: true }
+      select: { udise: true, admin: { select: { externalLink: true, externalLinkTitle: true } } }
     })
     
     let relatedSchoolIds: string[] = [student.schoolId]
@@ -102,7 +102,11 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return successResponse({ exams: formatted })
+    return successResponse({ 
+      exams: formatted,
+      externalLink: studentSchool?.admin?.externalLink || null,
+      externalLinkTitle: studentSchool?.admin?.externalLinkTitle || null,
+    })
   } catch (error: any) {
     console.error('List student exams error:', error)
     return errorResponse('Internal server error', 500)
