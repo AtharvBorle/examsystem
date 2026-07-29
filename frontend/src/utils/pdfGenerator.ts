@@ -317,8 +317,8 @@ export async function generateCertificatePDF(data: {
   ctx.textBaseline = 'middle'
 
   // 1. Branch Name
-  setCanvasFont('bold', 13)
-  ctx.fillStyle = 'rgb(12, 34, 64)' // Blue theme matching the curves
+  setCanvasFont('bold', 17.5)
+  ctx.fillStyle = 'rgb(220, 95, 0)' // Vibrant Orange / Saffron
   const branchNameText = data.branch 
     ? data.branch 
     : (isHindi ? 'भारत विकास परिषद शाखा' : 'Bharat Vikas Parishad Branch')
