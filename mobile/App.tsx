@@ -129,12 +129,12 @@ function App() {
     return (
       <View style={{ flex: 1, backgroundColor: '#0b1a30' }}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        <ImageBackground
-          source={require('./imges/rss_00.png')}
-          style={{ flex: 1 }}
-          resizeMode="cover"
-        >
-          {/* Top Bar for Skip Button */}
+        <Image 
+          source={require('./imges/rss_00.png')} 
+          style={{ position: 'absolute', width: screenWidth, height: screenHeight }} 
+          resizeMode="cover" 
+        />
+        {/* Top Bar for Skip Button */}
           <View style={[styles.topBar, { 
             position: 'absolute', 
             top: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight || 24), 
@@ -284,7 +284,6 @@ function App() {
             javaScriptEnabled={true}
             mediaPlaybackRequiresUserAction={false}
           />
-        </ImageBackground>
       </View>
     );
   };
