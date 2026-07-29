@@ -36,12 +36,10 @@ export async function POST(req: NextRequest) {
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `sig_${Date.now()}_${sanitizedName}`
 
-    // Multi-directory write strategy to survive git pulls, redeployments, and process root variations
+    // Multi-directory write strategy (static paths) to survive deployments and process root variations
     const potentialDirs = [
       join(process.cwd(), 'public', 'uploads'),
-      join(process.cwd(), '..', 'public', 'uploads'),
-      '/home/bvpindia-api/htdocs/api.bvpindia.org/public/uploads',
-      join(process.cwd(), '.next', 'standalone', 'public', 'uploads'),
+      '/home/bvpindia-api/htdocs/api.bvpindia.org/backend/public/uploads',
       '/tmp/uploads',
     ]
 
