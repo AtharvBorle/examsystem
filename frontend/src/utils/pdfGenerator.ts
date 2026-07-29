@@ -416,8 +416,8 @@ export async function generateCertificatePDF(data: {
   if (data.presidentSignature) {
     const presSig = await loadSigImg(data.presidentSignature)
     if (presSig) {
-      // Draw signature image centered above the title
-      ctx.drawImage(presSig, scale(65) - 20, scale(160), 40 * 6.734, 15 * 6.734)
+      // Draw signature image smaller and shifted slightly to the left side
+      ctx.drawImage(presSig, scale(56) - (14 * 6.734), scale(164), 28 * 6.734, 11 * 6.734)
     }
   }
   setCanvasFont('bold', 11)
@@ -434,8 +434,8 @@ export async function generateCertificatePDF(data: {
   if (data.secretarySignature) {
     const secSig = await loadSigImg(data.secretarySignature)
     if (secSig) {
-      // Draw signature image centered above the title
-      ctx.drawImage(secSig, scale(297 - 65) - 20, scale(160), 40 * 6.734, 15 * 6.734)
+      // Draw signature image smaller and shifted slightly to the left side
+      ctx.drawImage(secSig, scale(297 - 74) - (14 * 6.734), scale(164), 28 * 6.734, 11 * 6.734)
     }
   }
   setCanvasFont('bold', 11)

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const examId = searchParams.get('examId')
     const schoolId = searchParams.get('schoolId')
+    const schoolIds = searchParams.get('schoolIds')
     const classroomId = searchParams.get('classroomId')
     const groupId = searchParams.get('groupId')
     const startDate = searchParams.get('startDate') // Date range start
@@ -42,9 +43,23 @@ export async function GET(req: NextRequest) {
 
     // Filter by student properties (school, classroom, group)
     const studentWhere: any = {}
-    if (schoolId) {
+
+    // Multi-school handling
+    let isMultiSchoolMode = false
+    if (schoolIds) {
+      isMultiSchoolMode = true
+      if (schoolIds !== 'all' && schoolIds.trim() !== '') {
+        const ids = schoolIds.split(',').map(s => s.trim()).filter(Boolean)
+        if (ids.length > 0) {
+          studentWhere.schoolId = { in: ids }
+        }
+      }
+    } else if (schoolId === 'all') {
+      isMultiSchoolMode = true
+    } else if (schoolId) {
       studentWhere.schoolId = schoolId
     }
+
     if (classroomId) {
       studentWhere.classroomId = classroomId
     }
@@ -62,54 +77,128 @@ export async function GET(req: NextRequest) {
       where.student = studentWhere
     }
 
-    // Fetch attempts, sort by score desc, and limit to top 3
-    const attempts = await prisma.examAttempt.findMany({
-      where,
-      orderBy: [
-        { score: 'desc' },
-        { startedAt: 'asc' }, // Tie breaker: whoever started earlier (or finished faster)
-      ],
-      take: 3, // CRITICAL: Strict requirement - ONLY top 3 results
-      include: {
-        student: {
-          select: {
-            name: true,
-            mobile: true,
-            district: true,
-            tehsil: true,
-            school: { select: { name: true, udise: true } },
-            classroom: { select: { name: true } },
+    if (isMultiSchoolMode) {
+      // Fetch attempts across all selected schools, sorted by score desc and startedAt asc
+      const attempts = await prisma.examAttempt.findMany({
+        where,
+        orderBy: [
+          { score: 'desc' },
+          { startedAt: 'asc' },
+        ],
+        include: {
+          student: {
+            select: {
+              name: true,
+              mobile: true,
+              district: true,
+              tehsil: true,
+              schoolId: true,
+              school: { select: { id: true, name: true, udise: true } },
+              classroom: { select: { name: true } },
+            },
           },
         },
-      },
-    })
+      })
 
-    const formatted = attempts.map((attempt: any, index) => {
-      const durationMs = attempt.submittedAt
-        ? new Date(attempt.submittedAt).getTime() - new Date(attempt.startedAt).getTime()
-        : 0
-      const durationMin = Math.round(durationMs / 60000)
-
-      return {
-        rank: index + 1,
-        attemptId: attempt.id,
-        studentName: attempt.student.name,
-        studentMobile: attempt.student.mobile,
-        schoolName: attempt.student.school.name,
-        udise: attempt.student.school.udise,
-        classroomName: attempt.student.classroom.name,
-        district: attempt.student.district,
-        tehsil: attempt.student.tehsil,
-        score: attempt.score,
-        correctAnswers: attempt.correctAnswers,
-        totalQuestions: attempt.totalQuestions,
-        durationMinutes: durationMin,
-        submittedAt: attempt.submittedAt,
-        language: attempt.language,
+      // Group attempts by schoolId and take TOP 3 per school
+      const schoolGroupsMap = new Map<string, any[]>()
+      for (const attempt of attempts) {
+        const sId = attempt.student.schoolId || 'unknown'
+        if (!schoolGroupsMap.has(sId)) {
+          schoolGroupsMap.set(sId, [])
+        }
+        const list = schoolGroupsMap.get(sId)!
+        if (list.length < 3) {
+          list.push(attempt)
+        }
       }
-    })
 
-    return successResponse({ results: formatted })
+      // Sort schools by school name alphabetically
+      const sortedSchoolEntries = Array.from(schoolGroupsMap.entries()).sort((a, b) => {
+        const nameA = a[1][0]?.student?.school?.name || ''
+        const nameB = b[1][0]?.student?.school?.name || ''
+        return nameA.localeCompare(nameB)
+      })
+
+      const formatted: any[] = []
+      for (const [_, schoolAttempts] of sortedSchoolEntries) {
+        schoolAttempts.forEach((attempt: any, index: number) => {
+          const durationMs = attempt.submittedAt
+            ? new Date(attempt.submittedAt).getTime() - new Date(attempt.startedAt).getTime()
+            : 0
+          const durationMin = Math.round(durationMs / 60000)
+
+          formatted.push({
+            rank: index + 1,
+            attemptId: attempt.id,
+            studentName: attempt.student.name,
+            studentMobile: attempt.student.mobile,
+            schoolName: attempt.student.school?.name || '',
+            udise: attempt.student.school?.udise || '',
+            classroomName: attempt.student.classroom?.name || '',
+            district: attempt.student.district || '',
+            tehsil: attempt.student.tehsil || '',
+            score: attempt.score,
+            correctAnswers: attempt.correctAnswers,
+            totalQuestions: attempt.totalQuestions,
+            durationMinutes: durationMin,
+            submittedAt: attempt.submittedAt,
+            language: attempt.language,
+          })
+        })
+      }
+
+      return successResponse({ results: formatted })
+    } else {
+      // Single school or standard top 3 query
+      const attempts = await prisma.examAttempt.findMany({
+        where,
+        orderBy: [
+          { score: 'desc' },
+          { startedAt: 'asc' }, // Tie breaker
+        ],
+        take: 3, // Top 3 results
+        include: {
+          student: {
+            select: {
+              name: true,
+              mobile: true,
+              district: true,
+              tehsil: true,
+              school: { select: { name: true, udise: true } },
+              classroom: { select: { name: true } },
+            },
+          },
+        },
+      })
+
+      const formatted = attempts.map((attempt: any, index) => {
+        const durationMs = attempt.submittedAt
+          ? new Date(attempt.submittedAt).getTime() - new Date(attempt.startedAt).getTime()
+          : 0
+        const durationMin = Math.round(durationMs / 60000)
+
+        return {
+          rank: index + 1,
+          attemptId: attempt.id,
+          studentName: attempt.student.name,
+          studentMobile: attempt.student.mobile,
+          schoolName: attempt.student.school?.name || '',
+          udise: attempt.student.school?.udise || '',
+          classroomName: attempt.student.classroom?.name || '',
+          district: attempt.student.district || '',
+          tehsil: attempt.student.tehsil || '',
+          score: attempt.score,
+          correctAnswers: attempt.correctAnswers,
+          totalQuestions: attempt.totalQuestions,
+          durationMinutes: durationMin,
+          submittedAt: attempt.submittedAt,
+          language: attempt.language,
+        }
+      })
+
+      return successResponse({ results: formatted })
+    }
   } catch (error: any) {
     console.error('Fetch leaderboard results error:', error)
     return errorResponse('Internal server error', 500)

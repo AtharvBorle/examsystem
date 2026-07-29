@@ -1619,6 +1619,187 @@ function CustomSelectObject({
   )
 }
 
+function MultiSelectSchoolDropdown({
+  options,
+  selectedIds,
+  onChange,
+  lang = 'en'
+}: {
+  options: { id: string; name: string }[]
+  selectedIds: string[]
+  onChange: (ids: string[]) => void
+  lang?: Language
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery) return options
+    return options.filter(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  }, [options, searchQuery])
+
+  const isAllSelected = selectedIds.length === 0 || selectedIds.includes('all')
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      onChange([])
+    } else {
+      onChange(['all'])
+    }
+  }
+
+  const toggleOption = (id: string) => {
+    if (isAllSelected) {
+      onChange([id])
+      return
+    }
+    if (selectedIds.includes(id)) {
+      const next = selectedIds.filter(x => x !== id)
+      onChange(next.length === 0 ? ['all'] : next)
+    } else {
+      const next = [...selectedIds, id]
+      if (next.length === options.length) {
+        onChange(['all'])
+      } else {
+        onChange(next)
+      }
+    }
+  }
+
+  const displayLabel = React.useMemo(() => {
+    if (isAllSelected) return lang === 'hi' ? 'सभी विद्यालय (चयनित)' : 'All Schools Selected'
+    if (selectedIds.length === 1) {
+      const found = options.find(o => o.id === selectedIds[0])
+      return found ? found.name : (lang === 'hi' ? '1 विद्यालय चयनित' : '1 School Selected')
+    }
+    return lang === 'hi' ? `${selectedIds.length} विद्यालय चयनित` : `${selectedIds.length} Schools Selected`
+  }, [isAllSelected, selectedIds, options, lang])
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
+      <button
+        type="button"
+        className="form-input"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          padding: '0.45rem 0.6rem',
+          fontSize: '0.85rem',
+          height: '38px',
+          width: '100%',
+          textAlign: 'left',
+          backgroundColor: '#fff',
+          margin: 0
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isAllSelected ? 'normal' : '600' }}>
+          {displayLabel}
+        </span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.4rem' }}>▼</span>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            backgroundColor: '#ffffff',
+            border: '1px solid var(--border-muted)',
+            borderRadius: '6px',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+            marginTop: '4px',
+            maxHeight: '260px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <div style={{ padding: '0.4rem', borderBottom: '1px solid var(--border-muted)' }}>
+            <input
+              type="text"
+              className="form-input"
+              placeholder={lang === 'hi' ? 'विद्यालय खोजें...' : 'Search schools...'}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', height: '30px', margin: 0 }}
+            />
+          </div>
+
+          <div style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid var(--border-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={toggleSelectAll}
+              />
+              <span>{lang === 'hi' ? 'सभी विद्यालय' : 'All Schools'} ({options.length})</span>
+            </label>
+            {!isAllSelected && (
+              <button
+                type="button"
+                onClick={() => onChange(['all'])}
+                style={{ background: 'none', border: 'none', color: 'var(--primary-navy)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                {lang === 'hi' ? 'सभी चुनें' : 'Select All'}
+              </button>
+            )}
+          </div>
+
+          <div style={{ overflowY: 'auto', flex: 1, padding: '0.25rem 0' }}>
+            {filteredOptions.length === 0 ? (
+              <div style={{ padding: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                {lang === 'hi' ? 'कोई विद्यालय नहीं मिला' : 'No schools found'}
+              </div>
+            ) : (
+              filteredOptions.map(opt => {
+                const checked = isAllSelected || selectedIds.includes(opt.id)
+                return (
+                  <label
+                    key={opt.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.35rem 0.75rem',
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      margin: 0,
+                      backgroundColor: checked ? 'rgba(30, 58, 138, 0.05)' : 'transparent'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleOption(opt.id)}
+                    />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.name}</span>
+                  </label>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Admin Panel Analytics Dashboard Component
 function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Language }) {
   const t = translations[lang]
@@ -1635,6 +1816,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
   const [selectedExamId, setSelectedExamId] = useState('')
   const [groups, setGroups] = useState<any[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState('')
+  const [selectedLeaderboardSchoolIds, setSelectedLeaderboardSchoolIds] = useState<string[]>(['all'])
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -1736,7 +1918,11 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
 
       try {
         let query = `/api/admin/results?examId=${selectedExamId}`
-        if (schoolId) query += `&schoolId=${schoolId}`
+        if (selectedLeaderboardSchoolIds.length > 0 && !selectedLeaderboardSchoolIds.includes('all')) {
+          query += `&schoolIds=${selectedLeaderboardSchoolIds.join(',')}`
+        } else {
+          query += `&schoolIds=all`
+        }
         if (classroomId) query += `&classroomId=${classroomId}`
         if (selectedGroupId) query += `&groupId=${selectedGroupId}`
         if (startIso) query += `&startDate=${encodeURIComponent(startIso)}`
@@ -1756,7 +1942,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
       }
     }
     fetchLeaderboard()
-  }, [selectedExamId, schoolId, classroomId, selectedGroupId, startDate, startTime, endDate, endTime, token])
+  }, [selectedExamId, selectedLeaderboardSchoolIds, schoolId, classroomId, selectedGroupId, startDate, startTime, endDate, endTime, token])
 
   const handleSchoolChange = (val: string) => {
     setSchoolId(val)
@@ -1767,7 +1953,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     if (leaderboardResults.length === 0) return
 
     const headers = [
-      'Rank', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'Rank in School', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
       'District', 'Tehsil', 'Score', 'Correct Answers', 'Total Questions', 
       'Duration (Minutes)', 'Completion Date'
     ]
@@ -1790,7 +1976,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     
     const examObj = exams.find((e) => e.id === selectedExamId)
     const examLabel = examObj ? examObj.name.replace(/\s+/g, '_') : 'Exam'
-    link.setAttribute('download', `${examLabel}_Top3_Leaderboard.csv`)
+    link.setAttribute('download', `${examLabel}_Top3_Per_School_Leaderboard.csv`)
     
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
@@ -2184,6 +2370,18 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {lang === 'hi' ? 'विद्यालय (बहु-चयन / सभी)' : 'Schools (Select Multiple / All)'}
+              </span>
+              <MultiSelectSchoolDropdown
+                options={filterOptions?.schools || []}
+                selectedIds={selectedLeaderboardSchoolIds}
+                onChange={setSelectedLeaderboardSchoolIds}
+                lang={lang}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t.analyticsGroupOptional}</span>
               <CustomSelectObject
                 value={selectedGroupId}
@@ -2236,11 +2434,12 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginBottom: '1.25rem' }}>
-            {(selectedExamId || selectedGroupId || startDate || startTime || endDate || endTime) && (
+            {(selectedExamId || selectedGroupId || (selectedLeaderboardSchoolIds.length > 0 && !selectedLeaderboardSchoolIds.includes('all')) || startDate || startTime || endDate || endTime) && (
               <button
                 onClick={() => {
                   setSelectedExamId('')
                   setSelectedGroupId('')
+                  setSelectedLeaderboardSchoolIds(['all'])
                   setStartDate('')
                   setStartTime('')
                   setEndDate('')
