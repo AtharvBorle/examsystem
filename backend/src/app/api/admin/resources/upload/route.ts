@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
     // Multi-directory write strategy (static paths) to survive deployments and process root variations
     const potentialDirs = [
       join(process.cwd(), 'public', 'uploads'),
-      '/home/bvpindia-api/htdocs/api.bvpindia.org/backend/public/uploads',
+      '/home/bvpindia-api/htdocs/api.bvpindia.org/backend/public/uploads', // Backend public directory
+      '/home/bvpindia-api/htdocs/api.bvpindia.org/public/uploads',         // Top-level public directory (Nginx alias target)
       '/tmp/uploads',
     ]
 
