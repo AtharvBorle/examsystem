@@ -315,12 +315,13 @@ function SchoolDetailPanel({
                 <th>Mobile</th>
                 <th>Location</th>
                 <th>Registered Date</th>
+                <th>T&C & Privacy Policy</th>
               </tr>
             </thead>
             <tbody>
               {schoolDetail.students.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                     No students registered under this school.
                   </td>
                 </tr>
@@ -335,6 +336,11 @@ function SchoolDetailPanel({
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>
                       {new Date(std.registeredAt).toLocaleDateString()}
+                    </td>
+                    <td>
+                      <span style={{ backgroundColor: '#e6f4ea', color: '#137333', border: '1px solid #ceead6', fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        ✓ Agreed
+                      </span>
                     </td>
                   </tr>
                 ))

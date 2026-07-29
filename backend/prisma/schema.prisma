@@ -204,9 +204,11 @@ model Student {
   district    String
   tehsil      String
   language    String   @default("en")
-  approved    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  deletedAt   DateTime?
+  approved        Boolean   @default(true)
+  acceptedTerms   Boolean   @default(true)
+  acceptedTermsAt DateTime? @default(now())
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
   
   attempts    ExamAttempt[]
 }

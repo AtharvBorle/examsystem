@@ -83,6 +83,8 @@ export async function GET(req: NextRequest) {
       district: std.district,
       tehsil: std.tehsil,
       registeredAt: std.createdAt,
+      acceptedTerms: std.acceptedTerms ?? true,
+      acceptedTermsAt: std.acceptedTermsAt || std.createdAt,
     }))
 
     const formattedAttempts = attempts.map((att) => ({

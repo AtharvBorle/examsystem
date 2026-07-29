@@ -286,6 +286,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   const [mobile, setMobile] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   // OTP state variables
   const [otp, setOtp] = useState('')
@@ -499,6 +500,11 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!acceptedTerms) {
+      setError(lang === 'hi' ? 'कृपया जारी रखने के लिए नियम व शर्तें और गोपनीयता नीति स्वीकार करें।' : 'Please accept the Terms & Conditions and Privacy Policy to proceed.')
+      return
+    }
 
     if (!selectedSchool) {
       setError(lang === 'hi' ? 'कृपया ड्रॉपडाउन सूची से एक स्कूल चुनें।' : 'Please select a school from the dropdown list.')
@@ -948,17 +954,65 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
 
 
 
+            {/* Terms & Privacy Policy Agreement Checkbox */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              marginTop: '1.25rem',
+              marginBottom: '0.5rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(197, 160, 89, 0.4)',
+              borderRadius: '8px',
+              padding: '10px 12px'
+            }}>
+              <input
+                type="checkbox"
+                id="acceptTerms1"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: '#0b2240' }}
+                required
+              />
+              <label htmlFor="acceptTerms1" style={{ fontSize: '0.825rem', color: '#0b2240', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500 }}>
+                {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
+                <a
+                  href="/oes/T&C"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState({}, '', '/oes/T&C')
+                    window.dispatchEvent(new PopStateEvent('popstate'))
+                  }}
+                  style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  {lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'}
+                </a>
+                {lang === 'hi' ? ' और ' : ' and '}
+                <a
+                  href="/oes/privacypolicy"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState({}, '', '/oes/privacypolicy')
+                    window.dispatchEvent(new PopStateEvent('popstate'))
+                  }}
+                  style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  {lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'}
+                </a>
+              </label>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
               className="gradient-gold-btn"
               style={{
                 width: '100%',
-                marginTop: '1.25rem',
-                opacity: isOtpVerified ? 1 : 0.5,
-                cursor: isOtpVerified ? 'pointer' : 'not-allowed'
+                marginTop: '0.75rem',
+                opacity: (isOtpVerified && acceptedTerms) ? 1 : 0.5,
+                cursor: (isOtpVerified && acceptedTerms) ? 'pointer' : 'not-allowed'
               }}
-              disabled={submitting || !isOtpVerified}
+              disabled={submitting || !isOtpVerified || !acceptedTerms}
             >
               <svg viewBox="0 0 100 100" style={{ width: '22px', height: '22px', marginRight: '10px', fill: '#3d2703' }}>
                 <path d="M50 20 C40 35, 45 65, 50 80 C55 65, 60 35, 50 20 Z" />
@@ -1298,19 +1352,67 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
 
 
 
+          {/* Terms & Privacy Policy Agreement Checkbox */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            marginTop: '1.25rem',
+            marginBottom: '0.5rem',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            padding: '10px 12px'
+          }}>
+            <input
+              type="checkbox"
+              id="acceptTerms2"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: '#0b2240' }}
+              required
+            />
+            <label htmlFor="acceptTerms2" style={{ fontSize: '0.825rem', color: '#334155', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500 }}>
+              {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
+              <a
+                href="/oes/T&C"
+                onClick={(e) => {
+                  e.preventDefault()
+                  window.history.pushState({}, '', '/oes/T&C')
+                  window.dispatchEvent(new PopStateEvent('popstate'))
+                }}
+                style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+              >
+                {lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'}
+              </a>
+              {lang === 'hi' ? ' और ' : ' and '}
+              <a
+                href="/oes/privacypolicy"
+                onClick={(e) => {
+                  e.preventDefault()
+                  window.history.pushState({}, '', '/oes/privacypolicy')
+                  window.dispatchEvent(new PopStateEvent('popstate'))
+                }}
+                style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+              >
+                {lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'}
+              </a>
+            </label>
+          </div>
+
           <button
             type="submit"
             className="btn btn-primary w-full"
             style={{
               width: '100%',
-              marginTop: '1rem',
-              opacity: isOtpVerified ? 1 : 0.5,
-              cursor: isOtpVerified ? 'pointer' : 'not-allowed',
-              backgroundColor: isOtpVerified ? 'var(--primary-navy)' : '#cccccc',
-              borderColor: isOtpVerified ? 'var(--primary-navy)' : '#cccccc',
-              color: isOtpVerified ? '#ffffff' : '#666666'
+              marginTop: '0.75rem',
+              opacity: (isOtpVerified && acceptedTerms) ? 1 : 0.5,
+              cursor: (isOtpVerified && acceptedTerms) ? 'pointer' : 'not-allowed',
+              backgroundColor: (isOtpVerified && acceptedTerms) ? 'var(--primary-navy)' : '#cccccc',
+              borderColor: (isOtpVerified && acceptedTerms) ? 'var(--primary-navy)' : '#cccccc',
+              color: (isOtpVerified && acceptedTerms) ? '#ffffff' : '#666666'
             }}
-            disabled={submitting || !isOtpVerified}
+            disabled={submitting || !isOtpVerified || !acceptedTerms}
           >
             {submitting ? t.registering : t.register}
           </button>

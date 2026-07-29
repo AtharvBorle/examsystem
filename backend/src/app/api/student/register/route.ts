@@ -135,6 +135,8 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         language: language || 'en',
         approved: !requiresApproval,
+        acceptedTerms: true,
+        acceptedTermsAt: new Date(),
       },
       include: {
         school: {
