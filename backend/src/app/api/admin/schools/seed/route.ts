@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     let seededCount = 0
     let skippedCount = 0
+    let otherAdminCount = 0
     const errors: string[] = []
 
     let nameColIndex = 0
@@ -50,9 +51,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Detect if row 0 is a header by checking if it looks like labels.
-    // A true header has keyword-like cells (e.g. "School Name", "UDISE") but NO numeric UDISE value.
-    // A data row will have a numeric UDISE code (5+ digits), so it should NOT be skipped.
     const isHeaderRow = (row: string[]): boolean => {
       const hasKeyword = row.some(cell => {
         const val = cell.toLowerCase()
@@ -94,16 +92,24 @@ export async function POST(req: NextRequest) {
         })
 
         if (existingSchool) {
-          // Update details without stealing adminId from another admin
+          if (existingSchool.adminId && existingSchool.adminId !== user.userId) {
+            // Managed by another Admin!
+            otherAdminCount++
+            skippedCount++
+            errors.push(`Row ${i + 1}: School "${schoolName}" (UDISE: ${udise}) is already managed by another Administrator and was skipped.`)
+            continue
+          }
+
+          // Update details for school owned by this admin
           await prisma.school.update({
             where: { id: existingSchool.id },
             data: {
               name: schoolName,
               tehsil,
               district,
-              adminId: existingSchool.adminId || user.userId
             }
           })
+          seededCount++
         } else {
           await prisma.school.create({
             data: {
@@ -115,20 +121,25 @@ export async function POST(req: NextRequest) {
               adminId: user.userId
             }
           })
+          seededCount++
         }
-        
-        seededCount++
       } catch (err: any) {
         errors.push(`Row ${i + 1}: Failed to insert. ${err.message}`)
         skippedCount++
       }
     }
 
+    let finalMessage = `Successfully processed CSV. Seeded/updated ${seededCount} school(s).`
+    if (otherAdminCount > 0) {
+      finalMessage += ` Note: ${otherAdminCount} school(s) were skipped because they are already managed by another Administrator.`
+    }
+
     return successResponse({
-      message: `Successfully seeded ${seededCount} schools.`,
+      message: finalMessage,
       seededCount,
+      otherAdminCount,
       skippedCount,
-      errors: errors.slice(0, 10), // Limit error response size
+      errors: errors.slice(0, 25),
     })
   } catch (error: any) {
     console.error('Seed schools error:', error)
