@@ -18,6 +18,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const { login } = useAuth()
   const [exams, setExams] = useState<any[]>([])
   const [resources, setResources] = useState<any[]>([])
+  const [loadingResources, setLoadingResources] = useState(true)
+  const [iframeLoading, setIframeLoading] = useState(true)
   const [activeSession, setActiveSession] = useState<any | null>(null)
   const [completedAttempt, setCompletedAttempt] = useState<any | null>(null)
   const [error, setError] = useState('')
@@ -731,7 +733,10 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       }
     }
 
-    const baseData = completedAttempt || {
+    const baseData = completedAttempt ? {
+      ...completedAttempt,
+      completedAt: completedAttempt.exam?.createdAt || completedAttempt.completedAt || completedAttempt.submittedAt || new Date()
+    } : {
       studentName: user.name || 'Student',
       schoolName: user.school?.name || 'School',
       classroomName: user.classroom?.name || 'Classroom',
@@ -911,9 +916,39 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
         {/* Modal Body / iframe */}
         <div style={{ flex: 1, backgroundColor: '#ffffff', position: 'relative' }}>
+          {iframeLoading && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#0b2240',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              color: '#ffffff'
+            }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                border: '4px solid rgba(255, 255, 255, 0.2)',
+                borderTopColor: '#f2bb50',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '1rem'
+              }} />
+              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#f5d782', fontFamily: 'var(--font-serif, serif)' }}>
+                {lang === 'hi' ? 'संसाधन लोड हो रहा है... कृपया प्रतीक्षा करें' : 'Loading Resource... Please wait'}
+              </p>
+            </div>
+          )}
           <iframe 
             src={iframeSrc} 
             title="Resource Viewer"
+            onLoad={() => setIframeLoading(false)}
             style={{
               width: '100%',
               height: '100%',
@@ -1510,7 +1545,29 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             </div>
 
             <div style={{ maxHeight: '650px', overflowY: 'auto', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {resources.length === 0 ? (
+              {loadingResources ? (
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid rgba(197, 160, 89, 0.2)',
+                  borderRadius: '16px',
+                  padding: '3rem',
+                  textAlign: 'center',
+                  color: '#0b2240'
+                }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    border: '4px solid #e2e8f0',
+                    borderTopColor: '#0b2240',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 1rem auto'
+                  }} />
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem', color: '#0b2240' }}>
+                    {lang === 'hi' ? 'अध्ययन सामग्री लोड हो रही है... कृपया प्रतीक्षा करें' : 'Loading Study Resources... Please wait'}
+                  </p>
+                </div>
+              ) : resources.length === 0 ? (
                 <div style={{
                   backgroundColor: '#ffffff',
                   border: '1px solid rgba(197, 160, 89, 0.2)',
@@ -1965,7 +2022,22 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
               scrollbarWidth: 'none',
               msOverflowStyle: 'none'
             }}>
-              {resources.length === 0 ? (
+              {loadingResources ? (
+                <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#0b2240', width: '100%', flexShrink: 0 }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    border: '3px solid #e2e8f0',
+                    borderTopColor: '#0b2240',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 0.75rem auto'
+                  }} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                    {lang === 'hi' ? 'अध्ययन सामग्री लोड हो रही है...' : 'Loading resources...'}
+                  </span>
+                </div>
+              ) : resources.length === 0 ? (
                 <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
                   {t.noResources}
                 </div>

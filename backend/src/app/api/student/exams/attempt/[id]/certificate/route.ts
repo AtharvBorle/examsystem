@@ -160,7 +160,7 @@ export async function GET(
         schoolName,
         classroomName,
         examName: (targetLang === 'hi' && attempt.exam.nameHindi) ? attempt.exam.nameHindi : attempt.exam.name,
-        completedAt: attempt.submittedAt,
+        completedAt: attempt.exam.createdAt || attempt.submittedAt,
         language: targetLang,
         district: translateGeography(district, targetLang),
         tehsil: translateGeography(tehsil, targetLang),

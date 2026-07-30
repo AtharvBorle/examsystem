@@ -6968,8 +6968,19 @@ function AdminResourcesTab({ token, lang }: { token: string | null; lang: Langua
         </h3>
         
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <span className="spinner-small"></span>
+          <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--primary-navy)' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              border: '4px solid #cbd5e1',
+              borderTopColor: 'var(--primary-navy)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem auto'
+            }} />
+            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>
+              {lang === 'hi' ? 'संसाधन लोड हो रहे हैं... कृपया प्रतीक्षा करें' : 'Loading Resources... Please wait'}
+            </p>
           </div>
         ) : resources.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
