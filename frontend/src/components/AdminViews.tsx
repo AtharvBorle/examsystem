@@ -8,8 +8,35 @@ import {
   LogOut, Shield, Award, Users, School as SchoolIcon, 
   CheckCircle, Clock, Award as TrophyIcon, 
   ChevronRight, ChevronLeft, Search,
-  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe
+  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe, Download
 } from 'lucide-react'
+
+// Global CSV Exporter
+export const downloadCSV = (filename: string, headers: string[], rows: any[][]) => {
+  const escapeField = (field: any) => {
+    if (field === null || field === undefined) return ''
+    const str = String(field).replace(/"/g, '""')
+    if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+      return `"${str}"`
+    }
+    return str
+  }
+
+  const csvContent = [
+    headers.map(escapeField).join(','),
+    ...rows.map((row) => row.map(escapeField).join(','))
+  ].join('\n')
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.setAttribute('href', url)
+  link.setAttribute('download', filename)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
 // Natural sort comparator for items with a 'name' field (e.g. Class 1, Class 2, ..., Class 10)
 const naturalSortByName = (a: any, b: any) => {
@@ -3109,6 +3136,7 @@ function SchoolSelectorField({
 function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language }) {
   const t = translations[lang]
   const [csvContent, setCsvContent] = useState('')
+  const [seedLanguage, setSeedLanguage] = useState<'en' | 'hi'>('en')
   const [schools, setSchools] = useState<any[]>([])
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -3124,6 +3152,20 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
   const [editDistrict, setEditDistrict] = useState('')
   const [allClassrooms, setAllClassrooms] = useState<any[]>([])
   const [editClassroomIds, setEditClassroomIds] = useState<string[]>([])
+  const [conflictingSchools, setConflictingSchools] = useState<any[]>([])
+
+  const handleDownloadConflictingSchools = () => {
+    if (!conflictingSchools || conflictingSchools.length === 0) return
+    const headers = ['UDISE Number', 'School Name', 'Tehsil', 'District', 'Status']
+    const rows = conflictingSchools.map((s) => [
+      s.udise,
+      s.name,
+      s.tehsil || '',
+      s.district || '',
+      s.status || 'Managed by another organization',
+    ])
+    downloadCSV('existing_managed_schools.csv', headers, rows)
+  }
 
   // Search and Filter states
   const [searchQuery, setSearchQuery] = useState('')
@@ -3262,6 +3304,7 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
     e.preventDefault()
     setError('')
     setSuccess('')
+    setConflictingSchools([])
 
     if (!csvContent.trim()) {
       setError('Please enter CSV data.')
@@ -3277,11 +3320,16 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ csvData: csvContent, language: lang }),
+        body: JSON.stringify({ csvData: csvContent, language: seedLanguage }),
       })
       const data = await res.json()
       if (data.success) {
         setSuccess(data.message)
+        if (data.conflictingSchools && data.conflictingSchools.length > 0) {
+          setConflictingSchools(data.conflictingSchools)
+        } else {
+          setConflictingSchools([])
+        }
         setCsvContent('')
         fetchSchools()
       } else {
@@ -3394,10 +3442,55 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
           {t.schoolsCsvUploadDesc}
         </p>
 
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+        {error && <div className="alert alert-danger" style={{ whiteSpace: 'pre-wrap' }}>{error}</div>}
+        {success && (
+          <div className="alert alert-success" style={{ marginBottom: '1.25rem', padding: '1rem', borderRadius: '8px' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.5 }}>{success}</div>
+            {conflictingSchools.length > 0 && (
+              <div style={{ marginTop: '0.85rem' }}>
+                <button
+                  type="button"
+                  onClick={handleDownloadConflictingSchools}
+                  className="btn"
+                  style={{
+                    backgroundColor: '#0b2240',
+                    color: '#ffffff',
+                    fontSize: '0.825rem',
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                    border: '1px solid #c59f2d'
+                  }}
+                >
+                  <Download size={16} style={{ color: '#f2bb50' }} />
+                  Download Existing Schools CSV ({conflictingSchools.length})
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSeed}>
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem', display: 'block', color: 'var(--primary-navy)' }}>
+              Select Master Data Language / भाषा चुनें:
+            </label>
+            <select
+              className="form-input"
+              value={seedLanguage}
+              onChange={(e) => setSeedLanguage(e.target.value as 'en' | 'hi')}
+              style={{ fontWeight: 600, cursor: 'pointer', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', width: '100%' }}
+            >
+              <option value="en">English Master Data (अंग्रेजी)</option>
+              <option value="hi">Hindi Master Data (हिंदी)</option>
+            </select>
+          </div>
+
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>{t.schoolsCsvData}</span>

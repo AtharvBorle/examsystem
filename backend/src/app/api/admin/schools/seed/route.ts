@@ -11,14 +11,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { csvData } = body
+    const { csvData, language: reqLang } = body
     if (!csvData) {
       return errorResponse('csvData payload is required', 400)
     }
 
-    // Auto-detect language: if the CSV contains Devanagari/Hindi characters, seed as Hindi ('hi'), otherwise English ('en')
-    const containsHindi = /[\u0900-\u097F]/.test(csvData)
-    const targetLang = containsHindi ? 'hi' : 'en'
+    // Explicit language selection from admin dropdown (or fallback auto-detect if omitted)
+    let targetLang = reqLang === 'hi' ? 'hi' : reqLang === 'en' ? 'en' : null
+    if (!targetLang) {
+      const containsHindi = /[\u0900-\u097F]/.test(csvData)
+      targetLang = containsHindi ? 'hi' : 'en'
+    }
 
     const rows = parseCSV(csvData)
     if (rows.length === 0) {
@@ -29,6 +32,7 @@ export async function POST(req: NextRequest) {
     let skippedCount = 0
     let otherAdminCount = 0
     const errors: string[] = []
+    const conflictingSchools: any[] = []
 
     let nameColIndex = 0
     let udiseColIndex = 1
@@ -81,8 +85,29 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Check if school already exists with this UDISE and language
-        const existingSchool = await prisma.school.findUnique({
+        // 1. Check if ANY school record with this UDISE exists in ANY language across the entire DB
+        const anyExistingSchool = await prisma.school.findFirst({
+          where: { udise },
+          select: { id: true, adminId: true, tehsil: true, district: true }
+        })
+
+        // RULE C: If this UDISE is already owned by ANOTHER Admin in any language, REJECT / SKIP!
+        if (anyExistingSchool && anyExistingSchool.adminId !== user.userId) {
+          otherAdminCount++
+          skippedCount++
+          conflictingSchools.push({
+            udise,
+            name: schoolName,
+            tehsil: tehsil || anyExistingSchool.tehsil || '',
+            district: district || anyExistingSchool.district || '',
+            status: 'Managed by another organization'
+          })
+          errors.push(`Row ${i + 1}: UDISE "${udise}" (${schoolName}) is already managed by another organization.`)
+          continue
+        }
+
+        // RULE B: Same Admin can add multiple language records under their UDISE
+        const targetLangSchool = await prisma.school.findUnique({
           where: {
             udise_language: {
               udise,
@@ -91,32 +116,25 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        if (existingSchool) {
-          if (existingSchool.adminId && existingSchool.adminId !== user.userId) {
-            // Managed by another Admin!
-            otherAdminCount++
-            skippedCount++
-            errors.push(`Row ${i + 1}: School "${schoolName}" (UDISE: ${udise}) is already managed by another Administrator and was skipped.`)
-            continue
-          }
-
-          // Update details for school owned by this admin
+        if (targetLangSchool) {
+          // Record for this language already exists for this same Admin -> Update details
           await prisma.school.update({
-            where: { id: existingSchool.id },
+            where: { id: targetLangSchool.id },
             data: {
               name: schoolName,
-              tehsil,
-              district,
+              tehsil: tehsil || targetLangSchool.tehsil,
+              district: district || targetLangSchool.district,
             }
           })
           seededCount++
         } else {
+          // Record for this language does not exist yet under this same Admin -> Create it!
           await prisma.school.create({
             data: {
               name: schoolName,
               udise,
-              tehsil,
-              district,
+              tehsil: tehsil || (anyExistingSchool ? anyExistingSchool.tehsil : null),
+              district: district || (anyExistingSchool ? anyExistingSchool.district : null),
               language: targetLang,
               adminId: user.userId
             }
@@ -129,9 +147,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let finalMessage = `Successfully processed CSV. Seeded/updated ${seededCount} school(s).`
+    let finalMessage = `Successfully processed CSV. Seeded ${seededCount} school(s).`
     if (otherAdminCount > 0) {
-      finalMessage += ` Note: ${otherAdminCount} school(s) were skipped because they are already managed by another Administrator.`
+      finalMessage = `Successfully processed CSV, you are adding schools that are already managed by another organization, for existing schools you can download the CSV here:`
     }
 
     return successResponse({
@@ -139,6 +157,7 @@ export async function POST(req: NextRequest) {
       seededCount,
       otherAdminCount,
       skippedCount,
+      conflictingSchools,
       errors: errors.slice(0, 25),
     })
   } catch (error: any) {
