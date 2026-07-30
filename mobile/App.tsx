@@ -207,24 +207,19 @@ function App() {
             pointerEvents: 'none'
           }}>
             <View style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.88)',
-              paddingHorizontal: 18,
-              paddingVertical: 9,
-              borderRadius: 20,
-              borderWidth: 1.5,
-              borderColor: '#e67300',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 5,
-              elevation: 6
+              backgroundColor: 'transparent',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
             }}>
               <Text style={{
-                fontSize: 14,
+                fontSize: 14.5,
                 fontWeight: 'bold',
-                color: '#f5d782',
+                color: '#ffffff',
                 textAlign: 'center',
-                letterSpacing: 0.4
+                letterSpacing: 0.4,
+                textShadowColor: 'rgba(0, 0, 0, 0.95)',
+                textShadowOffset: { width: 0, height: 1.5 },
+                textShadowRadius: 4
               }}>
                 🇮🇳 Please stand in honour of the National Song.
               </Text>
