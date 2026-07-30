@@ -3,8 +3,204 @@ import appIcon from '../assets/app_icon.jpeg'
 
 import { translations, Language } from '../utils/localization'
 import { useAuth } from '../context/AuthContext'
-import { Search, Phone, Lock, User, School, GraduationCap, MapPin, Building2, Eye, EyeOff } from 'lucide-react'
+import { Search, Phone, Lock, User, School, GraduationCap, MapPin, Building2, Eye, EyeOff, Info, FileText, Shield, HelpCircle, BookOpen, X, ChevronRight } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
+
+/* ==========================================
+   COMPONENT: CIRCULAR INFO BUTTON & MODAL
+   ========================================== */
+export function InfoButton({ lang }: { lang: Language }) {
+  const [open, setOpen] = useState(false)
+
+  const infoPages = [
+    {
+      title: lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions',
+      desc: lang === 'hi' ? 'पोर्टल उपयोग एवं नियम' : 'Rules & portal usage guidelines',
+      path: '/oes/T&C',
+      icon: <FileText size={20} style={{ color: '#c59f2d' }} />
+    },
+    {
+      title: lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy',
+      desc: lang === 'hi' ? 'डेटा सुरक्षा एवं निजता' : 'Data protection & privacy rights',
+      path: '/oes/privacypolicy',
+      icon: <Shield size={20} style={{ color: '#2b6cb0' }} />
+    },
+    {
+      title: lang === 'hi' ? 'परीक्षा प्रक्रिया' : 'Examination Process',
+      desc: lang === 'hi' ? 'परीक्षा नियम, टाइमर एवं रंग कोड' : 'Exam rules, timer & status guide',
+      path: '/oes/examprocess',
+      icon: <BookOpen size={20} style={{ color: '#2f855a' }} />
+    },
+    {
+      title: lang === 'hi' ? 'छात्र मार्गदर्शिका एवं सहायता' : 'Student Guide & Support',
+      desc: lang === 'hi' ? 'पंजीकरण, खाता हटाने की नीति एवं संपर्क' : 'Registration, deletion policy & contact',
+      path: '/oes/help&suppport',
+      icon: <GraduationCap size={20} style={{ color: '#d69e2e' }} />
+    },
+    {
+      title: lang === 'hi' ? 'सामान्य प्रश्न (FAQs)' : 'Frequently Asked Questions',
+      desc: lang === 'hi' ? 'अक्सर पूछे जाने वाले प्रश्न और उनके उत्तर' : 'Quick answers to common questions',
+      path: '/oes/faq',
+      icon: <HelpCircle size={20} style={{ color: '#805ad5' }} />
+    }
+  ]
+
+  const handleNavigate = (path: string) => {
+    setOpen(false)
+    window.history.pushState({}, '', path)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
+
+  return (
+    <>
+      {/* Circular Info Button */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title={lang === 'hi' ? 'जानकारी और सहायता' : 'Information & Support'}
+        style={{
+          width: '38px',
+          height: '38px',
+          borderRadius: '50%',
+          backgroundColor: '#0b2240',
+          color: '#f5d782',
+          border: '1.5px solid #f2bb50',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(11, 34, 64, 0.25)',
+          transition: 'all 0.2s ease',
+          outline: 'none'
+        }}
+      >
+        <Info size={20} />
+      </button>
+
+      {/* Info Pages Links Modal */}
+      {open && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(11, 34, 64, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={() => setOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '480px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              border: '2px solid #f2bb50',
+              padding: '24px',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ backgroundColor: '#0b2240', color: '#f5d782', borderRadius: '10px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Info size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0b2240', fontWeight: 800, fontFamily: 'var(--font-serif, Georgia, serif)' }}>
+                    {lang === 'hi' ? 'जानकारी और सहायता' : 'Information & Support'}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#718096' }}>
+                    {lang === 'hi' ? 'आधिकारिक दस्तावेज एवं दिशानिर्देश' : 'Official Portal Resources & Policies'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#475569'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Links List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {infoPages.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleNavigate(item.path)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9'
+                    e.currentTarget.style.borderColor = '#cbd5e1'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc'
+                    e.currentTarget.style.borderColor = '#e2e8f0'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {item.icon}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0b2240' }}>
+                        {item.title}
+                      </span>
+                      <span style={{ fontSize: '0.775rem', color: '#64748b' }}>
+                        {item.desc}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} style={{ color: '#94a3b8' }} />
+                </div>
+              ))}
+            </div>
+
+            {/* Footer Notice */}
+            <div style={{ marginTop: '20px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+              Bharat Vikas Parishad • NeoPace Infotech LLP
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
 
 /* ==========================================
    VIEW: LOGIN
@@ -57,8 +253,9 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
   if (isNew) {
     return (
       <div className="mobile-login-container new-bg">
-        {/* Top bar with LanguageSelector */}
-        <div className="mobile-login-topbar" style={{ justifyContent: 'flex-end' }}>
+        {/* Top bar with InfoButton and LanguageSelector */}
+        <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <InfoButton lang={lang} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
           </div>
@@ -149,9 +346,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
 
   return (
     <div className={`mobile-login-container ${isNew ? 'new-bg' : ''}`}>
-      {/* Top bar with mobile app icon as logo, and LanguageSelector */}
-      <div className="mobile-login-topbar">
-        <img src={appIcon} className="mobile-logo-img" alt="Logo" />
+      {/* Top bar with InfoButton, mobile app icon as logo, and LanguageSelector */}
+      <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <InfoButton lang={lang} />
+          <img src={appIcon} className="mobile-logo-img" alt="Logo" />
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
@@ -594,8 +794,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   if (isNew) {
     return (
       <div className="mobile-register-container">
-        {/* Top bar with LanguageSelector */}
-        <div className="mobile-register-topbar">
+        {/* Top bar with InfoButton and LanguageSelector */}
+        <div className="mobile-register-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <InfoButton lang={lang} />
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
 
@@ -1043,7 +1244,10 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   return (
     <div className="auth-container">
       <div className="auth-card" style={{ maxWidth: '500px', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: '15px', right: '15px' }}>
+        <div style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10 }}>
+          <InfoButton lang={lang} />
+        </div>
+        <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 10 }}>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
         <div className="auth-header">
@@ -1486,8 +1690,9 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
   if (isNew) {
     return (
       <div className="mobile-login-container new-bg">
-        {/* Top bar with LanguageSelector */}
-        <div className="mobile-login-topbar" style={{ justifyContent: 'flex-end' }}>
+        {/* Top bar with InfoButton and LanguageSelector */}
+        <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <InfoButton lang={lang} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
           </div>
@@ -1586,8 +1791,9 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
 
   return (
     <div className="mobile-login-container">
-      {/* Top bar with LanguageSelector */}
-      <div className="mobile-login-topbar" style={{ justifyContent: 'flex-end' }}>
+      {/* Top bar with InfoButton and LanguageSelector */}
+      <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <InfoButton lang={lang} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>

@@ -236,14 +236,6 @@ function MainLayout() {
         } else {
           setCurrentView('DASHBOARD')
         }
-      } else {
-        if (user) {
-          setCurrentView('DASHBOARD')
-        } else {
-          if (currentView !== 'REGISTER' && currentView !== 'TERMS' && currentView !== 'PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ') {
-            setCurrentView('LOGIN')
-          }
-        }
       }
     }
 
@@ -253,7 +245,7 @@ function MainLayout() {
     return () => {
       window.removeEventListener('popstate', handleLocationChange)
     }
-  }, [user, currentView])
+  }, [user])
 
   useEffect(() => {
     let targetPath = '/oes/'
@@ -271,8 +263,16 @@ function MainLayout() {
       targetPath = '/oes/faq'
     }
 
-    if (window.location.pathname !== targetPath && decodeURIComponent(window.location.pathname) !== targetPath) {
-      window.history.replaceState({}, '', targetPath)
+    const currentPath = decodeURIComponent(window.location.pathname)
+    const currentPathClean = currentPath.replace(/\/+$/, '')
+    const targetPathClean = targetPath.replace(/\/+$/, '')
+
+    if (currentPathClean !== targetPathClean) {
+      try {
+        window.history.replaceState({}, '', targetPath)
+      } catch (err) {
+        // Ignore DOMException if rate limit is hit
+      }
     }
   }, [currentView])
 
@@ -303,6 +303,8 @@ function MainLayout() {
         <>
           {currentView === 'FAQ' && (
             <FaqView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
               onBack={() => {
                 if (window.history.length > 1) {
                   window.history.back()
@@ -315,6 +317,8 @@ function MainLayout() {
           )}
           {currentView === 'HELP_SUPPORT' && (
             <StudentGuideHelpView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
               onBack={() => {
                 if (window.history.length > 1) {
                   window.history.back()
@@ -327,6 +331,8 @@ function MainLayout() {
           )}
           {currentView === 'EXAM_PROCESS' && (
             <ExamProcessView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
               onBack={() => {
                 if (window.history.length > 1) {
                   window.history.back()
@@ -339,6 +345,8 @@ function MainLayout() {
           )}
           {currentView === 'TERMS' && (
             <TermsAndConditionsView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
               onBack={() => {
                 if (window.history.length > 1) {
                   window.history.back()
@@ -351,6 +359,8 @@ function MainLayout() {
           )}
           {currentView === 'PRIVACY' && (
             <PrivacyPolicyView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
               onBack={() => {
                 if (window.history.length > 1) {
                   window.history.back()

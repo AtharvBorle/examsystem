@@ -1,11 +1,27 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ArrowLeft, ShieldCheck, FileText, Building2, ExternalLink } from 'lucide-react'
+import { LanguageSelector } from './LanguageSelector'
+import { Language } from '../utils/localization'
 
 interface TermsAndConditionsViewProps {
   onBack?: () => void
+  lang?: Language
+  onChangeLang?: (lang: Language) => void
 }
 
-export function TermsAndConditionsView({ onBack }: TermsAndConditionsViewProps) {
+export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: TermsAndConditionsViewProps) {
+  const [localLang, setLocalLang] = useState<Language>(lang)
+
+  useEffect(() => {
+    setLocalLang(lang)
+  }, [lang])
+
+  const currentLang = localLang
+  const handleLangChange = (newLang: Language) => {
+    setLocalLang(newLang)
+    if (onChangeLang) onChangeLang(newLang)
+  }
+
   const handleBack = () => {
     if (onBack) {
       onBack()
@@ -62,22 +78,27 @@ export function TermsAndConditionsView({ onBack }: TermsAndConditionsViewProps) 
               onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
             >
               <ArrowLeft size={18} />
-              <span>Back</span>
+              <span>{currentLang === 'hi' ? 'वापस' : 'Back'}</span>
             </button>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-serif, Georgia, serif)', color: '#f5d782' }}>
-                Bharat Vikas Parishad
+                {currentLang === 'hi' ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
               </span>
               <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
-                Online Exam System Portal & Mobile Application
+                {currentLang === 'hi' ? 'ऑनलाइन परीक्षा प्रणाली एवं मोबाइल ऐप' : 'Online Exam System Portal & Mobile Application'}
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.9 }}>
-            <ShieldCheck size={22} style={{ color: '#f2bb50' }} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f5d782' }}>Official Legal Policy</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.9 }}>
+              <ShieldCheck size={22} style={{ color: '#f2bb50' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f5d782' }}>
+                {currentLang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'}
+              </span>
+            </div>
+            <LanguageSelector lang={currentLang} onChangeLang={handleLangChange} isDark={true} />
           </div>
         </div>
       </header>
