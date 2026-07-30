@@ -1833,4 +1833,170 @@ input::-webkit-credentials-auto-fill-button {
   gap: 6px;
 }
 
+/* ==========================================
+   RESPONSIVE INFO PAGES STYLING (T&C, PRIVACY, EXAM PROCESS, GUIDE, FAQ)
+   ========================================== */
+.info-page-header {
+  background-color: #0b2240;
+  border-bottom: 1px solid rgba(242, 187, 80, 0.25);
+  padding: 0.85rem 1.25rem;
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(11, 34, 64, 0.15);
+}
+
+.info-page-header-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.info-page-back-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  outline: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.info-page-back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.info-page-org-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.info-page-org-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font-serif, Georgia, serif);
+  color: #f5d782;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-page-org-sub {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.info-page-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0.95;
+}
+
+.info-page-badge-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f5d782;
+  white-space: nowrap;
+}
+
+.info-page-main {
+  flex: 1;
+  max-width: 1000px;
+  width: 100%;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.info-page-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+  padding: 2.25rem 2.5rem;
+  box-sizing: border-box;
+}
+
+.info-page-doc-header {
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.info-page-h1 {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0b2240;
+  font-family: var(--font-serif, Georgia, serif);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+/* Mobile Responsiveness Rules */
+@media (max-width: 768px) {
+  .info-page-header {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .info-page-org-sub {
+    display: none;
+  }
+
+  .info-page-badge {
+    display: none;
+  }
+
+  .info-page-org-name {
+    font-size: 0.95rem;
+  }
+
+  .info-page-main {
+    margin: 1rem auto;
+    padding: 0 0.75rem;
+  }
+
+  .info-page-card {
+    padding: 1.25rem 1rem;
+    border-radius: 12px;
+  }
+
+  .info-page-h1 {
+    font-size: 1.35rem;
+  }
+}
+
+
 

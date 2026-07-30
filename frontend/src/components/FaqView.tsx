@@ -599,61 +599,31 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
       flexDirection: 'column'
     }}>
       {/* Header Bar */}
-      <header style={{
-        backgroundColor: '#0b2240',
-        color: '#ffffff',
-        padding: '1.25rem 2rem',
-        boxShadow: '0 4px 12px rgba(11, 34, 64, 0.15)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          maxWidth: '1000px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <header className="info-page-header">
+        <div className="info-page-header-container">
+          <div className="info-page-header-left">
             <button
               onClick={handleBack}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                padding: '0.5rem 1rem',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                outline: 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
+              className="info-page-back-btn"
             >
               <ArrowLeft size={18} />
               <span>{currentLang === 'hi' ? 'वापस' : 'Back'}</span>
             </button>
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-serif, Georgia, serif)', color: '#f5d782' }}>
+            <div className="info-page-org-title">
+              <span className="info-page-org-name">
                 {currentLang === 'hi' ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+              <span className="info-page-org-sub">
                 {currentLang === 'hi' ? 'ऑनलाइन परीक्षा प्रणाली एवं मोबाइल ऐप' : 'Online Exam System Portal & Mobile Application'}
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.9 }}>
-              <HelpCircle size={22} style={{ color: '#f2bb50' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f5d782' }}>
+          <div className="info-page-header-right">
+            <div className="info-page-badge">
+              <HelpCircle size={20} style={{ color: '#f2bb50' }} />
+              <span className="info-page-badge-text">
                 {currentLang === 'hi' ? 'सामान्य प्रश्न (FAQs)' : 'Frequently Asked Questions'}
               </span>
             </div>
@@ -663,38 +633,13 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
       </header>
 
       {/* Main Content Container */}
-      <main style={{
-        flex: 1,
-        maxWidth: '1000px',
-        width: '100%',
-        margin: '2rem auto',
-        padding: '0 1.5rem',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.03)',
-          padding: '2.5rem 3rem',
-          boxSizing: 'border-box'
-        }}>
+      <main className="info-page-main">
+        <div className="info-page-card">
           {/* Document Header */}
-          <div style={{
-            borderBottom: '2px solid #f1f5f9',
-            paddingBottom: '1.5rem',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <HelpCircle size={28} style={{ color: '#0b2240' }} />
-              <h1 style={{
-                margin: 0,
-                fontSize: '2rem',
-                fontWeight: 800,
-                color: '#0b2240',
-                fontFamily: 'var(--font-serif, Georgia, serif)',
-                letterSpacing: '-0.02em'
-              }}>
+          <div className="info-page-doc-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <HelpCircle size={26} style={{ color: '#0b2240', flexShrink: 0 }} />
+              <h1 className="info-page-h1">
                 {isHi ? 'सामान्य प्रश्नोत्तर (FAQs)' : 'FREQUENTLY ASKED QUESTIONS (FAQs)'}
               </h1>
             </div>
