@@ -133,19 +133,13 @@ export async function POST(req: NextRequest) {
       : []
 
     const classroom = await prisma.$transaction(async (tx) => {
-      // Find or create classroom
+      // Find or create classroom scoped strictly to this admin
       let cls = await tx.classroom.findFirst({
-        where: { name },
+        where: { name, adminId: user.userId },
       })
       if (!cls) {
         cls = await tx.classroom.create({
           data: { name, adminId: user.userId },
-        })
-      } else if (!cls.adminId) {
-        // Adopt orphan classroom
-        cls = await tx.classroom.update({
-          where: { id: cls.id },
-          data: { adminId: user.userId }
         })
       }
 

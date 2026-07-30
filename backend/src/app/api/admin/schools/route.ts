@@ -78,9 +78,9 @@ export async function PUT(req: NextRequest) {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      // Find all schools sharing this UDISE before the update
+      // Find all schools sharing this UDISE managed by this admin before the update
       const relatedSchools = await tx.school.findMany({
-        where: { udise: school.udise }
+        where: { udise: school.udise, adminId: user.userId }
       })
       const relatedSchoolIds = relatedSchools.map(s => s.id)
 
@@ -100,9 +100,9 @@ export async function PUT(req: NextRequest) {
         })
       }
 
-      // Find all school IDs now sharing the new/updated UDISE number
+      // Find all school IDs now sharing the new/updated UDISE number for this admin
       const finalSchools = await tx.school.findMany({
-        where: { udise }
+        where: { udise, adminId: user.userId }
       })
       const finalSchoolIds = finalSchools.map(s => s.id)
 

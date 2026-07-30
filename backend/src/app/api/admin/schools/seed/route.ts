@@ -83,29 +83,39 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Upsert by UDISE number to avoid duplication
-        const sch = await prisma.school.upsert({
+        // Check if school already exists with this UDISE and language
+        const existingSchool = await prisma.school.findUnique({
           where: {
             udise_language: {
               udise,
               language: targetLang,
             }
-          },
-          update: { 
-            name: schoolName, 
-            tehsil,
-            district,
-            adminId: user.userId 
-          },
-          create: { 
-            name: schoolName, 
-            udise, 
-            tehsil,
-            district,
-            language: targetLang,
-            adminId: user.userId 
-          },
+          }
         })
+
+        if (existingSchool) {
+          // Update details without stealing adminId from another admin
+          await prisma.school.update({
+            where: { id: existingSchool.id },
+            data: {
+              name: schoolName,
+              tehsil,
+              district,
+              adminId: existingSchool.adminId || user.userId
+            }
+          })
+        } else {
+          await prisma.school.create({
+            data: {
+              name: schoolName,
+              udise,
+              tehsil,
+              district,
+              language: targetLang,
+              adminId: user.userId
+            }
+          })
+        }
         
         seededCount++
       } catch (err: any) {
