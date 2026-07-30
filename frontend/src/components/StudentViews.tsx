@@ -1545,29 +1545,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             </div>
 
             <div style={{ maxHeight: '650px', overflowY: 'auto', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {loadingResources ? (
-                <div style={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid rgba(197, 160, 89, 0.2)',
-                  borderRadius: '16px',
-                  padding: '3rem',
-                  textAlign: 'center',
-                  color: '#0b2240'
-                }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    border: '4px solid #e2e8f0',
-                    borderTopColor: '#0b2240',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 1rem auto'
-                  }} />
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem', color: '#0b2240' }}>
-                    {lang === 'hi' ? 'अध्ययन सामग्री लोड हो रही है... कृपया प्रतीक्षा करें' : 'Loading Study Resources... Please wait'}
-                  </p>
-                </div>
-              ) : resources.length === 0 ? (
+              {resources.length === 0 ? (
                 <div style={{
                   backgroundColor: '#ffffff',
                   border: '1px solid rgba(197, 160, 89, 0.2)',
@@ -2022,22 +2000,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
               scrollbarWidth: 'none',
               msOverflowStyle: 'none'
             }}>
-              {loadingResources ? (
-                <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#0b2240', width: '100%', flexShrink: 0 }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    border: '3px solid #e2e8f0',
-                    borderTopColor: '#0b2240',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 0.75rem auto'
-                  }} />
-                  <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
-                    {lang === 'hi' ? 'अध्ययन सामग्री लोड हो रही है...' : 'Loading resources...'}
-                  </span>
-                </div>
-              ) : resources.length === 0 ? (
+              {resources.length === 0 ? (
                 <div className="mobile-dashboard-card" style={{ textAlign: 'center', padding: '2rem 1rem', color: '#a0aec0', width: '100%', flexShrink: 0 }}>
                   {t.noResources}
                 </div>

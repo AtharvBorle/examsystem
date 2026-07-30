@@ -23,7 +23,7 @@ export async function GET(
       where: { id: attemptId },
       include: {
         exam: {
-          select: { name: true, nameHindi: true },
+          select: { name: true, nameHindi: true, createdAt: true },
         },
         student: {
           select: {
