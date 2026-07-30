@@ -215,7 +215,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse({
       stats: {
-        schools: activeSchoolIds.length,
+        schools: new Set(activeUdises).size,
         classrooms: classroomsCount,
         exams: examsCount,
         students: studentsCount,

@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
     }
 
     const totalAdmins = await prisma.admin.count()
-    const totalSchools = await prisma.school.count()
+    const distinctSchools = await prisma.school.groupBy({ by: ['udise'] })
+    const totalSchools = distinctSchools.length
     const totalStudents = await prisma.student.count()
     const totalAttempts = await prisma.examAttempt.count()
 

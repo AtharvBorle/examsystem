@@ -6,6 +6,17 @@ import { useAuth } from '../context/AuthContext'
 import { Search, Phone, Lock, User, School, GraduationCap, MapPin, Building2, Eye, EyeOff, Info, FileText, Shield, HelpCircle, BookOpen, X, ChevronRight } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 
+export const openExternalPolicyLink = (url: string) => {
+  if ((window as any).ReactNativeWebView && (window as any).ReactNativeWebView.postMessage) {
+    (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'OPEN_EXTERNAL_URL',
+      url: url
+    }))
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+}
+
 /* ==========================================
    COMPONENT: CIRCULAR INFO BUTTON & MODAL
    ========================================== */
@@ -16,39 +27,38 @@ export function InfoButton({ lang }: { lang: Language }) {
     {
       title: lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions',
       desc: lang === 'hi' ? 'पोर्टल उपयोग एवं नियम' : 'Rules & portal usage guidelines',
-      path: '/oes/T&C',
+      path: 'https://bvpindia.org/oes/T&C',
       icon: <FileText size={20} style={{ color: '#c59f2d' }} />
     },
     {
       title: lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy',
       desc: lang === 'hi' ? 'डेटा सुरक्षा एवं निजता' : 'Data protection & privacy rights',
-      path: '/oes/privacypolicy',
+      path: 'https://bvpindia.org/oes/privacypolicy',
       icon: <Shield size={20} style={{ color: '#2b6cb0' }} />
     },
     {
       title: lang === 'hi' ? 'परीक्षा प्रक्रिया' : 'Examination Process',
       desc: lang === 'hi' ? 'परीक्षा नियम, टाइमर एवं रंग कोड' : 'Exam rules, timer & status guide',
-      path: '/oes/examprocess',
+      path: 'https://bvpindia.org/oes/examprocess',
       icon: <BookOpen size={20} style={{ color: '#2f855a' }} />
     },
     {
       title: lang === 'hi' ? 'छात्र मार्गदर्शिका एवं सहायता' : 'Student Guide & Support',
       desc: lang === 'hi' ? 'पंजीकरण, खाता हटाने की नीति एवं संपर्क' : 'Registration, deletion policy & contact',
-      path: '/oes/help&suppport',
+      path: 'https://bvpindia.org/oes/help&suppport',
       icon: <GraduationCap size={20} style={{ color: '#d69e2e' }} />
     },
     {
       title: lang === 'hi' ? 'सामान्य प्रश्न (FAQs)' : 'Frequently Asked Questions',
       desc: lang === 'hi' ? 'अक्सर पूछे जाने वाले प्रश्न और उनके उत्तर' : 'Quick answers to common questions',
-      path: '/oes/faq',
+      path: 'https://bvpindia.org/oes/faq',
       icon: <HelpCircle size={20} style={{ color: '#805ad5' }} />
     }
   ]
 
   const handleNavigate = (path: string) => {
     setOpen(false)
-    window.history.pushState({}, '', path)
-    window.dispatchEvent(new PopStateEvent('popstate'))
+    openExternalPolicyLink(path)
   }
 
   return (
@@ -407,11 +417,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
           <div>Powered by Neopace Infotech LLP</div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             <a 
-              href="/oes/T&C" 
+              href="https://bvpindia.org/oes/T&C" 
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                window.history.pushState({}, '', '/oes/T&C')
-                window.dispatchEvent(new PopStateEvent('popstate'))
+                openExternalPolicyLink('https://bvpindia.org/oes/T&C')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -419,11 +430,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="/oes/privacypolicy" 
+              href="https://bvpindia.org/oes/privacypolicy" 
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                window.history.pushState({}, '', '/oes/privacypolicy')
-                window.dispatchEvent(new PopStateEvent('popstate'))
+                openExternalPolicyLink('https://bvpindia.org/oes/privacypolicy')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -431,11 +443,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="/oes/examprocess" 
+              href="https://bvpindia.org/oes/examprocess" 
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                window.history.pushState({}, '', '/oes/examprocess')
-                window.dispatchEvent(new PopStateEvent('popstate'))
+                openExternalPolicyLink('https://bvpindia.org/oes/examprocess')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -443,11 +456,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="/oes/help&suppport" 
+              href="https://bvpindia.org/oes/help&suppport" 
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                window.history.pushState({}, '', '/oes/help&suppport')
-                window.dispatchEvent(new PopStateEvent('popstate'))
+                openExternalPolicyLink('https://bvpindia.org/oes/help&suppport')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -455,11 +469,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="/oes/faq" 
+              href="https://bvpindia.org/oes/faq" 
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                window.history.pushState({}, '', '/oes/faq')
-                window.dispatchEvent(new PopStateEvent('popstate'))
+                openExternalPolicyLink('https://bvpindia.org/oes/faq')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -1178,11 +1193,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
               <label htmlFor="acceptTerms1" style={{ fontSize: '0.825rem', color: '#0b2240', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500 }}>
                 {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
                 <a
-                  href="/oes/T&C"
+                  href="https://bvpindia.org/oes/T&C"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={(e) => {
                     e.preventDefault()
-                    window.history.pushState({}, '', '/oes/T&C')
-                    window.dispatchEvent(new PopStateEvent('popstate'))
+                    openExternalPolicyLink('https://bvpindia.org/oes/T&C')
                   }}
                   style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
                 >
@@ -1190,11 +1206,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 </a>
                 {lang === 'hi' ? ' और ' : ' and '}
                 <a
-                  href="/oes/privacypolicy"
+                  href="https://bvpindia.org/oes/privacypolicy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onClick={(e) => {
                     e.preventDefault()
-                    window.history.pushState({}, '', '/oes/privacypolicy')
-                    window.dispatchEvent(new PopStateEvent('popstate'))
+                    openExternalPolicyLink('https://bvpindia.org/oes/privacypolicy')
                   }}
                   style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
                 >
@@ -1579,11 +1596,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
             <label htmlFor="acceptTerms2" style={{ fontSize: '0.825rem', color: '#334155', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500 }}>
               {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
               <a
-                href="/oes/T&C"
+                href="https://bvpindia.org/oes/T&C"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={(e) => {
                   e.preventDefault()
-                  window.history.pushState({}, '', '/oes/T&C')
-                  window.dispatchEvent(new PopStateEvent('popstate'))
+                  openExternalPolicyLink('https://bvpindia.org/oes/T&C')
                 }}
                 style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
               >
@@ -1591,11 +1609,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
               </a>
               {lang === 'hi' ? ' और ' : ' and '}
               <a
-                href="/oes/privacypolicy"
+                href="https://bvpindia.org/oes/privacypolicy"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={(e) => {
                   e.preventDefault()
-                  window.history.pushState({}, '', '/oes/privacypolicy')
-                  window.dispatchEvent(new PopStateEvent('popstate'))
+                  openExternalPolicyLink('https://bvpindia.org/oes/privacypolicy')
                 }}
                 style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
               >

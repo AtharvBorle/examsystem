@@ -17,6 +17,7 @@ import {
   ScrollView,
   Image,
   NativeModules,
+  Linking,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import RNFS from 'react-native-fs';
@@ -428,6 +429,10 @@ function App() {
   const handleMessage = async (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'OPEN_EXTERNAL_URL' && data.url) {
+        Linking.openURL(data.url).catch((err) => console.log('Error opening external URL:', err));
+        return;
+      }
       if (data.type === 'DOWNLOAD_PDF') {
         const { pdfData, filename } = data;
         const base64Content = pdfData.split(';base64,')[1];
@@ -803,6 +808,13 @@ function App() {
             onLoad={() => setIsLoading(false)}
             onLoadEnd={() => setIsLoading(false)}
             onMessage={handleMessage}
+            onShouldStartLoadWithRequest={(request) => {
+              if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
+                Linking.openURL(request.url).catch((err) => console.log('Error opening external URL:', err));
+                return false;
+              }
+              return true;
+            }}
             javaScriptEnabled={true}
             domStorageEnabled={true}
             allowsBackForwardNavigationGestures={true}
