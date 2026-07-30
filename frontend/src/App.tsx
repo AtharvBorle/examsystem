@@ -165,6 +165,18 @@ function MainLayout() {
     }
   }
 
+  const handleLogout = () => {
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+    logout()
+    if (isAdmin) {
+      window.history.pushState({}, '', '/oes/admin')
+      setCurrentView('ADMIN_LOGIN')
+    } else {
+      window.history.pushState({}, '', '/oes/')
+      setCurrentView('LOGIN')
+    }
+  }
+
   useEffect(() => {
     if (user && user.language) {
       setLang(user.language as Language)
@@ -289,7 +301,7 @@ function MainLayout() {
 
   return (
     <div>
-      {showNavbar && <Navbar user={user} onLogout={logout} lang={lang} onChangeLang={handleLanguageChange} />}
+      {showNavbar && <Navbar user={user} onLogout={handleLogout} lang={lang} onChangeLang={handleLanguageChange} />}
       {directSchoolUdise && user && token ? (
         <StandaloneSchoolDetailView 
           schoolUdise={directSchoolUdise} 
@@ -306,12 +318,8 @@ function MainLayout() {
               lang={lang}
               onChangeLang={handleLanguageChange}
               onBack={() => {
-                if (window.history.length > 1) {
-                  window.history.back()
-                } else {
-                  window.history.pushState({}, '', '/oes/')
-                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
-                }
+                window.history.pushState({}, '', '/oes/')
+                setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
               }}
             />
           )}
@@ -320,12 +328,8 @@ function MainLayout() {
               lang={lang}
               onChangeLang={handleLanguageChange}
               onBack={() => {
-                if (window.history.length > 1) {
-                  window.history.back()
-                } else {
-                  window.history.pushState({}, '', '/oes/')
-                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
-                }
+                window.history.pushState({}, '', '/oes/')
+                setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
               }}
             />
           )}
@@ -334,12 +338,8 @@ function MainLayout() {
               lang={lang}
               onChangeLang={handleLanguageChange}
               onBack={() => {
-                if (window.history.length > 1) {
-                  window.history.back()
-                } else {
-                  window.history.pushState({}, '', '/oes/')
-                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
-                }
+                window.history.pushState({}, '', '/oes/')
+                setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
               }}
             />
           )}
@@ -348,12 +348,8 @@ function MainLayout() {
               lang={lang}
               onChangeLang={handleLanguageChange}
               onBack={() => {
-                if (window.history.length > 1) {
-                  window.history.back()
-                } else {
-                  window.history.pushState({}, '', '/oes/')
-                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
-                }
+                window.history.pushState({}, '', '/oes/')
+                setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
               }}
             />
           )}
@@ -362,12 +358,8 @@ function MainLayout() {
               lang={lang}
               onChangeLang={handleLanguageChange}
               onBack={() => {
-                if (window.history.length > 1) {
-                  window.history.back()
-                } else {
-                  window.history.pushState({}, '', '/oes/')
-                  setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
-                }
+                window.history.pushState({}, '', '/oes/')
+                setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
               }}
             />
           )}
@@ -397,9 +389,9 @@ function MainLayout() {
               token={token} 
               lang={lang} 
               onChangeLang={handleLanguageChange}
-              onLogout={logout}
+              onLogout={handleLogout}
               onRedirectRegister={() => {
-                logout()
+                handleLogout()
                 setCurrentView('REGISTER')
               }}
             />

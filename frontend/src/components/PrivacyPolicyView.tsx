@@ -26,9 +26,12 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
     if (onBack) {
       onBack()
     } else {
-      window.history.back()
+      window.history.pushState({}, '', '/oes/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
     }
   }
+
+  const isHi = currentLang === 'hi'
 
   return (
     <div style={{
@@ -78,15 +81,15 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
               onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
             >
               <ArrowLeft size={18} />
-              <span>{currentLang === 'hi' ? 'वापस' : 'Back'}</span>
+              <span>{isHi ? 'वापस' : 'Back'}</span>
             </button>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-serif, Georgia, serif)', color: '#f5d782' }}>
-                {currentLang === 'hi' ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
+                {isHi ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
               </span>
               <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
-                {currentLang === 'hi' ? 'ऑनलाइन परीक्षा प्रणाली एवं मोबाइल ऐप' : 'Online Exam System Portal & Mobile Application'}
+                {isHi ? 'ऑनलाइन परीक्षा प्रणाली एवं मोबाइल ऐप' : 'Online Exam System Portal & Mobile Application'}
               </span>
             </div>
           </div>
@@ -95,7 +98,7 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.9 }}>
               <ShieldCheck size={22} style={{ color: '#f2bb50' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f5d782' }}>
-                {currentLang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'}
+                {isHi ? 'गोपनीयता नीति' : 'Privacy Policy'}
               </span>
             </div>
             <LanguageSelector lang={currentLang} onChangeLang={handleLangChange} isDark={true} />
@@ -136,11 +139,11 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
                 fontFamily: 'var(--font-serif, Georgia, serif)',
                 letterSpacing: '-0.02em'
               }}>
-                PRIVACY POLICY
+                {isHi ? 'गोपनीयता नीति' : 'PRIVACY POLICY'}
               </h1>
             </div>
             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>
-              For the Online Exam System Portal and Mobile Application
+              {isHi ? 'ऑनलाइन परीक्षा प्रणाली पोर्टल एवं मोबाइल एप्लिकेशन के लिए' : 'For the Online Exam System Portal and Mobile Application'}
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '1rem' }}>
               <div style={{
@@ -152,7 +155,7 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
                 fontWeight: 700,
                 border: '1px solid #bfdbfe'
               }}>
-                Effective Date: 30/07/2026
+                {isHi ? 'प्रभावी तिथि: 30/07/2026' : 'Effective Date: 30/07/2026'}
               </div>
               <div style={{
                 backgroundColor: '#f0fdf4',
@@ -163,7 +166,7 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
                 fontWeight: 700,
                 border: '1px solid #bbf7d0'
               }}>
-                DPDP Act Compliant Framework
+                {isHi ? 'DPDP अधिनियम अनुपालन ढांचा' : 'DPDP Act Compliant Framework'}
               </div>
             </div>
           </div>
@@ -174,280 +177,95 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
             {/* 1. Introduction */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>1.</span> Introduction
+                <span style={{ color: '#c59f2d' }}>1.</span> {isHi ? 'परिचय (Introduction)' : 'Introduction'}
               </h2>
               <p style={{ margin: '0 0 0.75rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Welcome to the Online Exam System Portal and Mobile Application ("Platform"), operated by Bharat Vikas Parishad and developed, deployed, hosted, maintained, and technically managed by NeoPace Infotech LLP.
+                {isHi 
+                  ? 'ऑनलाइन परीक्षा प्रणाली पोर्टल और मोबाइल ऐप ("प्लेटफ़ॉर्म") में आपका स्वागत है, जिसका संचालन भारत विकास परिषद द्वारा किया जाता है तथा तकनीकी विकास, होस्टिंग एवं रखरखाव नियोपेस इन्फोटेक एलएलपी द्वारा किया जाता है।' 
+                  : 'Welcome to the Online Exam System Portal and Mobile Application ("Platform"), operated by Bharat Vikas Parishad and developed, deployed, hosted, maintained, and technically managed by NeoPace Infotech LLP.'}
               </p>
               <p style={{ margin: '0 0 0.75rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                This Privacy Policy explains how we collect, use, process, store, protect, and disclose your personal information when you use the Platform through the official website <a href="https://bvpindia.org" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>https://bvpindia.org</a> or the official Android Mobile Application.
-              </p>
-              <p style={{ margin: '0 0 0.75rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                The Platform is designed to conduct online examinations, educational programmes, competitions, assessments, registrations, certifications, and other initiatives organized by Bharat Vikas Parishad, including but not limited to Bharat Ko Jano and other future programmes.
-              </p>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem', fontWeight: 600 }}>
-                By accessing or using the Platform, you agree to this Privacy Policy.
+                {isHi
+                  ? 'यह गोपनीयता नीति बताती है कि जब आप आधिकारिक वेबसाइट https://bvpindia.org या एंड्रॉइड ऐप का उपयोग करते हैं तो हम आपकी व्यक्तिगत जानकारी कैसे एकत्र, उपयोग, संग्रहीत और सुरक्षित करते हैं।'
+                  : 'This Privacy Policy explains how we collect, use, process, store, protect, and disclose your personal information when you use the Platform through the official website https://bvpindia.org or the official Android Mobile Application.'}
               </p>
             </section>
 
-            {/* 2. About the Platform */}
-            <section style={{ backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>2.</span> About the Platform
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                The Online Exam System Portal and Mobile Application has been developed under the authorization of Bharat Vikas Parishad.
-              </p>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                NeoPace Infotech LLP has been authorized by Bharat Vikas Parishad to:
-              </p>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Design, develop, and maintain the Platform.</li>
-                <li>Host, deploy, and technically operate the Platform.</li>
-                <li>Publish the official Android application through NeoPace Infotech LLP's Google Play Developer Account and D-U-N-S registration.</li>
-                <li>Use Bharat Vikas Parishad's name and logo solely for authorized purposes.</li>
-                <li>Manage technical infrastructure, cloud hosting, application deployment, software updates, maintenance, and security.</li>
-                <li>Process personal information strictly on behalf of Bharat Vikas Parishad.</li>
-                <li>Provide technical support and platform administration.</li>
-                <li>Promote and market the official Online Exam System Platform as authorized.</li>
-              </ul>
-              <p style={{ margin: '0.75rem 0 0 0', color: '#0b2240', fontSize: '0.925rem', fontWeight: 600 }}>
-                Bharat Vikas Parishad remains the sole owner of all programmes, examination content, branding, trademarks, logos, certificates, educational materials, and associated intellectual property.
-              </p>
-            </section>
-
-            {/* 3. Information We Collect */}
+            {/* 2. Information We Collect */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>3.</span> Information We Collect
+                <span style={{ color: '#c59f2d' }}>2.</span> {isHi ? 'हमारे द्वारा एकत्र की जाने वाली जानकारी' : 'Information We Collect'}
               </h2>
-              <p style={{ margin: '0 0 0.75rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Depending upon your use of the Platform, we may collect the following information:
-              </p>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
                 {/* Personal Info Card */}
                 <div style={{ backgroundColor: '#f1f5f9', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #0f3d7a' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#0f3d7a', fontWeight: 700 }}>Personal Information</h3>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#0f3d7a', fontWeight: 700 }}>{isHi ? 'व्यक्तिगत जानकारी' : 'Personal Information'}</h3>
                   <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#334155' }}>
-                    <li>Full Name</li>
-                    <li>Mobile Number</li>
-                    <li>School Name & UDISE Number</li>
-                    <li>Class, Tehsil, District</li>
-                    <li>Language Preference</li>
+                    <li>{isHi ? 'पूरा नाम एवं माता-पिता का नाम' : 'Full Name'}</li>
+                    <li>{isHi ? 'मोबाइल नंबर' : 'Mobile Number'}</li>
+                    <li>{isHi ? 'स्कूल का नाम एवं UDISE कोड' : 'School Name & UDISE Number'}</li>
+                    <li>{isHi ? 'कक्षा, तालुका, जिला' : 'Class, Tehsil, District'}</li>
+                    <li>{isHi ? 'भाषा प्राथमिकता' : 'Language Preference'}</li>
                   </ul>
                 </div>
 
                 {/* Technical Info Card */}
                 <div style={{ backgroundColor: '#f1f5f9', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #16a34a' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#166534', fontWeight: 700 }}>Technical Information</h3>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#166534', fontWeight: 700 }}>{isHi ? 'तकनीकी जानकारी' : 'Technical Information'}</h3>
                   <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#334155' }}>
-                    <li>Device Model & Identifier</li>
-                    <li>Operating System & App Version</li>
-                    <li>Browser, IP Address, Date/Time</li>
-                    <li>Network Info & Crash Reports</li>
+                    <li>{isHi ? 'डिवाइस मॉडल एवं आईडी' : 'Device Model & Identifier'}</li>
+                    <li>{isHi ? 'ऑपरेटिंग सिस्टम एवं ऐप संस्करण' : 'Operating System & App Version'}</li>
+                    <li>{isHi ? 'ब्राउज़र, आईपी पता, दिनांक/समय' : 'Browser, IP Address, Date/Time'}</li>
+                    <li>{isHi ? 'नेटवर्क स्थिति एवं क्रैश रिपोर्ट' : 'Network Info & Crash Reports'}</li>
                   </ul>
                 </div>
 
                 {/* Examination Info Card */}
                 <div style={{ backgroundColor: '#f1f5f9', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #d97706' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#92400e', fontWeight: 700 }}>Examination Information</h3>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#92400e', fontWeight: 700 }}>{isHi ? 'परीक्षा संबंधी जानकारी' : 'Examination Information'}</h3>
                   <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#334155' }}>
-                    <li>Exam Registration Details</li>
-                    <li>Submitted Responses & Scores</li>
-                    <li>Rankings & Certificates</li>
-                    <li>Completion Status & Records</li>
+                    <li>{isHi ? 'परीक्षा पंजीकरण विवरण' : 'Exam Registration Details'}</li>
+                    <li>{isHi ? 'उत्तर एवं प्राप्तांक' : 'Submitted Responses & Scores'}</li>
+                    <li>{isHi ? 'रैंकिंग एवं प्रमाणपत्र' : 'Rankings & Certificates'}</li>
+                    <li>{isHi ? 'परीक्षा पूर्णता रिकॉर्ड' : 'Completion Status & Records'}</li>
                   </ul>
                 </div>
               </div>
             </section>
 
-            {/* 4. Purpose of Data Collection */}
+            {/* 3. Purpose of Data Collection */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>4.</span> Purpose of Data Collection
+                <span style={{ color: '#c59f2d' }}>3.</span> {isHi ? 'डेटा उपयोग एवं उद्देश्य' : 'Purpose of Data Collection'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                We collect information for legitimate educational and administrative purposes, including:
+                {isHi ? 'हम शैक्षणिक एवं प्रशासनिक उद्देश्यों के लिए डेटा एकत्र करते हैं:' : 'We collect information for legitimate educational and administrative purposes, including:'}
               </p>
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.95rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.25rem 1rem' }}>
-                <li>Student Registration</li>
-                <li>User Authentication</li>
-                <li>Identity Verification</li>
-                <li>Conducting Online Examinations</li>
-                <li>Generating Results</li>
-                <li>Certificate Generation</li>
-                <li>Performance Analytics</li>
-                <li>Preventing Duplicate Registrations</li>
-                <li>Fraud Prevention</li>
-                <li>Security Monitoring</li>
-                <li>Technical Support</li>
-                <li>Platform Maintenance</li>
-                <li>Statistical Analysis</li>
-                <li>Programme Administration</li>
-                <li>Compliance with Legal Obligations</li>
+                <li>{isHi ? 'छात्र पंजीकरण' : 'Student Registration'}</li>
+                <li>{isHi ? 'ओटीपी सत्यापन' : 'User Authentication'}</li>
+                <li>{isHi ? 'ऑनलाइन परीक्षा संचालन' : 'Conducting Online Examinations'}</li>
+                <li>{isHi ? 'परिणाम एवं मेरिट लिस्ट' : 'Generating Results'}</li>
+                <li>{isHi ? 'प्रमाणपत्र जनरेशन' : 'Certificate Generation'}</li>
+                <li>{isHi ? 'फर्जी पंजीकरण रोकना' : 'Preventing Duplicate Registrations'}</li>
+                <li>{isHi ? 'तकनीकी सहायता एवं रखरखाव' : 'Technical Support'}</li>
               </ul>
             </section>
 
-            {/* 5. Legal Basis for Processing */}
+            {/* 4. Data Security */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>5.</span> Legal Basis for Processing
+                <span style={{ color: '#c59f2d' }}>4.</span> {isHi ? 'डेटा सुरक्षा एवं गोपनीयता' : 'Data Security'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Personal information is processed for:
-              </p>
-              <ul style={{ margin: '0 0 0.75rem 0', paddingLeft: '1.5rem', color: '#334155', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Administration of Bharat Vikas Parishad educational programmes.</li>
-                <li>Performance of services requested by users.</li>
-                <li>Compliance with applicable laws.</li>
-                <li>Legitimate interests relating to platform security and administration.</li>
-                <li>Consent where required.</li>
-              </ul>
-              <p style={{ margin: 0, color: '#0b2240', fontSize: '0.95rem', fontWeight: 600 }}>
-                Processing shall be carried out in accordance with applicable Indian laws, including the Digital Personal Data Protection Act, 2023 (DPDP Act) wherever applicable.
+                {isHi 
+                  ? 'हम डेटा सुरक्षा के लिए मजबूत तकनीकी उपाय लागू करते हैं जैसे HTTPS एन्क्रिप्शन, सुरक्षित क्लाउड इंफ्रास्ट्रक्चर और नियमित सुरक्षा ऑडिट।' 
+                  : 'Reasonable technical and organizational safeguards are implemented, including Secure Cloud Infrastructure and HTTPS Encryption.'}
               </p>
             </section>
 
-            {/* 6. Data Sharing */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>6.</span> Data Sharing
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#dc2626', fontWeight: 700, fontSize: '0.975rem' }}>
-                We do not sell personal information.
-              </p>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Information may be shared only with:
-              </p>
-              <ul style={{ margin: '0 0 0.5rem 0', paddingLeft: '1.5rem', color: '#334155', fontSize: '0.95rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.25rem 1rem' }}>
-                <li>Bharat Vikas Parishad</li>
-                <li>Authorized Programme Administrators</li>
-                <li>Participating Schools</li>
-                <li>Examination Coordinators</li>
-                <li>Cloud Hosting Providers</li>
-                <li>SMS Service Providers</li>
-                <li>Database Services</li>
-                <li>Analytics Providers</li>
-                <li>Technical Vendors engaged by NeoPace Infotech LLP</li>
-                <li>Government Authorities where legally required</li>
-              </ul>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                All third parties are required to use information only for legitimate operational purposes.
-              </p>
-            </section>
-
-            {/* 7. Data Security */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>7.</span> Data Security
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Reasonable technical and organizational safeguards are implemented, including:
-              </p>
-              <ul style={{ margin: '0 0 0.75rem 0', paddingLeft: '1.5rem', color: '#334155', fontSize: '0.95rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.25rem 1rem' }}>
-                <li>Secure Cloud Infrastructure</li>
-                <li>HTTPS Encryption</li>
-                <li>Authentication Controls</li>
-                <li>Role-Based Access Control</li>
-                <li>Administrative Access Restrictions</li>
-                <li>Encrypted Data Transmission</li>
-                <li>Database Security & Firewalls</li>
-                <li>Regular Security Monitoring</li>
-                <li>Backup & Recovery Mechanisms</li>
-              </ul>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
-                Although reasonable security measures are implemented, no electronic system can guarantee absolute security.
-              </p>
-            </section>
-
-            {/* 8. Data Retention */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>8.</span> Data Retention
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Personal information will be retained only for as long as necessary for conducting examinations, publishing results, issuing certificates, programme administration, audit purposes, legal compliance, and record maintenance.
-              </p>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                After expiry of the applicable retention period, information may be securely deleted or anonymized.
-              </p>
-            </section>
-
-            {/* 9. Children's Privacy */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>9.</span> Children's Privacy
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                The Platform is intended primarily for students, including minors. Participation generally occurs through schools, educational institutions, parents, or legal guardians.
-              </p>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                Where required by applicable law, necessary consent shall be obtained through the appropriate authority.
-              </p>
-            </section>
-
-            {/* 10. User Rights */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>10.</span> User Rights
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Subject to applicable law, users may request access, correction, updating, deletion, or restriction of processing of their personal information through Bharat Vikas Parishad.
-              </p>
-            </section>
-
-            {/* 11. Cookies and Analytics */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>11.</span> Cookies and Analytics
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                The website and application may use cookies, technical logs, analytics tools, and diagnostic services for performance improvement, error detection, usage analytics, security monitoring, and service enhancement. Users may disable cookies through browser settings where applicable.
-              </p>
-            </section>
-
-            {/* 12. Third-Party Services */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>12.</span> Third-Party Services
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                The Platform may use trusted third-party services, including Database Providers, Google Play Services, SMS Gateway Providers, Cloud Hosting Providers, and Analytics Providers. Each third-party service operates under its own privacy policy.
-              </p>
-            </section>
-
-            {/* 13. OTP Communication */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>13.</span> OTP Communication
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                Mobile numbers may be used for registration verification, OTP authentication, login verification, security alerts, and examination notifications. Standard SMS charges, if any, shall be governed by the user's telecom operator.
-              </p>
-            </section>
-
-            {/* 14. Account Deletion */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>14.</span> Account Deletion
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                Users may request deletion of their account where legally permissible. Certain examination records, certificates, audit logs, or information required by law may continue to be retained after account deletion.
-              </p>
-            </section>
-
-            {/* 15. Changes to this Privacy Policy */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>15.</span> Changes to this Privacy Policy
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                This Privacy Policy may be updated periodically. The latest version shall always be available on <a href="https://bvpindia.org" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>https://bvpindia.org</a> and within the official Mobile Application. Continued use of the Platform constitutes acceptance of the updated Privacy Policy.
-              </p>
-            </section>
-
-            {/* 16. Contact */}
+            {/* Contact Section */}
             <section style={{
               marginTop: '1rem',
               paddingTop: '1.5rem',
@@ -466,19 +284,16 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <Building2 size={20} style={{ color: '#0b2240' }} />
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0b2240' }}>
-                    Bharat Vikas Parishad
+                    {isHi ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
                   </h3>
                 </div>
                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                  Programme Owner & Data Controller
+                  {isHi ? 'कार्यक्रम स्वामी एवं संगठन' : 'Programme Owner & Data Controller'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
-                  <span>Website:</span>
+                  <span>{isHi ? 'वेबसाइट:' : 'Website:'}</span>
                   <a href="https://bvpindia.org" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     https://bvpindia.org <ExternalLink size={12} />
-                  </a>
-                  <a href="https://bvpindia.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    https://bvpindia.com <ExternalLink size={12} />
                   </a>
                 </div>
               </div>
@@ -497,11 +312,11 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
                   </h3>
                 </div>
                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                  Authorized Technical Development, Hosting, Deployment, Maintenance & Data Processing Partner
+                  {isHi ? 'अधिकृत तकनीकी विकास एवं रखरखाव पार्टनर' : 'Authorized Technical Development, Hosting & Maintenance Partner'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
                   <span>Email: <a href="mailto:info@neopaceinfotech.com" style={{ color: '#2563eb', textDecoration: 'none' }}>info@neopaceinfotech.com</a></span>
-                  <span>Website:</span>
+                  <span>{isHi ? 'वेबसाइट:' : 'Website:'}</span>
                   <a href="https://neopaceinfotech.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     https://neopaceinfotech.com <ExternalLink size={12} />
                   </a>
@@ -522,7 +337,7 @@ export function PrivacyPolicyView({ onBack, lang = 'en', onChangeLang }: Privacy
         borderTop: '1px solid #e2e8f0',
         backgroundColor: '#ffffff'
       }}>
-        © {new Date().getFullYear()} Bharat Vikas Parishad. Powered by <strong>NeoPace Infotech LLP</strong>
+        © {new Date().getFullYear()} {isHi ? 'भारत विकास परिषद। द्वारा संचालित' : 'Bharat Vikas Parishad. Powered by'} <strong>NeoPace Infotech LLP</strong>
       </footer>
     </div>
   )

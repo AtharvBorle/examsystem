@@ -26,9 +26,12 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
     if (onBack) {
       onBack()
     } else {
-      window.history.back()
+      window.history.pushState({}, '', '/oes/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
     }
   }
+
+  const isHi = currentLang === 'hi'
 
   return (
     <div style={{
@@ -78,15 +81,15 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
               onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
             >
               <ArrowLeft size={18} />
-              <span>{currentLang === 'hi' ? 'वापस' : 'Back'}</span>
+              <span>{isHi ? 'वापस' : 'Back'}</span>
             </button>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-serif, Georgia, serif)', color: '#f5d782' }}>
-                {currentLang === 'hi' ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
+                {isHi ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
               </span>
               <span style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
-                {currentLang === 'hi' ? 'ऑनलाइन परीक्षा प्रणाली एवं मोबाइल ऐप' : 'Online Exam System Portal & Mobile Application'}
+                {isHi ? 'ऑनलाइन परीक्षा प्रणाली एवं मोबाइल ऐप' : 'Online Exam System Portal & Mobile Application'}
               </span>
             </div>
           </div>
@@ -95,7 +98,7 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.9 }}>
               <ShieldCheck size={22} style={{ color: '#f2bb50' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f5d782' }}>
-                {currentLang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'}
+                {isHi ? 'नियम और शर्तें' : 'Terms & Conditions'}
               </span>
             </div>
             <LanguageSelector lang={currentLang} onChangeLang={handleLangChange} isDark={true} />
@@ -136,11 +139,11 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
                 fontFamily: 'var(--font-serif, Georgia, serif)',
                 letterSpacing: '-0.02em'
               }}>
-                TERMS AND CONDITIONS
+                {isHi ? 'नियम एवं शर्तें' : 'TERMS AND CONDITIONS'}
               </h1>
             </div>
             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>
-              For the Online Exam System Portal and Mobile Application
+              {isHi ? 'ऑनलाइन परीक्षा प्रणाली पोर्टल एवं मोबाइल एप्लिकेशन के लिए' : 'For the Online Exam System Portal and Mobile Application'}
             </p>
             <div style={{
               display: 'inline-block',
@@ -153,7 +156,7 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
               marginTop: '1rem',
               border: '1px solid #bfdbfe'
             }}>
-              Effective Date: 30/07/2026
+              {isHi ? 'प्रभावी तिथि: 30/07/2026' : 'Effective Date: 30/07/2026'}
             </div>
           </div>
 
@@ -163,181 +166,141 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
             {/* 1. Acceptance */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>1.</span> Acceptance
+                <span style={{ color: '#c59f2d' }}>1.</span> {isHi ? 'स्वीकृति (Acceptance)' : 'Acceptance'}
               </h2>
               <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                By accessing or using the Online Exam System Portal and Mobile Application, you agree to comply with these Terms and Conditions. If you do not agree, you should discontinue use of the Platform.
+                {isHi 
+                  ? 'ऑनलाइन परीक्षा प्रणाली पोर्टल और मोबाइल ऐप तक पहुंच या उपयोग करके, आप इन नियमों और शर्तों का अनुपालन करने के लिए सहमत होते हैं। यदि आप सहमत नहीं हैं, तो आपको प्लेटफ़ॉर्म का उपयोग बंद कर देना चाहिए।' 
+                  : 'By accessing or using the Online Exam System Portal and Mobile Application, you agree to comply with these Terms and Conditions. If you do not agree, you should discontinue use of the Platform.'}
               </p>
             </section>
 
             {/* 2. Purpose */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>2.</span> Purpose
+                <span style={{ color: '#c59f2d' }}>2.</span> {isHi ? 'उद्देश्य (Purpose)' : 'Purpose'}
               </h2>
               <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                The Platform is intended exclusively for conducting online examinations, educational programmes, registrations, assessments, competitions, certifications, and other initiatives organized by Bharat Vikas Parishad.
+                {isHi
+                  ? 'यह प्लेटफ़ॉर्म विशेष रूप से भारत विकास परिषद द्वारा आयोजित ऑनलाइन परीक्षाओं, शैक्षणिक कार्यक्रमों, पंजीकरण, मूल्यांकन, प्रतियोगिताओं, प्रमाणपत्रों और अन्य पहलों के संचालन के लिए है।'
+                  : 'The Platform is intended exclusively for conducting online examinations, educational programmes, registrations, assessments, competitions, certifications, and other initiatives organized by Bharat Vikas Parishad.'}
               </p>
             </section>
 
             {/* 3. User Registration */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>3.</span> User Registration
+                <span style={{ color: '#c59f2d' }}>3.</span> {isHi ? 'उपयोगकर्ता पंजीकरण (User Registration)' : 'User Registration'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Users agree that:
+                {isHi ? 'उपयोगकर्ता सहमत होते हैं कि:' : 'Users agree that:'}
               </p>
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.975rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Information provided is true and accurate.</li>
-                <li>Mobile numbers belong to the user or are used with proper authorization.</li>
-                <li>Duplicate registrations may be rejected.</li>
-                <li>False information may result in cancellation.</li>
+                <li>{isHi ? 'प्रदान की गई जानकारी सत्य और सटीक है।' : 'Information provided is true and accurate.'}</li>
+                <li>{isHi ? 'मोबाइल नंबर उपयोगकर्ता का है या उचित अनुमति के साथ प्रयोग किया गया है।' : 'Mobile numbers belong to the user or are used with proper authorization.'}</li>
+                <li>{isHi ? 'दोहरे या फर्जी पंजीकरण रद्द किए जा सकते हैं।' : 'Duplicate registrations may be rejected.'}</li>
+                <li>{isHi ? 'गलत जानकारी के कारण पंजीकरण रद्द किया जा सकता है।' : 'False information may result in cancellation.'}</li>
               </ul>
             </section>
 
             {/* 4. Examination Rules */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>4.</span> Examination Rules
+                <span style={{ color: '#c59f2d' }}>4.</span> {isHi ? 'परीक्षा नियम एवं सत्यनिष्ठा' : 'Examination Rules'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Participants shall:
+                {isHi ? 'शिक्षार्थियों / प्रतिभागियों को:' : 'Participants shall:'}
               </p>
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.975rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Attempt examinations honestly.</li>
-                <li>Avoid any unfair practices.</li>
-                <li>Not impersonate another participant.</li>
-                <li>Not manipulate examination results.</li>
-                <li>Follow all instructions issued by Bharat Vikas Parishad.</li>
+                <li>{isHi ? 'ईमानदारी से परीक्षा देनी चाहिए।' : 'Attempt examinations honestly.'}</li>
+                <li>{isHi ? 'किसी भी अनुचित साधन का उपयोग नहीं करना चाहिए।' : 'Avoid any unfair practices.'}</li>
+                <li>{isHi ? 'किसी अन्य प्रतिभागी का रूप धारण नहीं करना चाहिए।' : 'Not impersonate another participant.'}</li>
+                <li>{isHi ? 'परीक्षा परिणामों में हेरफेर नहीं करना चाहिए।' : 'Not manipulate examination results.'}</li>
+                <li>{isHi ? 'भारत विकास परिषद द्वारा जारी सभी निर्देशों का पालन करना चाहिए।' : 'Follow all instructions issued by Bharat Vikas Parishad.'}</li>
               </ul>
               <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontWeight: 600, fontSize: '0.925rem' }}>
-                Violation may result in disqualification.
+                {isHi ? 'उल्लंघन करने पर अयोग्य घोषित किया जा सकता है।' : 'Violation may result in disqualification.'}
               </p>
             </section>
 
             {/* 5. Account Responsibility */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>5.</span> Account Responsibility
+                <span style={{ color: '#c59f2d' }}>5.</span> {isHi ? 'खाता एवं सुरक्षा जिम्मेदारी' : 'Account Responsibility'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Users are responsible for:
+                {isHi ? 'उपयोगकर्ता इसके लिए जिम्मेदार हैं:' : 'Users are responsible for:'}
               </p>
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.975rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Protecting their registered mobile number.</li>
-                <li>Keeping OTP confidential.</li>
-                <li>Preventing unauthorized access.</li>
-                <li>Immediately reporting any suspected misuse.</li>
+                <li>{isHi ? 'अपने पंजीकृत मोबाइल नंबर की सुरक्षा करना।' : 'Protecting their registered mobile number.'}</li>
+                <li>{isHi ? 'ओटीपी कोड को गोपनीय रखना।' : 'Keeping OTP confidential.'}</li>
+                <li>{isHi ? 'अनधिकृत पहुंच को रोकना।' : 'Preventing unauthorized access.'}</li>
+                <li>{isHi ? 'किसी भी संदिग्ध दुरुपयोग की तुरंत रिपोर्ट करना।' : 'Immediately reporting any suspected misuse.'}</li>
               </ul>
             </section>
 
             {/* 6. Intellectual Property */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>6.</span> Intellectual Property
+                <span style={{ color: '#c59f2d' }}>6.</span> {isHi ? 'बौद्धिक संपदा अधिकार' : 'Intellectual Property'}
               </h2>
               <p style={{ margin: '0 0 0.75rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                All programme names, examination content, logos, trademarks, educational material, certificates, branding, and related intellectual property belong to Bharat Vikas Parishad or their respective owners.
+                {isHi
+                  ? 'सभी कार्यक्रम नाम, परीक्षा सामग्री, लोगो, ट्रेडमार्क, शैक्षणिक सामग्री, प्रमाणपत्र, ब्रांडिंग और संबंधित बौद्धिक संपदा भारत विकास परिषद की संपदा हैं।'
+                  : 'All programme names, examination content, logos, trademarks, educational material, certificates, branding, and related intellectual property belong to Bharat Vikas Parishad or their respective owners.'}
               </p>
               <p style={{ margin: '0 0 0.75rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                The software application, source code, APIs, database architecture, server configuration, deployment infrastructure, technical framework, UI/UX design, and proprietary technology developed by NeoPace Infotech LLP remain the intellectual property of NeoPace Infotech LLP unless otherwise agreed in writing.
-              </p>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem', fontWeight: 600 }}>
-                Nothing contained in these Terms transfers ownership of either party's intellectual property.
+                {isHi
+                  ? 'नियोपेस इन्फोटेक एलएलपी द्वारा विकसित सॉफ्टवेयर एप्लिकेशन, सोर्स कोड, एपीआई, डेटाबेस आर्किटेक्चर, सर्वर अवसंरचना, यूआई/यूएक्स डिजाइन और तकनीक नियोपेस इन्फोटेक एलएलपी की बौद्धिक संपदा है।'
+                  : 'The software application, source code, APIs, database architecture, server configuration, deployment infrastructure, technical framework, UI/UX design, and proprietary technology developed by NeoPace Infotech LLP remain the intellectual property of NeoPace Infotech LLP unless otherwise agreed in writing.'}
               </p>
             </section>
 
             {/* 7. Authorization */}
             <section style={{ backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>7.</span> Authorization
+                <span style={{ color: '#c59f2d' }}>7.</span> {isHi ? 'तकनीकी विकास एवं संचालन प्राधिकरण' : 'Authorization'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Bharat Vikas Parishad has authorized NeoPace Infotech LLP to:
+                {isHi ? 'भारत विकास परिषद ने नियोपेस इन्फोटेक एलएलपी को इसके लिए अधिकृत किया है:' : 'Bharat Vikas Parishad has authorized NeoPace Infotech LLP to:'}
               </p>
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.95rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Develop the Platform.</li>
-                <li>Host and deploy the Platform.</li>
-                <li>Publish the Android Application through NeoPace Infotech LLP's official Google Play Developer Account.</li>
-                <li>Use NeoPace Infotech LLP's D-U-N-S registration for application publishing.</li>
-                <li>Use Bharat Vikas Parishad's name and logo solely for authorized purposes.</li>
-                <li>Maintain and technically operate the Platform.</li>
-                <li>Process personal information solely on behalf of Bharat Vikas Parishad.</li>
-                <li>Provide technical support, maintenance, software updates, hosting, security, and platform administration.</li>
-                <li>Promote and market the official Platform as authorized.</li>
+                <li>{isHi ? 'प्लेटफ़ॉर्म विकसित करना।' : 'Develop the Platform.'}</li>
+                <li>{isHi ? 'प्लेटफ़ॉर्म की मेजबानी एवं परिनियोजन (Hosting & Deployment)।' : 'Host and deploy the Platform.'}</li>
+                <li>{isHi ? 'नियोपेस इन्फोटेक एलएलपी के आधिकारिक Google Play अकाउंट से एंड्रॉइड ऐप प्रकाशित करना।' : "Publish the Android Application through NeoPace Infotech LLP's official Google Play Developer Account."}</li>
+                <li>{isHi ? 'तकनीकी सहायता, रखरखाव, सुरक्षा और प्लेटफ़ॉर्म प्रशासन प्रदान करना।' : 'Provide technical support, maintenance, software updates, hosting, security, and platform administration.'}</li>
               </ul>
-              <p style={{ margin: '0.75rem 0 0 0', color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                This authorization does not transfer ownership of Bharat Vikas Parishad's trademarks, educational content, programmes, or intellectual property.
-              </p>
             </section>
 
-            {/* 8. Data Processing */}
+            {/* 8. Limitation of Liability */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>8.</span> Data Processing
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                NeoPace Infotech LLP acts solely as the Authorized Technical Development, Hosting, Deployment, Maintenance and Data Processing Partner, processing personal information only under the instructions of Bharat Vikas Parishad and only for operating, maintaining, securing, improving, and administering the Platform.
-              </p>
-            </section>
-
-            {/* 9. Limitation of Liability */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>9.</span> Limitation of Liability
+                <span style={{ color: '#c59f2d' }}>8.</span> {isHi ? 'दायित्व की सीमा' : 'Limitation of Liability'}
               </h2>
               <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Neither Bharat Vikas Parishad nor NeoPace Infotech LLP shall be liable for:
+                {isHi ? 'भारत विकास परिषद या नियोपेस इन्फोटेक एलएलपी इसके लिए उत्तरदायी नहीं होंगे:' : 'Neither Bharat Vikas Parishad nor NeoPace Infotech LLP shall be liable for:'}
               </p>
               <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.975rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Internet failures.</li>
-                <li>Device incompatibility.</li>
-                <li>User mistakes.</li>
-                <li>Incorrect information submitted by users.</li>
-                <li>Force majeure events.</li>
-                <li>Temporary maintenance.</li>
-                <li>Technical interruptions beyond reasonable control.</li>
+                <li>{isHi ? 'इंटरनेट विफलता या नेटवर्क व्यवधान।' : 'Internet failures.'}</li>
+                <li>{isHi ? 'उपयोगकर्ता के उपकरण की असंगति।' : 'Device incompatibility.'}</li>
+                <li>{isHi ? 'उपयोगकर्ताओं द्वारा दर्ज की गई गलत जानकारी।' : 'Incorrect information submitted by users.'}</li>
+                <li>{isHi ? 'नियंत्रण से बाहर की तकनीकी रुकावटें।' : 'Technical interruptions beyond reasonable control.'}</li>
               </ul>
             </section>
 
-            {/* 10. Suspension and Termination */}
+            {/* 9. Governing Law */}
             <section>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>10.</span> Suspension and Termination
-              </h2>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#334155', fontSize: '0.975rem' }}>
-                Accounts may be suspended or removed if users:
-              </p>
-              <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#334155', fontSize: '0.975rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <li>Provide false information.</li>
-                <li>Misuse the Platform.</li>
-                <li>Violate applicable laws.</li>
-                <li>Breach these Terms and Conditions.</li>
-              </ul>
-            </section>
-
-            {/* 11. Modifications */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>11.</span> Modifications
+                <span style={{ color: '#c59f2d' }}>9.</span> {isHi ? 'शासी कानून एवं क्षेत्राधिकार' : 'Governing Law'}
               </h2>
               <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                Bharat Vikas Parishad and NeoPace Infotech LLP reserve the right to update these Terms and Conditions whenever necessary. Continued use of the Platform after modifications constitutes acceptance of the revised Terms.
+                {isHi 
+                  ? 'ये नियम भारत के कानूनों द्वारा शासित होंगे। किसी भी विवाद का निपटारा पुणे, महाराष्ट्र स्थित न्यायालयों के क्षेत्राधिकार के अधीन होगा।'
+                  : 'These Terms shall be governed by the laws of India. Any dispute shall be subject to the exclusive jurisdiction of the competent courts located at Pune, Maharashtra, unless otherwise required under applicable law.'}
               </p>
             </section>
 
-            {/* 12. Governing Law */}
-            <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0b2240', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ color: '#c59f2d' }}>12.</span> Governing Law
-              </h2>
-              <p style={{ margin: 0, color: '#334155', fontSize: '0.975rem' }}>
-                These Terms shall be governed by the laws of India. Any dispute shall be subject to the exclusive jurisdiction of the competent courts located at Pune, Maharashtra, unless otherwise required under applicable law.
-              </p>
-            </section>
-
-            {/* 13. Contact */}
+            {/* Contact Section */}
             <section style={{
               marginTop: '1rem',
               paddingTop: '1.5rem',
@@ -356,14 +319,14 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <Building2 size={20} style={{ color: '#0b2240' }} />
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0b2240' }}>
-                    Bharat Vikas Parishad
+                    {isHi ? 'भारत विकास परिषद' : 'Bharat Vikas Parishad'}
                   </h3>
                 </div>
                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                  Programme Owner & Data Controller
+                  {isHi ? 'कार्यक्रम स्वामी एवं संगठन' : 'Programme Owner & Data Controller'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
-                  <span>Website:</span>
+                  <span>{isHi ? 'वेबसाइट:' : 'Website:'}</span>
                   <a href="https://bvpindia.org" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     https://bvpindia.org <ExternalLink size={12} />
                   </a>
@@ -387,11 +350,11 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
                   </h3>
                 </div>
                 <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                  Authorized Technical Development, Hosting, Deployment, Maintenance & Data Processing Partner
+                  {isHi ? 'अधिकृत तकनीकी विकास, होस्टिंग एवं रखरखाव पार्टनर' : 'Authorized Technical Development, Hosting, Deployment, Maintenance & Data Processing Partner'}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.9rem' }}>
                   <span>Email: <a href="mailto:info@neopaceinfotech.com" style={{ color: '#2563eb', textDecoration: 'none' }}>info@neopaceinfotech.com</a></span>
-                  <span>Website:</span>
+                  <span>{isHi ? 'वेबसाइट:' : 'Website:'}</span>
                   <a href="https://neopaceinfotech.com" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     https://neopaceinfotech.com <ExternalLink size={12} />
                   </a>
@@ -412,7 +375,7 @@ export function TermsAndConditionsView({ onBack, lang = 'en', onChangeLang }: Te
         borderTop: '1px solid #e2e8f0',
         backgroundColor: '#ffffff'
       }}>
-        © {new Date().getFullYear()} Bharat Vikas Parishad. Powered by <strong>NeoPace Infotech LLP</strong>
+        © {new Date().getFullYear()} {isHi ? 'भारत विकास परिषद। द्वारा संचालित' : 'Bharat Vikas Parishad. Powered by'} <strong>NeoPace Infotech LLP</strong>
       </footer>
     </div>
   )

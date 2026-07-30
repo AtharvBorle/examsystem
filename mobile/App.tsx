@@ -117,6 +117,16 @@ function App() {
     }, 2500); // Resume auto-scroll after 2.5s of touch inactivity
   };
 
+  // Safety fallback: Hide loading indicator after 3.5 seconds maximum so app never gets stuck
+  useEffect(() => {
+    if (!showOnboarding && !showPledge && isLoading) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [showOnboarding, showPledge, isLoading]);
+
   useEffect(() => {
     return () => {
       if (interactionTimeoutRef.current) {
@@ -183,24 +193,43 @@ function App() {
               }}>
                 {`वन्दे मातरम्\n\nवन्दे मातरम् सुजलां सुफलां मलयजशीतलाम् शस्यश्यामलां\nमातरम्\nशुभ्रज्योत्स्नापुलकितयामिनीं फुल्लकुसुमितद्रुमदलशोभिनीं\nसुहासिनीं सुमधुर भाषिणीं सुखदां वरदां मातरम् । १\n\nवन्दे मातरम्\nकोटि-कोटि-कण्ठ-कल-कल-निनाद-कराले कोटि-कोटि-\nभुजैर्धृत-खरकरवाले, अबला केन मा एत बले\nबहुबलधारिणीं नमामि तारिणीं रिपुदलवारिणीं मातरम् । २\n\nवन्दे मातरम्\nतुमि विद्या, तुमि धर्म तुमि हृदि, तुमि मर्म त्वं हि प्राणा: शरीरे\nबाहुते तुमि मा शक्ति, हृदये तुमि मा भक्ति, तोमारई प्रतिमा\nगडि मन्दिरे-मन्दिरे मातरम् । ३\n\nत्वं हि दुर्गा दशप्रहरणधारिणी कमला कमलदलविहारिणी\nवाणी विद्यादायिनी । नमामि त्वां नमामि कमलां अमलां अतुलां\nसुजलां सुफलां मातरम् ॥ वन्दे मातरम् ॥\n\nश्यामलां सरलां सुस्मितां भूषितां धरणीं भरणीं मातरम् ॥\nवन्दे मातरम् ॥`}
               </Text>
-              <Text style={{
-                fontSize: 14.5,
-                fontWeight: 'bold',
-                color: '#ffffff',
-                textAlign: 'center',
-                marginTop: 18,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                backgroundColor: 'rgba(230, 115, 0, 0.3)',
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: '#e67300',
-                letterSpacing: 0.3
-              }}>
-                Please stand in honour of the National Song.
-              </Text>
             </View>
           </ScrollView>
+
+          {/* Permanent Fixed Honor Text Banner */}
+          <View style={{
+            position: 'absolute',
+            bottom: Platform.OS === 'ios' ? 90 : 76,
+            left: 20,
+            right: 20,
+            alignItems: 'center',
+            zIndex: 10,
+            pointerEvents: 'none'
+          }}>
+            <View style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.88)',
+              paddingHorizontal: 18,
+              paddingVertical: 9,
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: '#e67300',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 5,
+              elevation: 6
+            }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: 'bold',
+                color: '#f5d782',
+                textAlign: 'center',
+                letterSpacing: 0.4
+              }}>
+                🇮🇳 Please stand in honour of the National Song.
+              </Text>
+            </View>
+          </View>
 
           {/* Mute/Unmute Floating Button at Bottom Right */}
           <View style={{
@@ -776,7 +805,7 @@ function App() {
               setIsError(true);
               setIsLoading(false);
             }}
-            onLoadStart={() => setIsLoading(true)}
+            onLoad={() => setIsLoading(false)}
             onLoadEnd={() => setIsLoading(false)}
             onMessage={handleMessage}
             javaScriptEnabled={true}

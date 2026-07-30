@@ -37,7 +37,8 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
     if (onBack) {
       onBack()
     } else {
-      window.history.back()
+      window.history.pushState({}, '', '/oes/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
     }
   }
 
@@ -364,6 +365,8 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
     }
   ]
 
+  const isHi = currentLang === 'hi'
+
   const filteredFaqs = faqs.filter(faq => 
     faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (typeof faq.answer === 'string' && faq.answer.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -475,11 +478,13 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
                 fontFamily: 'var(--font-serif, Georgia, serif)',
                 letterSpacing: '-0.02em'
               }}>
-                FREQUENTLY ASKED QUESTIONS (FAQs)
+                {isHi ? 'सामान्य प्रश्नोत्तर (FAQs)' : 'FREQUENTLY ASKED QUESTIONS (FAQs)'}
               </h1>
             </div>
             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>
-              Find quick answers to common queries regarding registration, examinations, certificates, and technical support.
+              {isHi 
+                ? 'पंजीकरण, परीक्षा, प्रमाणपत्र और तकनीकी सहायता से संबंधित सामान्य प्रश्नों के त्वरित उत्तर प्राप्त करें।'
+                : 'Find quick answers to common queries regarding registration, examinations, certificates, and technical support.'}
             </p>
           </div>
 
@@ -491,7 +496,7 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input 
               type="text"
-              placeholder="Search FAQs by keyword..."
+              placeholder={isHi ? 'कीवर्ड द्वारा प्रश्न खोजें...' : 'Search FAQs by keyword...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -514,6 +519,8 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {filteredFaqs.map((faq) => {
               const isOpen = openId === faq.id || searchTerm.trim().length > 0
+              const displayQuestion = isHi && faq.questionHi ? faq.questionHi : faq.question
+              const displayAnswer = isHi && faq.answerHi ? faq.answerHi : faq.answer
               return (
                 <div 
                   key={faq.id}
@@ -541,7 +548,7 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
                     }}
                   >
                     <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0b2240', paddingRight: '1rem' }}>
-                      {faq.question}
+                      {displayQuestion}
                     </span>
                     <div style={{
                       backgroundColor: isOpen ? '#0b2240' : '#e2e8f0',
@@ -566,7 +573,7 @@ export function FaqView({ onBack, lang = 'en', onChangeLang }: FaqViewProps) {
                       borderTop: '1px solid #f1f5f9'
                     }}>
                       <div style={{ marginTop: '0.75rem' }}>
-                        {faq.answer}
+                        {displayAnswer}
                       </div>
                     </div>
                   )}
