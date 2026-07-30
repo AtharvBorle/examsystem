@@ -6250,166 +6250,184 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
 
       {/* Edit Exam Modal */}
       {editingExam && (
-        <div className="modal-overlay" style={{ zIndex: 1000 }}>
-          <div className="modal-content" style={{ maxWidth: '550px', width: '95%' }}>
-            <h3 className="modal-title">{t.examsEditTitle || "Edit Exam Settings"}</h3>
+        <div className="modal-overlay" style={{ zIndex: 1000, backgroundColor: 'rgba(11, 34, 64, 0.75)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content" style={{ maxWidth: '960px', width: '92%', maxHeight: '90vh', overflowY: 'auto', padding: '2rem 2.25rem', borderRadius: '16px', border: '1px solid var(--border-muted)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #f1f5f9', paddingBottom: '1rem' }}>
+              <h3 className="modal-title" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0b2240', fontFamily: 'var(--font-serif, serif)' }}>
+                {t.examsEditTitle || "Edit Exam Settings"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingExam(null)}
+                style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#64748b', cursor: 'pointer', outline: 'none' }}
+              >
+                &times;
+              </button>
+            </div>
+
             <form onSubmit={handleUpdateExam}>
-              <div className="form-group">
-                <label className="form-label">{t.examsExamName}</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">{t.examsExamNameHindi}</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editNameHindi}
-                  onChange={(e) => setEditNameHindi(e.target.value)}
-                />
-              </div>
-
-              <div className="grid-2" style={{ gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
-                <div className="form-group">
-                  <label className="form-label">{t.categoriesCatName}</label>
-                  <select value={editCatId} onChange={(e) => { setEditCatId(e.target.value); setEditSubcatId(''); }} required>
-                    <option value="">{t.categoriesSelectCatPlaceholder}</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">{t.categoriesSubcatOptional}</label>
-                  <select
-                    value={editSubcatId}
-                    onChange={(e) => setEditSubcatId(e.target.value)}
-                    disabled={!editCatId}
-                  >
-                    <option value="">{t.categoriesNone}</option>
-                    {categories.find(c => c.id === editCatId)?.subcategories?.map((sub: any) => (
-                      <option key={sub.id} value={sub.id}>
-                        {sub.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Question Set Select Field */}
-              {editCatId && (
-                <div className="form-group" style={{ marginTop: '0.25rem', marginBottom: '1.25rem' }}>
-                  <label className="form-label">{t.examsQuestionSet}</label>
-                  {editAvailableSets.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '0.25rem 0' }}>
-                       {t.adminNoQuestionSetsUploaded}
-                    </div>
-                  ) : editAvailableSets.length === 1 ? (
-                    <div style={{ padding: '0.4rem', border: '1px solid var(--border-muted)', borderRadius: '4px', backgroundColor: 'var(--bg-muted)', fontSize: '0.85rem' }}>
-                      <strong>{editAvailableSets[0]}</strong> <span style={{ color: 'var(--text-muted)' }}>{t.adminSelectedAutomatically}</span>
-                    </div>
-                  ) : (
-                    <select
-                      value={editQuestionSetName}
-                      onChange={(e) => setEditQuestionSetName(e.target.value)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.75rem' }}>
+                {/* Left Column */}
+                <div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 600 }}>{t.examsExamName}</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
                       required
-                    >
-                      <option value="">{t.examsChooseSet}</option>
-                      {editAvailableSets.map((setName) => (
-                        <option key={setName} value={setName}>
-                          {setName}
-                        </option>
-                      ))}
-                    </select>
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 600 }}>{t.examsExamNameHindi}</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editNameHindi}
+                      onChange={(e) => setEditNameHindi(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid-2" style={{ gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>{t.categoriesCatName}</label>
+                      <select value={editCatId} onChange={(e) => { setEditCatId(e.target.value); setEditSubcatId(''); }} required>
+                        <option value="">{t.categoriesSelectCatPlaceholder}</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>{t.categoriesSubcatOptional}</label>
+                      <select
+                        value={editSubcatId}
+                        onChange={(e) => setEditSubcatId(e.target.value)}
+                        disabled={!editCatId}
+                      >
+                        <option value="">{t.categoriesNone}</option>
+                        {categories.find(c => c.id === editCatId)?.subcategories?.map((sub: any) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Question Set Select Field */}
+                  {editCatId && (
+                    <div className="form-group" style={{ marginTop: '0.25rem', marginBottom: '1rem' }}>
+                      <label className="form-label" style={{ fontWeight: 600 }}>{t.examsQuestionSet}</label>
+                      {editAvailableSets.length === 0 ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                           {t.adminNoQuestionSetsUploaded}
+                        </div>
+                      ) : editAvailableSets.length === 1 ? (
+                        <div style={{ padding: '0.5rem 0.75rem', border: '1px solid var(--border-muted)', borderRadius: '6px', backgroundColor: 'var(--bg-muted)', fontSize: '0.85rem' }}>
+                          <strong>{editAvailableSets[0]}</strong> <span style={{ color: 'var(--text-muted)' }}>{t.adminSelectedAutomatically}</span>
+                        </div>
+                      ) : (
+                        <select
+                          value={editQuestionSetName}
+                          onChange={(e) => setEditQuestionSetName(e.target.value)}
+                          required
+                        >
+                          <option value="">{t.examsChooseSet}</option>
+                          {editAvailableSets.map((setName) => (
+                            <option key={setName} value={setName}>
+                              {setName}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              <div className="grid-3" style={{ gap: '1rem', gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '1.25rem' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">{t.examsDurationLabel}</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={editDuration}
-                    onChange={(e) => setEditDuration(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">{t.examsQuestionCount}</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={editQuestionCount}
-                    onChange={(e) => setEditQuestionCount(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">{t.examsMarkPerQ}</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    className="form-input"
-                    value={editMarksPerQuestion}
-                    onChange={(e) => setEditMarksPerQuestion(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+                {/* Right Column */}
+                <div>
+                  <div className="grid-3" style={{ gap: '0.75rem', gridTemplateColumns: '1fr 1fr 1fr', marginBottom: '1.25rem' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600 }}>{t.examsDurationLabel}</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={editDuration}
+                        onChange={(e) => setEditDuration(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600 }}>{t.examsQuestionCount}</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        value={editQuestionCount}
+                        onChange={(e) => setEditQuestionCount(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontWeight: 600 }}>{t.examsMarkPerQ}</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="form-input"
+                        value={editMarksPerQuestion}
+                        onChange={(e) => setEditMarksPerQuestion(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid-2" style={{ gap: '1rem', gridTemplateColumns: '1fr 1fr', marginBottom: '1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">{t.examsPushSchools}</label>
-                  <SchoolSelectorField
-                    schools={filteredSchoolsForExams}
-                    selectedSchoolIds={editSchoolIds}
-                    setSelectedSchoolIds={setEditSchoolIds}
-                  />
-                </div>
+                  <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="form-label" style={{ fontWeight: 600 }}>{t.examsPushSchools}</label>
+                    <SchoolSelectorField
+                      schools={filteredSchoolsForExams}
+                      selectedSchoolIds={editSchoolIds}
+                      setSelectedSchoolIds={setEditSchoolIds}
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">{t.examsTargetGroups}</label>
-                  <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid var(--border-muted)', padding: '0.4rem' }}>
-                    {groups.map((g) => (
-                      <div key={g.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={editGroupIds.includes(g.id)}
-                          onChange={() => setEditGroupIds((prev) =>
-                            prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
-                          )}
-                          style={{ marginRight: '0.4rem' }}
-                        />
-                        <span style={{ fontSize: '0.8rem' }}>{g.name}</span>
-                      </div>
-                    ))}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 600 }}>{t.examsTargetGroups}</label>
+                    <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--border-muted)', borderRadius: '6px', padding: '0.5rem', backgroundColor: '#ffffff' }}>
+                      {groups.map((g) => (
+                        <div key={g.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={editGroupIds.includes(g.id)}
+                            onChange={() => setEditGroupIds((prev) =>
+                              prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
+                            )}
+                            style={{ marginRight: '0.5rem', width: '16px', height: '16px' }}
+                          />
+                          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{g.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '2rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                 <button
                   type="button"
                   onClick={() => setEditingExam(null)}
                   className="btn btn-secondary"
-                  style={{ textTransform: 'none' }}
+                  style={{ textTransform: 'none', padding: '0.6rem 1.25rem', fontWeight: 600 }}
                 >
                   {t.adminCancelBtn}
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ textTransform: 'none' }}
+                  style={{ textTransform: 'none', padding: '0.6rem 1.5rem', fontWeight: 700 }}
                 >
                   {t.adminSaveChangesBtn}
                 </button>
