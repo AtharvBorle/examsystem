@@ -6,7 +6,8 @@
     "dev": "next dev -H 0.0.0.0 -p 5000",
     "build": "next build",
     "start": "next start -p 5000",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "reset-db": "node prisma/reset-db.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
