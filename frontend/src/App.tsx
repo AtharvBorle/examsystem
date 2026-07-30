@@ -248,6 +248,10 @@ function MainLayout() {
         } else {
           setCurrentView('DASHBOARD')
         }
+      } else {
+        if (user) {
+          setCurrentView('DASHBOARD')
+        }
       }
     }
 
@@ -261,7 +265,7 @@ function MainLayout() {
 
   useEffect(() => {
     let targetPath = '/oes/'
-    if (currentView === 'ADMIN_LOGIN') {
+    if (currentView === 'ADMIN_LOGIN' || (currentView === 'DASHBOARD' && user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'))) {
       targetPath = '/oes/admin'
     } else if (currentView === 'TERMS') {
       targetPath = '/oes/T&C'
