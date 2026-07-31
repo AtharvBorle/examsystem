@@ -1365,7 +1365,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                     </div>
 
                     {/* Vertical Divider */}
-                    <div style={{ width: '1px', height: '80px', backgroundColor: '#e2d5c5', margin: '0 32px' }}></div>
+                    <div style={{ width: '1px', height: '80px', backgroundColor: '#e2d5c5', margin: '0 16px' }}></div>
 
                     {/* Middle Column: Metadata */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '240px' }}>

@@ -1357,7 +1357,7 @@ input::-webkit-credentials-auto-fill-button {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -1393,7 +1393,7 @@ input::-webkit-credentials-auto-fill-button {
   width: 1px;
   height: 26px;
   background-color: #cbd5e1;
-  margin: 0 6px;
+  margin: 0 2px;
   flex-shrink: 0;
 }
 
