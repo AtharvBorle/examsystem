@@ -723,6 +723,23 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const [schools, setSchools] = useState<any[]>([])
   const [recentAttempts, setRecentAttempts] = useState<any[]>([])
   const [selectedSchoolDetail, setSelectedSchoolDetail] = useState<any | null>(null)
+
+  const handleOpenSchoolDetail = async (udise: string) => {
+    try {
+      const res = await fetch(`/api/admin/schools/detail?udise=${udise}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSelectedSchoolDetail(data)
+      } else {
+        alert(data.error || 'Failed to load school details')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Connection error loading school details')
+    }
+  }
   const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'ATTEMPTS' | 'PASSWORD_RESET'>('ADMINS')
 
   // Filters for CSV and overview lists
@@ -1348,7 +1365,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                       <td>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                           <button
-                            onClick={() => window.open(`/?schoolDetailUdise=${sch.udise}`, '_blank')}
+                            onClick={() => handleOpenSchoolDetail(sch.udise)}
                             className="btn-text"
                             style={{ padding: 0, textDecoration: 'underline', fontWeight: 'bold', color: 'var(--primary-navy)', fontFamily: 'var(--font-sans)', textTransform: 'none', textAlign: 'left' }}
                           >
@@ -3148,6 +3165,23 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
   const [submitting, setSubmitting] = useState(false)
   const [selectedSchoolDetail, setSelectedSchoolDetail] = useState<any | null>(null)
 
+  const handleOpenSchoolDetail = async (udise: string) => {
+    try {
+      const res = await fetch(`/api/admin/schools/detail?udise=${udise}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSelectedSchoolDetail(data)
+      } else {
+        alert(data.error || 'Failed to load school details')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Connection error loading school details')
+    }
+  }
+
   // Selections and Edit state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [editingSchool, setEditingSchool] = useState<any | null>(null)
@@ -3654,7 +3688,7 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
                       <td>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                           <button
-                            onClick={() => window.open(`/?schoolDetailUdise=${sch.udise}`, '_blank')}
+                            onClick={() => handleOpenSchoolDetail(sch.udise)}
                             className="btn-text"
                             style={{ padding: 0, textDecoration: 'underline', fontWeight: 'bold', color: 'var(--primary-navy)', fontFamily: 'var(--font-sans)', textTransform: 'none', textAlign: 'left' }}
                           >

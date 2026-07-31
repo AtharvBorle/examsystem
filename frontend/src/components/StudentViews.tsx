@@ -677,7 +677,6 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         } catch (e) {
           console.error(e)
         }
-        // Exam submitted successfully! Set completion view metadata
         const score = data.score !== undefined ? data.score : 0
         const totalMarks = data.totalMarks !== undefined ? data.totalMarks : (activeSession ? ((activeSession.questions?.length || activeSession.totalQuestions || 50) * (activeSession.marksPerQuestion || 1)) : 50)
 
@@ -687,16 +686,44 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           schoolName: user.school?.name || 'School',
           classroomName: user.classroom?.name || 'Classroom',
           examName: activeSession?.examName || 'Examination',
-          completedAt: data.submittedAt,
+          completedAt: data.submittedAt || new Date().toISOString(),
           language: activeSession?.language || 'en',
           score,
           totalMarks,
         })
         setActiveSession(null)
         fetchExams()
+      } else {
+        console.warn('Submit API returned non-success, forcing completion transition:', data?.error)
+        setCompletedAttempt({
+          attemptId,
+          studentName: user.name || 'Student',
+          schoolName: user.school?.name || 'School',
+          classroomName: user.classroom?.name || 'Classroom',
+          examName: activeSession?.examName || 'Examination',
+          completedAt: new Date().toISOString(),
+          language: activeSession?.language || 'en',
+          score: data?.score !== undefined ? data.score : 0,
+          totalMarks: data?.totalMarks !== undefined ? data.totalMarks : 50,
+        })
+        setActiveSession(null)
+        fetchExams()
       }
     } catch (err) {
-      console.error(err)
+      console.error('Error submitting exam, enforcing completion screen fallback:', err)
+      setCompletedAttempt({
+        attemptId,
+        studentName: user.name || 'Student',
+        schoolName: user.school?.name || 'School',
+        classroomName: user.classroom?.name || 'Classroom',
+        examName: activeSession?.examName || 'Examination',
+        completedAt: new Date().toISOString(),
+        language: activeSession?.language || 'en',
+        score: 0,
+        totalMarks: 50,
+      })
+      setActiveSession(null)
+      fetchExams()
     }
   }
 
@@ -2498,10 +2525,15 @@ export function ExamSessionView({
     }
   }
 
+  const responsesRef = useRef(responses)
+  useEffect(() => {
+    responsesRef.current = responses
+  }, [responses])
+
   const handleAutoSubmit = async () => {
     if (submitting) return
     setSubmitting(true)
-    await onSubmit(session.attemptId, responses)
+    await onSubmit(session.attemptId, responsesRef.current)
   }
 
   const handleManualSubmit = () => {

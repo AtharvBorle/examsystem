@@ -33,7 +33,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (attempt.completed) {
-      return errorResponse('Exam has already been submitted and graded.', 400)
+      const totalMarks = attempt.exam.questionCount * attempt.exam.marksPerQuestion
+      return successResponse({
+        message: 'Exam has already been submitted.',
+        score: attempt.score,
+        totalMarks,
+        correctAnswers: attempt.correctAnswers,
+        totalQuestions: attempt.totalQuestions,
+        submittedAt: attempt.submittedAt || new Date(),
+      })
     }
 
     const studentLang = language || attempt.student.language || 'en'

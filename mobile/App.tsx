@@ -809,8 +809,23 @@ function App() {
             onLoadEnd={() => setIsLoading(false)}
             onMessage={handleMessage}
             onShouldStartLoadWithRequest={(request) => {
-              if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
-                Linking.openURL(request.url).catch((err) => console.log('Error opening external URL:', err));
+              const url = request.url;
+              if (
+                url.startsWith('file://') ||
+                url.startsWith('about:') ||
+                url.includes('android_asset')
+              ) {
+                return true;
+              }
+              if (
+                url.startsWith('http://') ||
+                url.startsWith('https://') ||
+                url.startsWith('mailto:') ||
+                url.startsWith('tel:') ||
+                url.startsWith('sms:') ||
+                url.startsWith('intent:')
+              ) {
+                Linking.openURL(url).catch((err) => console.log('Error opening external URL:', err));
                 return false;
               }
               return true;

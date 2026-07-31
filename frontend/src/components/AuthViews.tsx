@@ -9,24 +9,36 @@ import { LanguageSelector } from './LanguageSelector'
 
 export const getAbsolutePolicyUrl = (path: string) => {
   if (typeof window === 'undefined') return path
-  const origin = window.location.origin
-  let routePath = path
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    try {
-      const u = new URL(path)
-      routePath = u.pathname
-    } catch (e) {
-      routePath = path
-    }
+    return path
   }
+  let routePath = path
   if (!routePath.startsWith('/')) {
     routePath = '/' + routePath
   }
+  const origin = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+    ? window.location.origin
+    : 'https://bvpindia.org'
   return `${origin}${routePath}`
 }
 
 export const openExternalPolicyLink = (url: string) => {
+  if (!url) return
+  
+  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('sms:')) {
+    if ((window as any).ReactNativeWebView && (window as any).ReactNativeWebView.postMessage) {
+      (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'OPEN_EXTERNAL_URL',
+        url: url
+      }))
+    } else {
+      window.location.href = url
+    }
+    return
+  }
+
   const targetUrl = getAbsolutePolicyUrl(url)
+
   if ((window as any).ReactNativeWebView && (window as any).ReactNativeWebView.postMessage) {
     (window as any).ReactNativeWebView.postMessage(JSON.stringify({
       type: 'OPEN_EXTERNAL_URL',
