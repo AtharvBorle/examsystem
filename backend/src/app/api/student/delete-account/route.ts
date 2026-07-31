@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
+import { getAccountDeletionGraceDisplayString, getAccountDeletionGraceMinutes } from '@/lib/account-deletion-config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +17,15 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    return successResponse({ success: true, message: 'Account deletion requested successfully. Your account will be permanently deleted after 30 days.' })
+    const displayTime = getAccountDeletionGraceDisplayString()
+    const graceMinutes = getAccountDeletionGraceMinutes()
+
+    return successResponse({ 
+      success: true, 
+      graceMinutes,
+      displayTime,
+      message: `Account deletion requested successfully. Your account will be permanently deleted after ${displayTime}.` 
+    })
   } catch (error: any) {
     console.error('Delete account error:', error)
     return errorResponse('Internal server error', 500)

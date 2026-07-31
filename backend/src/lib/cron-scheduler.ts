@@ -1,5 +1,6 @@
 import cron from 'node-cron'
 import { prisma } from './prisma'
+import { getAccountDeletionThresholdDate, getAccountDeletionGraceDisplayString } from './account-deletion-config'
 
 const ADVISORY_LOCK_ID = BigInt('884729103847219')
 
@@ -23,13 +24,14 @@ export function initAnonymizeCron() {
       }
 
       try {
-        console.log('[MIDNIGHT CRON] Lock acquired. Executing expired account anonymization...')
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        const displayTime = getAccountDeletionGraceDisplayString()
+        console.log(`[MIDNIGHT CRON] Lock acquired. Executing expired account anonymization (retention: ${displayTime})...`)
+        const thresholdDate = getAccountDeletionThresholdDate()
 
         const expiredStudents = await prisma.student.findMany({
           where: {
             deletedAt: {
-              lte: thirtyDaysAgo,
+              lte: thresholdDate,
               not: null
             },
             NOT: {

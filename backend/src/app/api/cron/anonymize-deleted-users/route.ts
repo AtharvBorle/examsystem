@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAccountDeletionThresholdDate, getAccountDeletionGraceDisplayString } from '@/lib/account-deletion-config'
 
 // 64-bit bigint lock key for user anonymization across cluster nodes
 const ADVISORY_LOCK_ID = BigInt('884729103847219')
@@ -36,14 +37,15 @@ async function handleAnonymization(req: NextRequest) {
     }
 
     try {
-      console.log('[ANONYMIZE CRON] Acquired lock. Running daily midnight user anonymization...')
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const displayTime = getAccountDeletionGraceDisplayString()
+      console.log(`[ANONYMIZE CRON] Acquired lock. Running account anonymization (retention: ${displayTime})...`)
+      const thresholdDate = getAccountDeletionThresholdDate()
 
-      // Find all students soft-deleted >= 30 days ago that have not yet been anonymized
+      // Find all students soft-deleted past the grace threshold date that have not yet been anonymized
       const expiredStudents = await prisma.student.findMany({
         where: {
           deletedAt: {
-            lte: thirtyDaysAgo,
+            lte: thresholdDate,
             not: null
           },
           NOT: {
