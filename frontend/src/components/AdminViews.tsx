@@ -1720,7 +1720,7 @@ function MultiSelectSchoolDropdown({
     return options.filter(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
   }, [options, searchQuery])
 
-  const isAllSelected = selectedIds.length === 0 || selectedIds.includes('all')
+  const isAllSelected = selectedIds.includes('all') || (options.length > 0 && selectedIds.length === options.length)
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
@@ -1731,16 +1731,17 @@ function MultiSelectSchoolDropdown({
   }
 
   const toggleOption = (id: string) => {
-    if (isAllSelected) {
-      onChange([id])
-      return
+    let current = selectedIds
+    if (current.includes('all')) {
+      current = options.map(o => o.id)
     }
-    if (selectedIds.includes(id)) {
-      const next = selectedIds.filter(x => x !== id)
-      onChange(next.length === 0 ? ['all'] : next)
+
+    if (current.includes(id)) {
+      const next = current.filter(x => x !== id)
+      onChange(next)
     } else {
-      const next = [...selectedIds, id]
-      if (next.length === options.length) {
+      const next = [...current, id]
+      if (options.length > 0 && next.length === options.length) {
         onChange(['all'])
       } else {
         onChange(next)
@@ -1749,13 +1750,14 @@ function MultiSelectSchoolDropdown({
   }
 
   const displayLabel = React.useMemo(() => {
-    if (isAllSelected) return lang === 'hi' ? 'सभी विद्यालय (चयनित)' : 'All Schools Selected'
+    if (selectedIds.includes('all')) return lang === 'hi' ? 'सभी विद्यालय (चयनित)' : 'All Schools Selected'
+    if (selectedIds.length === 0) return lang === 'hi' ? 'कोई विद्यालय चयनित नहीं' : 'No Schools Selected'
     if (selectedIds.length === 1) {
       const found = options.find(o => o.id === selectedIds[0])
       return found ? found.name : (lang === 'hi' ? '1 विद्यालय चयनित' : '1 School Selected')
     }
     return lang === 'hi' ? `${selectedIds.length} विद्यालय चयनित` : `${selectedIds.length} Schools Selected`
-  }, [isAllSelected, selectedIds, options, lang])
+  }, [selectedIds, options, lang])
 
   return (
     <div ref={ref} style={{ position: 'relative', width: '100%' }}>
@@ -1777,7 +1779,7 @@ function MultiSelectSchoolDropdown({
           margin: 0
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isAllSelected ? 'normal' : '600' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: selectedIds.includes('all') ? 'normal' : '600' }}>
           {displayLabel}
         </span>
         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.4rem' }}>▼</span>
@@ -1839,7 +1841,7 @@ function MultiSelectSchoolDropdown({
               </div>
             ) : (
               filteredOptions.map(opt => {
-                const checked = isAllSelected || selectedIds.includes(opt.id)
+                const checked = selectedIds.includes('all') || selectedIds.includes(opt.id)
                 return (
                   <label
                     key={opt.id}
