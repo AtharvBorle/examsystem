@@ -1350,44 +1350,51 @@ input::-webkit-credentials-auto-fill-button {
   align-items: center;
   width: 100%;
   margin-bottom: 0.75rem;
+  justify-content: space-between;
 }
 
 .mobile-exam-metadata .meta-col {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
+  min-width: 0;
 }
 
 .mobile-exam-metadata .meta-col .meta-icon {
   color: #0f3d7a;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .mobile-exam-metadata .meta-col .meta-labels {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .mobile-exam-metadata .meta-col .meta-labels .label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #718096;
   margin: 0;
+  white-space: nowrap;
 }
 
 .mobile-exam-metadata .meta-col .meta-labels .val {
-  font-size: 0.9rem;
+  font-size: 0.825rem;
   color: #0f3d7a;
   font-weight: 700;
   margin: 0;
+  white-space: nowrap;
 }
 
 .mobile-exam-metadata .meta-divider {
   width: 1px;
-  height: 30px;
+  height: 26px;
   background-color: #cbd5e1;
-  margin: 0 15px;
+  margin: 0 6px;
+  flex-shrink: 0;
 }
 
 .take-exam-dark-btn {

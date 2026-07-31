@@ -1160,8 +1160,33 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           flexDirection: 'column'
         }}
       >
-        {/* Top bar with LanguageSelector and Logout button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', marginBottom: '2rem', gap: '16px' }}>
+        {/* Top bar with Settings, LanguageSelector and Logout button */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', marginBottom: '2rem', gap: '12px' }}>
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            style={{
+              background: '#ffffff',
+              border: '1px solid #dcd1ba',
+              borderRadius: '8px',
+              height: '40px',
+              padding: '0 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              color: '#0b2240',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              boxShadow: '0 2px 4px rgba(140, 98, 57, 0.05)',
+              outline: 'none'
+            }}
+            title={lang === 'hi' ? 'सेटिंग्स' : 'Settings'}
+          >
+            <Settings size={18} style={{ color: '#c59f2d' }} />
+            <span>{lang === 'hi' ? 'सेटिंग्स' : 'Settings'}</span>
+          </button>
+
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
           {onLogout && (
             <button 
@@ -1365,6 +1390,18 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                           </span>
                           <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
                             {ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Total Questions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <HelpCircle size={22} style={{ color: '#0b2240' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#8c6239', fontWeight: 600 }}>
+                            {lang === 'hi' ? 'कुल प्रश्न' : 'Total Questions'}
+                          </span>
+                          <span style={{ fontSize: '1.05rem', color: '#0b2240', fontWeight: 700 }}>
+                            {ex.questionCount} {lang === 'hi' ? 'प्रश्न' : 'Questions'}
                           </span>
                         </div>
                       </div>
@@ -1825,8 +1862,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                 exams.map((ex) => (
                   <div key={ex.id} className="mobile-dashboard-card" style={{ 
                     flexShrink: 0, 
-                    width: '85%', 
-                    maxWidth: '320px', 
+                    width: '92%', 
+                    maxWidth: '360px', 
                     marginBottom: 0,
                     boxSizing: 'border-box'
                   }}>
@@ -1845,11 +1882,11 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                     <div className="mobile-exam-metadata">
                       <div className="meta-col">
                         <div className="meta-icon">
-                          <Calendar size={20} />
+                          <Calendar size={18} />
                         </div>
                         <div className="meta-labels">
                           <span className="label">{lang === 'hi' ? 'परीक्षा तिथि' : 'Exam Date'}</span>
-                          <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                          <span className="val">{new Date(ex.pushedAt || ex.createdAt).toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'short' })}</span>
                         </div>
                       </div>
 
@@ -1857,7 +1894,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
                       <div className="meta-col">
                         <div className="meta-icon">
-                          <Clock size={20} />
+                          <Clock size={18} />
                         </div>
                         <div className="meta-labels">
                           <span className="label">{lang === 'hi' ? 'अवधि' : 'Duration'}</span>
@@ -1869,7 +1906,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
                       <div className="meta-col">
                         <div className="meta-icon">
-                          <HelpCircle size={20} />
+                          <HelpCircle size={18} />
                         </div>
                         <div className="meta-labels">
                           <span className="label">{lang === 'hi' ? 'कुल प्रश्न' : 'Total Questions'}</span>
