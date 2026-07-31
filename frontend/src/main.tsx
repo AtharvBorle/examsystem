@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './styles/global.css'
+import { AppIconProvider } from './context/AppIconContext.tsx'
 
 // Global fetch interceptor for hybrid app (offline assets loading from APK file:/// protocol)
 const originalFetch = window.fetch;
@@ -24,6 +25,9 @@ window.fetch = function (input, init) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <AppIconProvider>
+      <App />
+    </AppIconProvider>
   </React.StrictMode>,
 )
+

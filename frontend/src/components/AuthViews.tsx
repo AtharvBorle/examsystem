@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import appIcon from '../assets/app_icon.jpeg'
+import { useAppIcon } from '../context/AppIconContext'
 
 import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { translations, Language } from '../utils/localization'
@@ -386,13 +387,15 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
     )
   }
 
+  const { appIconSrc } = useAppIcon()
+
   return (
     <div className={`mobile-login-container ${isNew ? 'new-bg' : ''}`}>
       {/* Top bar with InfoButton, mobile app icon as logo, and LanguageSelector */}
       <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <InfoButton lang={lang} />
-          <img src={appIcon} className="mobile-logo-img" alt="Logo" />
+          <img src={appIconSrc} className="mobile-logo-img" alt="Logo" />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />

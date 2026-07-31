@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth, User } from './context/AuthContext'
+import { useAppIcon } from './context/AppIconContext'
 import { translations, Language } from './utils/localization'
 import { LogOut, Settings } from 'lucide-react'
 import { LoginView, RegisterView, AdminLoginView } from './components/AuthViews'
@@ -421,16 +422,20 @@ function MainLayout() {
 // Navbar component
 function Navbar({ user, onLogout, lang, onChangeLang }: { user: User; onLogout: () => void; lang: Language; onChangeLang: (lang: Language) => void }) {
   const t = translations[lang]
+  const { appIconSrc } = useAppIcon()
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <div className="navbar-brand">
-          {user.role === 'ADMIN' 
-            ? t.adminPanelTitle 
-            : user.role === 'SUPER_ADMIN' 
-            ? t.superAdminPortalTitle 
-            : t.studentPortalTitle
-          }
+        <div className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <img src={appIconSrc} alt="App Icon" style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.3)' }} />
+          <span>
+            {user.role === 'ADMIN' 
+              ? t.adminPanelTitle 
+              : user.role === 'SUPER_ADMIN' 
+              ? t.superAdminPortalTitle 
+              : t.studentPortalTitle
+            }
+          </span>
         </div>
         <div className="navbar-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span className="text-sm font-sans hide-mobile" style={{ opacity: 0.8 }}>

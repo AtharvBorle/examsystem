@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import { useAuth, User } from '../context/AuthContext'
+import defaultIconAsset from '../assets/app_icon.jpeg'
+import bvpBkjIconAsset from '../assets/BVP-BKJ_icon.jpeg'
+import { useAppIcon } from '../context/AppIconContext'
 import { generateCertificatePDF } from '../utils/pdfGenerator'
 import { translations, Language } from '../utils/localization'
 import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
@@ -756,13 +759,51 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       alert('Connection error loading school details')
     }
   }
-  const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'ATTEMPTS' | 'PASSWORD_RESET'>('ADMINS')
+  const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'STUDENTS' | 'ATTEMPTS' | 'DOWNLOAD_ADMIN_DATA' | 'APP_ICON_MANAGER'>('ADMINS')
+  const { iconKey: activeAppIconKey, setAppIconLocal, refreshAppIcon } = useAppIcon()
+
+  const handleTriggerAppIcon = async (newIconKey: 'DEFAULT' | 'BVP_BKJ') => {
+    try {
+      setSubmitting(true)
+      const res = await fetch('/api/superadmin/settings/app-icon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ iconKey: newIconKey })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setAppIconLocal(newIconKey)
+        await refreshAppIcon()
+        alert(`SUCCESS: App icon triggered! Active icon updated to ${newIconKey === 'BVP_BKJ' ? 'BVP-BKJ Icon' : 'Default Icon'} across the entire app without requiring an update.`)
+      } else {
+        alert(data.error || 'Failed to update app icon setting')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Connection error triggering app icon')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   // Filters for CSV and overview lists
   const [schoolSearchQuery, setSchoolSearchQuery] = useState('')
   const [attemptSearchQuery, setAttemptSearchQuery] = useState('')
   const [attemptSchoolFilter, setAttemptSchoolFilter] = useState('')
   const [attemptExamFilter, setAttemptExamFilter] = useState('')
+
+  // Students view states
+  const [allStudents, setAllStudents] = useState<any[]>([])
+  const [studentSearchQuery, setStudentSearchQuery] = useState('')
+  const [studentSchoolFilter, setStudentSchoolFilter] = useState('all')
+  const [studentPage, setStudentPage] = useState(1)
+  const [studentPageSize, setStudentPageSize] = useState(10)
+
+  // Export Admin Data state
+  const [selectedExportAdminId, setSelectedExportAdminId] = useState('')
 
   // Form states
   const [email, setEmail] = useState('')
@@ -791,6 +832,12 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       const dataAdmins = await resAdmins.json()
       if (dataAdmins.success) {
         setAdmins(dataAdmins.admins)
+      }
+
+      const resStudents = await fetch('/api/superadmin/students', { headers })
+      const dataStudents = await resStudents.json()
+      if (dataStudents.success) {
+        setAllStudents(dataStudents.students)
       }
     } catch (err) {
       console.error(err)
@@ -882,6 +929,150 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     ])
     downloadCSV('exam_attempts.csv', headers, rows)
   }
+
+  const handleExportStudentsCSV = (list: any[]) => {
+    const headers = ['Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
+    const rows = list.map(st => [
+      st.name,
+      st.mobile,
+      st.schoolName,
+      st.udise,
+      st.classroomName,
+      st.district || '',
+      st.tehsil || '',
+      new Date(st.registeredAt).toLocaleDateString()
+    ])
+    downloadCSV('registered_students.csv', headers, rows)
+  }
+
+  const handleExportStudentsExcel = (list: any[]) => {
+    const headers = ['Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
+    const rows = list.map(st => [
+      st.name,
+      st.mobile,
+      st.schoolName,
+      st.udise,
+      st.classroomName,
+      st.district || '',
+      st.tehsil || '',
+      new Date(st.registeredAt).toLocaleDateString()
+    ])
+    downloadExcel('registered_students.xlsx', headers, rows)
+  }
+
+  const handleDownloadAdminData = async (adminId: string, adminEmail: string) => {
+    try {
+      setSubmitting(true)
+      const res = await fetch(`/api/superadmin/admins/export-data?adminId=${adminId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!data.success) {
+        alert(data.error || 'Failed to fetch admin data for export')
+        return
+      }
+
+      // Create Multi-Sheet Excel Workbook
+      const wb = XLSX.utils.book_new()
+
+      // Admin Profile Sheet
+      const adminRows = [
+        ['Field', 'Value'],
+        ['Admin ID', data.admin.id],
+        ['Email ID', data.admin.email],
+        ['Mobile Number', data.admin.mobile],
+        ['Branch (English)', data.admin.branch],
+        ['Branch (Hindi)', data.admin.branchHindi],
+        ['User Count Limit', data.admin.userCountLimit],
+        ['User Count Used', data.admin.userCountUsed],
+        ['President Name', data.admin.presidentName],
+        ['Secretary Name', data.admin.secretaryName],
+        ['Created Date', new Date(data.admin.createdAt).toLocaleString()],
+      ]
+      const wsAdmin = XLSX.utils.aoa_to_sheet(adminRows)
+      XLSX.utils.book_append_sheet(wb, wsAdmin, 'Admin Profile')
+
+      // Schools Sheet
+      const schoolHeaders = ['School ID', 'School Name', 'UDISE', 'Tehsil', 'District', 'Language', 'Registered Students', 'Created Date']
+      const schoolRows = data.schools.map((s: any) => [
+        s.id, s.name, s.udise, s.tehsil, s.district, s.language, s.studentsCount, new Date(s.createdAt).toLocaleString()
+      ])
+      const wsSchools = XLSX.utils.aoa_to_sheet([schoolHeaders, ...schoolRows])
+      XLSX.utils.book_append_sheet(wb, wsSchools, 'Schools')
+
+      // Classrooms Sheet
+      const classHeaders = ['Classroom ID', 'Classroom Name', 'Created Date']
+      const classRows = data.classrooms.map((c: any) => [c.id, c.name, new Date(c.createdAt).toLocaleString()])
+      const wsClassrooms = XLSX.utils.aoa_to_sheet([classHeaders, ...classRows])
+      XLSX.utils.book_append_sheet(wb, wsClassrooms, 'Classrooms')
+
+      // Exams Sheet
+      const examHeaders = ['Exam ID', 'Exam Name', 'Exam Code', 'Language', 'Total Questions', 'Duration (Mins)', 'Pass Marks', 'Total Marks', 'Assigned Classrooms', 'Created Date']
+      const examRows = data.exams.map((ex: any) => [
+        ex.id, ex.name, ex.examCode, ex.language, ex.totalQuestions, ex.durationMinutes, ex.passMarks, ex.totalMarks, ex.assignedClassrooms, new Date(ex.createdAt).toLocaleString()
+      ])
+      const wsExams = XLSX.utils.aoa_to_sheet([examHeaders, ...examRows])
+      XLSX.utils.book_append_sheet(wb, wsExams, 'Exams')
+
+      // Questions Sheet
+      const qHeaders = ['Exam Name', 'Question No.', 'Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option', 'Explanation']
+      const qRows = data.questions.map((q: any) => [
+        q.examName, q.questionNo, q.questionText, q.optionA, q.optionB, q.optionC, q.optionD, q.correctOption, q.explanation
+      ])
+      const wsQuestions = XLSX.utils.aoa_to_sheet([qHeaders, ...qRows])
+      XLSX.utils.book_append_sheet(wb, wsQuestions, 'Questions')
+
+      // Registered Students Sheet
+      const stdHeaders = ['Student ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
+      const stdRows = data.students.map((st: any) => [
+        st.id, st.name, st.mobile, st.schoolName, st.udise, st.classroomName, st.district, st.tehsil, new Date(st.registeredAt).toLocaleString()
+      ])
+      const wsStudents = XLSX.utils.aoa_to_sheet([stdHeaders, ...stdRows])
+      XLSX.utils.book_append_sheet(wb, wsStudents, 'Registered Students')
+
+      // Exam Attempts & Scores Sheet
+      const attHeaders = ['Attempt ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'Exam Name', 'Score', 'Correct Answers', 'Total Questions', 'Duration (Mins)', 'Completed', 'Started Time', 'Submitted Time']
+      const attRows = data.attempts.map((att: any) => [
+        att.attemptId, att.studentName, att.studentMobile, att.schoolName, att.udise, att.classroomName, att.examName, att.score, att.correctAnswers, att.totalQuestions, att.durationMinutes, att.completed, new Date(att.startedAt).toLocaleString(), att.submittedAt ? new Date(att.submittedAt).toLocaleString() : ''
+      ])
+      const wsAttempts = XLSX.utils.aoa_to_sheet([attHeaders, ...attRows])
+      XLSX.utils.book_append_sheet(wb, wsAttempts, 'Exam Attempts')
+
+      const safeEmail = adminEmail.replace(/[^a-zA-Z0-9]/g, '_')
+      XLSX.writeFile(wb, `Admin_${safeEmail}_Complete_Data.xlsx`)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to download complete admin data')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Filter students for SuperAdmin Students view
+  const filteredSuperAdminStudents = React.useMemo(() => {
+    return allStudents.filter((st) => {
+      const matchSchool = studentSchoolFilter === 'all' || st.schoolId === studentSchoolFilter
+      if (!matchSchool) return false
+      if (!studentSearchQuery.trim()) return true
+      const q = studentSearchQuery.toLowerCase()
+      return (
+        (st.name || '').toLowerCase().includes(q) ||
+        (st.mobile || '').toLowerCase().includes(q) ||
+        (st.schoolName || '').toLowerCase().includes(q) ||
+        (st.udise || '').toLowerCase().includes(q) ||
+        (st.classroomName || '').toLowerCase().includes(q) ||
+        (st.district || '').toLowerCase().includes(q) ||
+        (st.tehsil || '').toLowerCase().includes(q)
+      )
+    })
+  }, [allStudents, studentSchoolFilter, studentSearchQuery])
+
+  const totalStudentPages = Math.max(1, Math.ceil(filteredSuperAdminStudents.length / studentPageSize))
+
+  const paginatedSuperAdminStudents = React.useMemo(() => {
+    const start = (studentPage - 1) * studentPageSize
+    return filteredSuperAdminStudents.slice(start, start + studentPageSize)
+  }, [filteredSuperAdminStudents, studentPage, studentPageSize])
 
   const filteredSchools = schools.filter(s => {
     const query = schoolSearchQuery.toLowerCase()
@@ -1054,7 +1245,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       </div>
 
       {/* Aggregate Stats Cards */}
-      <div className="grid-3" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: '2.5rem' }}>
+      <div className="grid-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: '2.5rem', gap: '1rem' }}>
         <div 
           onClick={() => setActiveTab('ADMINS')}
           className="card"
@@ -1096,23 +1287,23 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
           </div>
         </div>
         <div 
-          onClick={() => setActiveTab('ATTEMPTS')}
+          onClick={() => setActiveTab('STUDENTS')}
           className="card"
           style={{ 
             cursor: 'pointer',
-            border: activeTab === 'ATTEMPTS' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
-            boxShadow: activeTab === 'ATTEMPTS' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-            transform: activeTab === 'ATTEMPTS' ? 'translateY(-2px)' : 'none',
+            border: activeTab === 'STUDENTS' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
+            boxShadow: activeTab === 'STUDENTS' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+            transform: activeTab === 'STUDENTS' ? 'translateY(-2px)' : 'none',
             transition: 'all 0.2s ease',
-            backgroundColor: activeTab === 'ATTEMPTS' ? '#fbf9f5' : '#ffffff'
+            backgroundColor: activeTab === 'STUDENTS' ? '#fbf9f5' : '#ffffff'
           }}
         >
           <div className="flex-between">
             <div>
-              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'ATTEMPTS' ? 'bold' : 'normal' }}>Students</div>
-              <h2 style={{ fontSize: '2.25rem', marginBottom: 0, color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'inherit' }}>{stats.totalStudents}</h2>
+              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'STUDENTS' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'STUDENTS' ? 'bold' : 'normal' }}>Students</div>
+              <h2 style={{ fontSize: '2.25rem', marginBottom: 0, color: activeTab === 'STUDENTS' ? 'var(--primary-navy)' : 'inherit' }}>{stats.totalStudents}</h2>
             </div>
-            <Users size={36} style={{ color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
+            <Users size={36} style={{ color: activeTab === 'STUDENTS' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
         <div 
@@ -1135,28 +1326,46 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
             <Award size={36} style={{ color: activeTab === 'ATTEMPTS' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
-        {/* 
         <div 
-          onClick={() => setActiveTab('PASSWORD_RESET')}
+          onClick={() => setActiveTab('DOWNLOAD_ADMIN_DATA')}
           className="card"
           style={{ 
             cursor: 'pointer',
-            border: activeTab === 'PASSWORD_RESET' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
-            boxShadow: activeTab === 'PASSWORD_RESET' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-            transform: activeTab === 'PASSWORD_RESET' ? 'translateY(-2px)' : 'none',
+            border: activeTab === 'DOWNLOAD_ADMIN_DATA' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
+            boxShadow: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+            transform: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'translateY(-2px)' : 'none',
             transition: 'all 0.2s ease',
-            backgroundColor: activeTab === 'PASSWORD_RESET' ? '#fbf9f5' : '#ffffff'
+            backgroundColor: activeTab === 'DOWNLOAD_ADMIN_DATA' ? '#fbf9f5' : '#ffffff'
           }}
         >
           <div className="flex-between">
             <div>
-              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'PASSWORD_RESET' ? 'bold' : 'normal' }}>Security</div>
-              <h2 style={{ fontSize: '1.25rem', marginTop: '0.5rem', marginBottom: 0, color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'inherit', fontFamily: 'var(--font-serif)', whiteSpace: 'nowrap' }}>Forgot Password</h2>
+              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'bold' : 'normal' }}>Export Data</div>
+              <h2 style={{ fontSize: '1.15rem', marginTop: '0.4rem', marginBottom: 0, color: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'var(--primary-navy)' : 'inherit', fontFamily: 'var(--font-serif)', whiteSpace: 'nowrap' }}>Download Admin Data</h2>
             </div>
-            <FileText size={36} style={{ color: activeTab === 'PASSWORD_RESET' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
+            <FileText size={36} style={{ color: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
-        */}
+        <div 
+          onClick={() => setActiveTab('APP_ICON_MANAGER')}
+          className="card"
+          style={{ 
+            cursor: 'pointer',
+            border: activeTab === 'APP_ICON_MANAGER' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
+            boxShadow: activeTab === 'APP_ICON_MANAGER' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+            transform: activeTab === 'APP_ICON_MANAGER' ? 'translateY(-2px)' : 'none',
+            transition: 'all 0.2s ease',
+            backgroundColor: activeTab === 'APP_ICON_MANAGER' ? '#fbf9f5' : '#ffffff'
+          }}
+        >
+          <div className="flex-between">
+            <div>
+              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'APP_ICON_MANAGER' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'APP_ICON_MANAGER' ? 'bold' : 'normal' }}>Branding</div>
+              <h2 style={{ fontSize: '1.15rem', marginTop: '0.4rem', marginBottom: 0, color: activeTab === 'APP_ICON_MANAGER' ? 'var(--primary-navy)' : 'inherit', fontFamily: 'var(--font-serif)', whiteSpace: 'nowrap' }}>App Icon Manager</h2>
+            </div>
+            <Globe size={36} style={{ color: activeTab === 'APP_ICON_MANAGER' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
+          </div>
+        </div>
       </div>
 
       {activeTab === 'ADMINS' && (
@@ -1301,7 +1510,14 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                         </td>
                         <td style={{ fontSize: '0.85rem' }}>{new Date(adm.createdAt).toLocaleDateString()}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', flexWrap: 'nowrap' }}>
+                            <button
+                              onClick={() => handleDownloadAdminData(adm.id, adm.email)}
+                              className="btn btn-primary"
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', textTransform: 'none', backgroundColor: '#107c41', borderColor: '#107c41', color: '#ffffff' }}
+                            >
+                              📥 Download Data
+                            </button>
                             <button
                               onClick={() => handleStartEditAdmin(adm)}
                               className="btn btn-secondary"
@@ -1521,6 +1737,270 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'STUDENTS' && (
+        <div className="card" style={{ marginTop: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <h3 className="card-title" style={{ border: 'none', margin: 0, padding: 0 }}>All Registered Students ({filteredSuperAdminStudents.length})</h3>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', flexGrow: 1, justifyContent: 'flex-end' }}>
+              <input
+                type="text"
+                className="form-input"
+                style={{ maxWidth: '300px', width: '100%', margin: 0, padding: '0.5rem' }}
+                placeholder="Search student, mobile, school..."
+                value={studentSearchQuery}
+                onChange={(e) => {
+                  setStudentSearchQuery(e.target.value)
+                  setStudentPage(1)
+                }}
+              />
+              <select
+                className="form-select"
+                style={{ maxWidth: '220px', margin: 0, padding: '0.5rem' }}
+                value={studentSchoolFilter}
+                onChange={(e) => {
+                  setStudentSchoolFilter(e.target.value)
+                  setStudentPage(1)
+                }}
+              >
+                <option value="all">All Schools</option>
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.udise})</option>
+                ))}
+              </select>
+              <button
+                onClick={() => handleExportStudentsCSV(filteredSuperAdminStudents)}
+                className="btn btn-secondary"
+                style={{ textTransform: 'none', padding: '0.5rem 0.8rem', whiteSpace: 'nowrap' }}
+              >
+                Export CSV
+              </button>
+              <button
+                onClick={() => handleExportStudentsExcel(filteredSuperAdminStudents)}
+                className="btn btn-primary"
+                style={{ textTransform: 'none', padding: '0.5rem 0.8rem', whiteSpace: 'nowrap' }}
+              >
+                Export Excel
+              </button>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student Name</th>
+                  <th>Mobile Number</th>
+                  <th>School Name</th>
+                  <th>UDISE</th>
+                  <th>Class</th>
+                  <th>District / Tehsil</th>
+                  <th>Registered Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedSuperAdminStudents.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No students found matching your criteria.</td>
+                  </tr>
+                ) : (
+                  paginatedSuperAdminStudents.map((std, idx) => {
+                    const srNo = (studentPage - 1) * studentPageSize + idx + 1
+                    return (
+                      <tr key={std.id}>
+                        <td>{srNo}</td>
+                        <td><strong>{std.name}</strong></td>
+                        <td>{std.mobile}</td>
+                        <td>{std.schoolName}</td>
+                        <td>{std.udise}</td>
+                        <td><span className="badge badge-outline">{std.classroomName || '-'}</span></td>
+                        <td>{std.district || '-'}{std.tehsil ? `, ${std.tehsil}` : ''}</td>
+                        <td style={{ fontSize: '0.85rem' }}>{new Date(std.registeredAt).toLocaleDateString()}</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalStudentPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Showing {(studentPage - 1) * studentPageSize + 1} to {Math.min(studentPage * studentPageSize, filteredSuperAdminStudents.length)} of {filteredSuperAdminStudents.length} students
+              </div>
+              <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                <button
+                  className="btn btn-secondary"
+                  disabled={studentPage === 1}
+                  onClick={() => setStudentPage(1)}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  « First
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  disabled={studentPage === 1}
+                  onClick={() => setStudentPage(p => Math.max(1, p - 1))}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  ‹ Prev
+                </button>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', margin: '0 0.5rem' }}>
+                  Page {studentPage} of {totalStudentPages}
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  disabled={studentPage === totalStudentPages}
+                  onClick={() => setStudentPage(p => Math.min(totalStudentPages, p + 1))}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  Next ›
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  disabled={studentPage === totalStudentPages}
+                  onClick={() => setStudentPage(totalStudentPages)}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  Last »
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                <span>Per Page:</span>
+                <select
+                  className="form-select"
+                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', width: '70px', margin: 0 }}
+                  value={studentPageSize}
+                  onChange={(e) => {
+                    setStudentPageSize(Number(e.target.value))
+                    setStudentPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'DOWNLOAD_ADMIN_DATA' && (
+        <div className="card" style={{ marginTop: 0, maxWidth: '650px' }}>
+          <h3 className="card-title">Download Complete Administrator Data</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+            Select a System Administrator from the list below to export all associated records including managed schools, classrooms, exams, question banks, registered students, and student exam attempts into a multi-sheet Excel workbook.
+          </p>
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 'bold' }}>Select Administrator</label>
+            <select
+              className="form-select"
+              value={selectedExportAdminId}
+              onChange={(e) => setSelectedExportAdminId(e.target.value)}
+              style={{ fontSize: '0.95rem', padding: '0.6rem' }}
+            >
+              <option value="">-- Choose an Administrator --</option>
+              {admins.map((adm) => (
+                <option key={adm.id} value={adm.id}>
+                  {adm.email} (Mob: {adm.mobile}) {adm.branch ? `- ${adm.branch}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!selectedExportAdminId || submitting}
+            onClick={() => {
+              const selectedAdmin = admins.find(a => a.id === selectedExportAdminId)
+              if (selectedAdmin) {
+                handleDownloadAdminData(selectedAdmin.id, selectedAdmin.email)
+              }
+            }}
+            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', backgroundColor: '#107c41', borderColor: '#107c41', color: '#ffffff' }}
+          >
+            {submitting ? 'Preparing Export Data...' : '📥 Download Complete Admin Data (.xlsx)'}
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'APP_ICON_MANAGER' && (
+        <div className="card" style={{ marginTop: 0 }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3 className="card-title" style={{ border: 'none', margin: 0, padding: 0 }}>
+              App Icon & Branding Manager
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+              Both app icons are pre-bundled inside the application build. Super-Admin can trigger and push the active icon setting at any time. Once triggered, the active icon changes dynamically across all web browsers and mobile app screens without requiring users to download an app update!
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+            {/* Card 1: Default Icon */}
+            <div style={{ 
+              border: activeAppIconKey === 'DEFAULT' ? '2px solid #107c41' : '1px solid var(--border-muted)', 
+              borderRadius: '8px', 
+              padding: '1.5rem', 
+              backgroundColor: activeAppIconKey === 'DEFAULT' ? '#f4fbf7' : '#ffffff',
+              boxShadow: 'var(--shadow-sm)',
+              position: 'relative'
+            }}>
+              {activeAppIconKey === 'DEFAULT' && (
+                <span className="badge badge-success" style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}>
+                  ✓ CURRENTLY ACTIVE
+                </span>
+              )}
+              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-navy)' }}>1. Default App Icon</h4>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>File: <code>app_icon.jpeg</code></div>
+              <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+                <img src={defaultIconAsset} alt="Default App Icon" style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '2px solid #ffffff' }} />
+              </div>
+              <button
+                className="btn btn-primary"
+                disabled={submitting || activeAppIconKey === 'DEFAULT'}
+                onClick={() => handleTriggerAppIcon('DEFAULT')}
+                style={{ width: '100%', marginTop: '1rem', padding: '0.65rem', textTransform: 'none', backgroundColor: activeAppIconKey === 'DEFAULT' ? '#666666' : 'var(--primary-navy)', borderColor: activeAppIconKey === 'DEFAULT' ? '#666666' : 'var(--primary-navy)' }}
+              >
+                {activeAppIconKey === 'DEFAULT' ? '✓ Currently Active' : '⚡ Trigger & Push Default Icon'}
+              </button>
+            </div>
+
+            {/* Card 2: BVP-BKJ Icon */}
+            <div style={{ 
+              border: activeAppIconKey === 'BVP_BKJ' ? '2px solid #107c41' : '1px solid var(--border-muted)', 
+              borderRadius: '8px', 
+              padding: '1.5rem', 
+              backgroundColor: activeAppIconKey === 'BVP_BKJ' ? '#f4fbf7' : '#ffffff',
+              boxShadow: 'var(--shadow-sm)',
+              position: 'relative'
+            }}>
+              {activeAppIconKey === 'BVP_BKJ' && (
+                <span className="badge badge-success" style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}>
+                  ✓ CURRENTLY ACTIVE
+                </span>
+              )}
+              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-navy)' }}>2. BVP-BKJ App Icon</h4>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>File: <code>BVP-BKJ_icon.jpeg</code></div>
+              <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+                <img src={bvpBkjIconAsset} alt="BVP-BKJ App Icon" style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '2px solid #ffffff' }} />
+              </div>
+              <button
+                className="btn btn-primary"
+                disabled={submitting || activeAppIconKey === 'BVP_BKJ'}
+                onClick={() => handleTriggerAppIcon('BVP_BKJ')}
+                style={{ width: '100%', marginTop: '1rem', padding: '0.65rem', textTransform: 'none', backgroundColor: activeAppIconKey === 'BVP_BKJ' ? '#666666' : '#107c41', borderColor: activeAppIconKey === 'BVP_BKJ' ? '#666666' : '#107c41' }}
+              >
+                {activeAppIconKey === 'BVP_BKJ' ? '✓ Currently Active' : '⚡ Trigger & Push BVP-BKJ Icon'}
+              </button>
+            </div>
           </div>
         </div>
       )}
