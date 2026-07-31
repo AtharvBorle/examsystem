@@ -79,9 +79,12 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    const totalMarks = attempt.exam.questionCount * attempt.exam.marksPerQuestion
+
     return successResponse({
       message: 'Exam submitted successfully.',
       score: updatedAttempt.score,
+      totalMarks,
       correctAnswers: updatedAttempt.correctAnswers,
       totalQuestions: updatedAttempt.totalQuestions,
       submittedAt: updatedAttempt.submittedAt,

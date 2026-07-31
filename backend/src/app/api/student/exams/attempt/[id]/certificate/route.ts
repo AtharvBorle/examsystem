@@ -23,7 +23,7 @@ export async function GET(
       where: { id: attemptId },
       include: {
         exam: {
-          select: { name: true, nameHindi: true, createdAt: true },
+          select: { name: true, nameHindi: true, createdAt: true, questionCount: true, marksPerQuestion: true },
         },
         student: {
           select: {
@@ -162,6 +162,8 @@ export async function GET(
         examName: (targetLang === 'hi' && attempt.exam.nameHindi) ? attempt.exam.nameHindi : attempt.exam.name,
         completedAt: attempt.exam.createdAt || attempt.submittedAt,
         language: targetLang,
+        score: attempt.score,
+        totalMarks: attempt.exam.questionCount * attempt.exam.marksPerQuestion,
         district: translateGeography(district, targetLang),
         tehsil: translateGeography(tehsil, targetLang),
         branch: (targetLang === 'hi' && attempt.student.school.admin.branchHindi)

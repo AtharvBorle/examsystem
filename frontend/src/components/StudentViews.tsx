@@ -673,6 +673,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           console.error(e)
         }
         // Exam submitted successfully! Set completion view metadata
+        const score = data.score !== undefined ? data.score : 0
+        const totalMarks = data.totalMarks !== undefined ? data.totalMarks : (activeSession ? ((activeSession.questions?.length || activeSession.totalQuestions || 50) * (activeSession.marksPerQuestion || 1)) : 50)
+
         setCompletedAttempt({
           attemptId,
           studentName: user.name || 'Student',
@@ -681,6 +684,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           examName: activeSession?.examName || 'Examination',
           completedAt: data.submittedAt,
           language: activeSession?.language || 'en',
+          score,
+          totalMarks,
         })
         setActiveSession(null)
         fetchExams()
@@ -1052,9 +1057,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             fontFamily: 'var(--font-sans, sans-serif)'
           }}
         >
-          {lang === 'hi' 
-            ? 'आपने सफलतापूर्वक परीक्षा पूरी कर ली है और जमा कर दी है। आपकी भागीदारी डेटाबेस सिस्टम में दर्ज कर ली गई है।' 
-            : 'You have successfully completed and submitted the examination. Your participation has been recorded in the database system.'}
+          {t.successSubmitDesc
+            .replace('{score}', String(completedAttempt?.score !== undefined ? completedAttempt.score : 0))
+            .replace('{totalMarks}', String(completedAttempt?.totalMarks || 50))}
         </p>
 
         {/* Buttons Action Group */}
