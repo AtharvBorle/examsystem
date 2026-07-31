@@ -416,7 +416,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
               }}
             >
               <AlertTriangle size={16} />
-              {deletingAccount ? (lang === 'hi' ? 'अनुरोध भेजा जा रहा है...' : 'Requesting...') : (lang === 'hi' ? 'खाता हटाने का अनुरोध करें (30 दिन)' : 'Request Account Deletion (30 Days)')}
+              {deletingAccount ? (lang === 'hi' ? 'अनुरोध भेजा जा रहा है...' : 'Requesting...') : (lang === 'hi' ? 'खाता हटाने का अनुरोध करें' : 'Request Account Deletion')}
             </button>
           </div>
 
@@ -511,8 +511,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           
           <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5', margin: '0 0 1.5rem 0' }}>
             {lang === 'hi' 
-              ? 'क्या आप वाकई खाता हटाने का अनुरोध करना चाहते हैं? आपका खाता सॉफ्ट-डिलीट कर दिया जाएगा और 30 दिनों के बाद स्थायी रूप से हटा दिया जाएगा। इस अवधि के दौरान फिर से लॉगिन करने से हटाने का अनुरोध रद्द हो जाएगा।'
-              : 'Are you sure you want to request account deletion? Your account will be soft-deleted and permanently removed after 30 days. Logging in again during these 30 days will cancel the deletion request.'}
+              ? 'क्या आप वाकई खाता हटाने का अनुरोध करना चाहते हैं? आपका खाता सॉफ्ट-डिलीट कर दिया जाएगा और निर्धारित समयावधि के बाद स्थायी रूप से हटा दिया जाएगा। इस अवधि के दौरान फिर से लॉगिन करने से हटाने का अनुरोध रद्द हो जाएगा।'
+              : 'Are you sure you want to request account deletion? Your account will be soft-deleted and permanently removed after the retention period configured in system. Logging in again during this period will cancel the deletion request.'}
           </p>
           
           <div style={{ display: 'flex', gap: '0.75rem' }}>
