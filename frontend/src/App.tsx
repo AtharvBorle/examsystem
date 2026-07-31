@@ -246,18 +246,23 @@ function MainLayout() {
         lowerPath.includes('/tc')
       ) {
         setCurrentView('TERMS')
-      } else if (
-        lowerPath.endsWith('/admin') || 
-        lowerPath.includes('/admin')
-      ) {
-        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
-          setCurrentView('ADMIN_LOGIN')
-        } else {
-          setCurrentView('DASHBOARD')
-        }
       } else {
         if (user) {
           setCurrentView('DASHBOARD')
+          const targetPath = (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? '/oes/admin' : '/oes/'
+          try {
+            const cur = decodeURIComponent(window.location.pathname).replace(/\/+$/, '')
+            const tgt = targetPath.replace(/\/+$/, '')
+            if (cur !== tgt) {
+              window.history.pushState({ loggedIn: true }, '', targetPath)
+            }
+          } catch (e) {}
+        } else {
+          if (lowerPath.endsWith('/admin') || lowerPath.includes('/admin')) {
+            setCurrentView('ADMIN_LOGIN')
+          } else {
+            setCurrentView('LOGIN')
+          }
         }
       }
     }
