@@ -8,6 +8,11 @@ import { translateClassroomName } from '@/lib/class-translator'
 import { upsertSchoolTranslation } from '@/lib/school-translator'
 
 
+function capitalizeFirstLetter(str: string): string {
+  if (!str) return ''
+  return str.trim().replace(/\b[a-z]/g, (c) => c.toUpperCase())
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { firstName, motherName, fatherName, lastName, schoolId, classroomId, district, tehsil, mobile, password, language } = await req.json()
@@ -18,10 +23,10 @@ export async function POST(req: NextRequest) {
       return errorResponse('All fields are required', 400)
     }
 
-    const trimmedFirstName = firstName.trim()
-    const trimmedMotherName = motherName.trim()
-    const trimmedFatherName = fatherName.trim()
-    const trimmedLastName = lastName.trim()
+    const trimmedFirstName = capitalizeFirstLetter(firstName)
+    const trimmedMotherName = capitalizeFirstLetter(motherName)
+    const trimmedFatherName = capitalizeFirstLetter(fatherName)
+    const trimmedLastName = capitalizeFirstLetter(lastName)
     const nameRegex = /^[A-Za-z\s\u0900-\u097F]+$/
 
     if (trimmedFirstName.length < 1 || trimmedFirstName.length > 25 || !nameRegex.test(trimmedFirstName)) {

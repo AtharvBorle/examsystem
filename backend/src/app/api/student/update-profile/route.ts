@@ -2,6 +2,11 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 
+function capitalizeFirstLetter(str: string): string {
+  if (!str) return ''
+  return str.trim().replace(/\b[a-z]/g, (c) => c.toUpperCase())
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = getAuthUser(req)
@@ -15,10 +20,10 @@ export async function POST(req: NextRequest) {
       return errorResponse('All fields (first, mother, father, last name) are required', 400)
     }
 
-    const trimmedFirstName = firstName.trim()
-    const trimmedMotherName = motherName.trim()
-    const trimmedFatherName = fatherName.trim()
-    const trimmedLastName = lastName.trim()
+    const trimmedFirstName = capitalizeFirstLetter(firstName)
+    const trimmedMotherName = capitalizeFirstLetter(motherName)
+    const trimmedFatherName = capitalizeFirstLetter(fatherName)
+    const trimmedLastName = capitalizeFirstLetter(lastName)
     
     const nameRegex = /^[A-Za-z\s\u0900-\u097F]+$/
 

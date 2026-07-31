@@ -12,9 +12,12 @@ export const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
 /**
  * Sanitizes input string to remove all digits (0-9 and Devanagari digits ०-९).
+ * Capitalizes the 1st character of each word for English text.
  * Retains letters (English, Hindi, Devanagari), spaces, dots, hyphens, and single quotes.
  */
 export const sanitizeName = (val: string): string => {
   if (!val) return ''
-  return val.replace(/[0-9०-९]/g, '')
+  const stripped = val.replace(/[0-9०-९]/g, '')
+  // Capitalize first character of each word for English letters
+  return stripped.replace(/\b[a-z]/g, (char) => char.toUpperCase())
 }
