@@ -1032,8 +1032,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   type="text"
                   className="input-field"
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
+                  readOnly
                   placeholder={t.district}
+                  style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#475569' }}
                   required
                 />
               </div>
@@ -1047,8 +1048,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   type="text"
                   className="input-field"
                   value={tehsil}
-                  onChange={(e) => setTehsil(e.target.value)}
+                  readOnly
                   placeholder={t.tehsil}
+                  style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#475569' }}
                   required
                 />
               </div>
@@ -1446,8 +1448,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="text"
                 className="form-input"
                 value={district}
-                onChange={(e) => setDistrict(e.target.value)}
+                readOnly
                 placeholder={t.district}
+                style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#475569' }}
                 required
               />
             </div>
@@ -1457,8 +1460,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="text"
                 className="form-input"
                 value={tehsil}
-                onChange={(e) => setTehsil(e.target.value)}
+                readOnly
                 placeholder={t.tehsil}
+                style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#475569' }}
                 required
               />
             </div>
