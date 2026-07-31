@@ -1,8 +1,9 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
+import { getAuthUser, errorResponse } from '@/lib/auth-middleware'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +17,16 @@ export async function GET(req: NextRequest) {
     })
 
     const iconKey = setting?.value === 'BVP_BKJ' ? 'BVP_BKJ' : 'DEFAULT'
-    return successResponse({ iconKey })
+    return NextResponse.json(
+      { success: true, iconKey },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   } catch (error: any) {
     console.error('Super-Admin get app icon error:', error)
     return errorResponse('Internal server error', 500)
@@ -43,10 +53,20 @@ export async function POST(req: NextRequest) {
       create: { key: 'active_app_icon', value: iconKey },
     })
 
-    return successResponse({
-      iconKey: setting.value,
-      message: `Active app icon updated to ${setting.value === 'BVP_BKJ' ? 'BVP-BKJ Icon' : 'Default Icon'} successfully.`,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        iconKey: setting.value,
+        message: `Active app icon updated to ${setting.value === 'BVP_BKJ' ? 'BVP-BKJ Icon' : 'Default Icon'} successfully.`,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   } catch (error: any) {
     console.error('Super-Admin trigger app icon error:', error)
     return errorResponse('Internal server error', 500)

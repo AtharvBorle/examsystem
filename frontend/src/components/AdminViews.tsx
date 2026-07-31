@@ -853,6 +853,8 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       if (dataStudents.success) {
         setAllStudents(dataStudents.students)
       }
+
+      await refreshAppIcon()
     } catch (err) {
       console.error(err)
     }

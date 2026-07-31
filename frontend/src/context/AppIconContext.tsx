@@ -38,7 +38,8 @@ export const AppIconProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchActiveIcon = async () => {
     try {
-      const res = await fetch('/api/settings/app-icon')
+      // Add timestamp and cache: 'no-store' to bypass HTTP browser cache completely
+      const res = await fetch(`/api/settings/app-icon?t=${Date.now()}`, { cache: 'no-store' })
       const data = await res.json()
       if (data.success && data.iconKey) {
         const key = data.iconKey as AppIconKey
@@ -54,10 +55,7 @@ export const AppIconProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     updateFavicon(appIconSrc)
     fetchActiveIcon()
-    // Poll every 30 seconds to catch Super-Admin icon triggers in real time
-    const interval = setInterval(fetchActiveIcon, 30000)
-    return () => clearInterval(interval)
-  }, [iconKey])
+  }, [])
 
   const setAppIconLocal = (key: AppIconKey) => {
     setIconKey(key)

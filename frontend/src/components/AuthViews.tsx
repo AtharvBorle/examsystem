@@ -527,6 +527,7 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
    ========================================== */
 export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin: () => void; lang: Language; onChangeLang: (lang: Language) => void }) {
   const { login } = useAuth()
+  const { appIconSrc } = useAppIcon()
   const [firstName, setFirstName] = useState('')
   const [motherName, setMotherName] = useState('')
   const [fatherName, setFatherName] = useState('')
@@ -844,9 +845,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
   if (isNew) {
     return (
       <div className="mobile-register-container">
-        {/* Top bar with InfoButton and LanguageSelector */}
+        {/* Top bar with InfoButton, app icon logo, and LanguageSelector */}
         <div className="mobile-register-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <InfoButton lang={lang} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <InfoButton lang={lang} />
+            <img src={appIconSrc} className="mobile-logo-img" alt="Logo" />
+          </div>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
 

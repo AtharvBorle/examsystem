@@ -11,8 +11,10 @@ window.fetch = function (input, init) {
   if (url && url.startsWith('/api/')) {
     const isLocalFile = window.location.protocol === 'file:' || !window.location.host;
     if (isLocalFile) {
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://192.168.0.151:5000';
-      const fullUrl = `${backendUrl}${url}`;
+      const envUrl = import.meta.env.VITE_API_URL || 'https://bvpindia.org';
+      // Clean backend base URL (strip trailing slashes and subpaths like /oes)
+      const cleanBackend = envUrl.replace(/\/+$/, '').replace(/\/oes$/, '');
+      const fullUrl = `${cleanBackend}${url}`;
       if (typeof input === 'string') {
         input = fullUrl;
       } else if (input instanceof Request) {
@@ -30,4 +32,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </AppIconProvider>
   </React.StrictMode>,
 )
-
