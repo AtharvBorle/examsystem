@@ -759,35 +759,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       alert('Connection error loading school details')
     }
   }
-  const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'STUDENTS' | 'ATTEMPTS' | 'DOWNLOAD_ADMIN_DATA' | 'APP_ICON_MANAGER'>('ADMINS')
-  const { iconKey: activeAppIconKey, setAppIconLocal, refreshAppIcon } = useAppIcon()
-
-  const handleTriggerAppIcon = async (newIconKey: 'DEFAULT' | 'BVP_BKJ') => {
-    try {
-      setSubmitting(true)
-      const res = await fetch('/api/superadmin/settings/app-icon', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ iconKey: newIconKey })
-      })
-      const data = await res.json()
-      if (data.success) {
-        setAppIconLocal(newIconKey)
-        await refreshAppIcon()
-        alert(`SUCCESS: App icon triggered! Active icon updated to ${newIconKey === 'BVP_BKJ' ? 'BVP-BKJ Icon' : 'Default Icon'} across the entire app without requiring an update.`)
-      } else {
-        alert(data.error || 'Failed to update app icon setting')
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Connection error triggering app icon')
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  const [activeTab, setActiveTab] = useState<'ADMINS' | 'SCHOOLS' | 'STUDENTS' | 'ATTEMPTS' | 'DOWNLOAD_ADMIN_DATA'>('ADMINS')
 
   // Filters for CSV and overview lists
   const [schoolSearchQuery, setSchoolSearchQuery] = useState('')
@@ -805,9 +777,20 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 
   // Advanced Filters for Export Data tab
   const [exportAdminId, setExportAdminId] = useState('all')
-  const [exportSchoolId, setExportSchoolId] = useState('all')
+  const [exportSchoolIds, setExportSchoolIds] = useState<string[]>(['all'])
   const [exportStartDate, setExportStartDate] = useState('')
   const [exportEndDate, setExportEndDate] = useState('')
+  const [showSchoolMultiDropdown, setShowSchoolMultiDropdown] = useState(false)
+
+  // Filter available schools depending on selected Administrator
+  const availableExportSchools = React.useMemo(() => {
+    if (!exportAdminId || exportAdminId === 'all') {
+      return schools
+    }
+    const selectedAdminObj = admins.find(a => a.id === exportAdminId)
+    if (!selectedAdminObj) return schools
+    return schools.filter(s => s.adminEmail === selectedAdminObj.email)
+  }, [schools, admins, exportAdminId])
 
   // Students view states
   const [allStudents, setAllStudents] = useState<any[]>([])
@@ -853,8 +836,6 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       if (dataStudents.success) {
         setAllStudents(dataStudents.students)
       }
-
-      await refreshAppIcon()
     } catch (err) {
       console.error(err)
     }
@@ -1064,17 +1045,19 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     }
   }
 
-  const handleSingleClickDownloadAllData = async (opts?: { adminId?: string; schoolId?: string; startDate?: string; endDate?: string; fileNamePrefix?: string }) => {
+  const handleSingleClickDownloadAllData = async (opts?: { adminId?: string; schoolId?: string; schoolIds?: string[]; startDate?: string; endDate?: string; fileNamePrefix?: string }) => {
     try {
       setSubmitting(true)
       const aId = opts?.adminId || exportAdminId || 'all'
-      const sId = opts?.schoolId || exportSchoolId || 'all'
+      const sIds = opts?.schoolIds || (opts?.schoolId ? [opts.schoolId] : exportSchoolIds)
       const stDate = opts?.startDate || exportStartDate || ''
       const enDate = opts?.endDate || exportEndDate || ''
 
       const queryParams = new URLSearchParams()
       if (aId) queryParams.set('adminId', aId)
-      if (sId) queryParams.set('schoolId', sId)
+      if (sIds && sIds.length > 0 && !sIds.includes('all')) {
+        queryParams.set('schoolIds', sIds.join(','))
+      }
       if (stDate) queryParams.set('startDate', stDate)
       if (enDate) queryParams.set('endDate', enDate)
 
@@ -1492,26 +1475,6 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
               <h2 style={{ fontSize: '1.15rem', marginTop: '0.4rem', marginBottom: 0, color: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'var(--primary-navy)' : 'inherit', fontFamily: 'var(--font-serif)', whiteSpace: 'nowrap' }}>Download Admin Data</h2>
             </div>
             <FileText size={36} style={{ color: activeTab === 'DOWNLOAD_ADMIN_DATA' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
-          </div>
-        </div>
-        <div 
-          onClick={() => setActiveTab('APP_ICON_MANAGER')}
-          className="card"
-          style={{ 
-            cursor: 'pointer',
-            border: activeTab === 'APP_ICON_MANAGER' ? '2px solid var(--accent-gold)' : '1px solid var(--border-muted)',
-            boxShadow: activeTab === 'APP_ICON_MANAGER' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-            transform: activeTab === 'APP_ICON_MANAGER' ? 'translateY(-2px)' : 'none',
-            transition: 'all 0.2s ease',
-            backgroundColor: activeTab === 'APP_ICON_MANAGER' ? '#fbf9f5' : '#ffffff'
-          }}
-        >
-          <div className="flex-between">
-            <div>
-              <div className="form-label" style={{ marginBottom: '0.2rem', color: activeTab === 'APP_ICON_MANAGER' ? 'var(--primary-navy)' : 'var(--text-muted)', fontWeight: activeTab === 'APP_ICON_MANAGER' ? 'bold' : 'normal' }}>Branding</div>
-              <h2 style={{ fontSize: '1.15rem', marginTop: '0.4rem', marginBottom: 0, color: activeTab === 'APP_ICON_MANAGER' ? 'var(--primary-navy)' : 'inherit', fontFamily: 'var(--font-serif)', whiteSpace: 'nowrap' }}>App Icon Manager</h2>
-            </div>
-            <Globe size={36} style={{ color: activeTab === 'APP_ICON_MANAGER' ? 'var(--primary-navy)' : 'var(--accent-gold)', opacity: 0.8 }} />
           </div>
         </div>
       </div>
@@ -2228,7 +2191,11 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
               <select
                 className="form-select"
                 value={exportAdminId}
-                onChange={(e) => setExportAdminId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setExportAdminId(val)
+                  setExportSchoolIds(['all'])
+                }}
                 style={{ fontSize: '0.9rem', padding: '0.5rem' }}
               >
                 <option value="all">All Administrators</option>
@@ -2240,21 +2207,119 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
               </select>
             </div>
 
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label" style={{ fontWeight: 'bold' }}>Filter School</label>
-              <select
+            <div className="form-group" style={{ margin: 0, position: 'relative' }}>
+              <label className="form-label" style={{ fontWeight: 'bold' }}>Filter School(s)</label>
+              <button
+                type="button"
                 className="form-select"
-                value={exportSchoolId}
-                onChange={(e) => setExportSchoolId(e.target.value)}
-                style={{ fontSize: '0.9rem', padding: '0.5rem' }}
+                onClick={() => setShowSchoolMultiDropdown(!showSchoolMultiDropdown)}
+                style={{ 
+                  fontSize: '0.9rem', 
+                  padding: '0.5rem', 
+                  width: '100%', 
+                  textAlign: 'left', 
+                  backgroundColor: '#ffffff', 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  cursor: 'pointer' 
+                }}
               >
-                <option value="all">All Schools</option>
-                {schools.map((sch) => (
-                  <option key={sch.id} value={sch.id}>
-                    {sch.name} ({sch.udise})
-                  </option>
-                ))}
-              </select>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {exportSchoolIds.includes('all') || exportSchoolIds.length === 0
+                    ? `All Schools (${availableExportSchools.length})`
+                    : `${exportSchoolIds.length} School(s) Selected`}
+                </span>
+                <span style={{ fontSize: '0.75rem' }}>{showSchoolMultiDropdown ? '▲' : '▼'}</span>
+              </button>
+
+              {showSchoolMultiDropdown && (
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: '100%', 
+                    left: 0, 
+                    right: 0, 
+                    backgroundColor: '#ffffff', 
+                    border: '1px solid var(--border-muted)', 
+                    borderRadius: '4px', 
+                    boxShadow: 'var(--shadow-md)', 
+                    maxHeight: '220px', 
+                    overflowY: 'auto', 
+                    zIndex: 100, 
+                    padding: '0.5rem' 
+                  }}
+                >
+                  <label 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem', 
+                      padding: '0.35rem 0.5rem', 
+                      fontSize: '0.85rem', 
+                      fontWeight: 'bold', 
+                      cursor: 'pointer', 
+                      borderBottom: '1px solid #eeeeee' 
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={exportSchoolIds.includes('all') || exportSchoolIds.length === availableExportSchools.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setExportSchoolIds(['all'])
+                        } else {
+                          setExportSchoolIds([])
+                        }
+                      }}
+                    />
+                    <span>-- All Schools ({availableExportSchools.length}) --</span>
+                  </label>
+
+                  {availableExportSchools.map((sch) => {
+                    const isChecked = exportSchoolIds.includes('all') || exportSchoolIds.includes(sch.id)
+                    return (
+                      <label 
+                        key={sch.id} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem', 
+                          padding: '0.35rem 0.5rem', 
+                          fontSize: '0.85rem', 
+                          cursor: 'pointer' 
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            let newIds: string[]
+                            if (exportSchoolIds.includes('all')) {
+                              newIds = availableExportSchools.map(s => s.id)
+                            } else {
+                              newIds = [...exportSchoolIds]
+                            }
+
+                            if (e.target.checked) {
+                              if (!newIds.includes(sch.id)) newIds.push(sch.id)
+                            } else {
+                              newIds = newIds.filter(id => id !== sch.id && id !== 'all')
+                            }
+
+                            if (newIds.length === availableExportSchools.length) {
+                              setExportSchoolIds(['all'])
+                            } else {
+                              setExportSchoolIds(newIds)
+                            }
+                          }}
+                        />
+                        <span>{sch.name} ({sch.udise})</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="form-group" style={{ margin: 0 }}>
@@ -2289,79 +2354,6 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
           >
             {submitting ? 'Preparing Export Data...' : '📥 Single Click Download All Data & Rankings (.xlsx & .csv)'}
           </button>
-        </div>
-      )}
-
-      {activeTab === 'APP_ICON_MANAGER' && (
-        <div className="card" style={{ marginTop: 0 }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 className="card-title" style={{ border: 'none', margin: 0, padding: 0 }}>
-              App Icon & Branding Manager
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-              Both app icons are pre-bundled inside the application build. Super-Admin can trigger and push the active icon setting at any time. Once triggered, the active icon changes dynamically across all web browsers and mobile app screens without requiring users to download an app update!
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
-            {/* Card 1: Default Icon */}
-            <div style={{ 
-              border: activeAppIconKey === 'DEFAULT' ? '2px solid #107c41' : '1px solid var(--border-muted)', 
-              borderRadius: '8px', 
-              padding: '1.5rem', 
-              backgroundColor: activeAppIconKey === 'DEFAULT' ? '#f4fbf7' : '#ffffff',
-              boxShadow: 'var(--shadow-sm)',
-              position: 'relative'
-            }}>
-              {activeAppIconKey === 'DEFAULT' && (
-                <span className="badge badge-success" style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}>
-                  ✓ CURRENTLY ACTIVE
-                </span>
-              )}
-              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-navy)' }}>1. Default App Icon</h4>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>File: <code>app_icon.jpeg</code></div>
-              <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-                <img src={defaultIconAsset} alt="Default App Icon" style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '2px solid #ffffff' }} />
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={submitting || activeAppIconKey === 'DEFAULT'}
-                onClick={() => handleTriggerAppIcon('DEFAULT')}
-                style={{ width: '100%', marginTop: '1rem', padding: '0.65rem', textTransform: 'none', backgroundColor: activeAppIconKey === 'DEFAULT' ? '#666666' : 'var(--primary-navy)', borderColor: activeAppIconKey === 'DEFAULT' ? '#666666' : 'var(--primary-navy)' }}
-              >
-                {activeAppIconKey === 'DEFAULT' ? '✓ Currently Active' : '⚡ Trigger & Push Default Icon'}
-              </button>
-            </div>
-
-            {/* Card 2: BVP-BKJ Icon */}
-            <div style={{ 
-              border: activeAppIconKey === 'BVP_BKJ' ? '2px solid #107c41' : '1px solid var(--border-muted)', 
-              borderRadius: '8px', 
-              padding: '1.5rem', 
-              backgroundColor: activeAppIconKey === 'BVP_BKJ' ? '#f4fbf7' : '#ffffff',
-              boxShadow: 'var(--shadow-sm)',
-              position: 'relative'
-            }}>
-              {activeAppIconKey === 'BVP_BKJ' && (
-                <span className="badge badge-success" style={{ position: 'absolute', top: '1rem', right: '1rem', fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}>
-                  ✓ CURRENTLY ACTIVE
-                </span>
-              )}
-              <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-navy)' }}>2. BVP-BKJ App Icon</h4>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>File: <code>BVP-BKJ_icon.jpeg</code></div>
-              <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-                <img src={bvpBkjIconAsset} alt="BVP-BKJ App Icon" style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '2px solid #ffffff' }} />
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={submitting || activeAppIconKey === 'BVP_BKJ'}
-                onClick={() => handleTriggerAppIcon('BVP_BKJ')}
-                style={{ width: '100%', marginTop: '1rem', padding: '0.65rem', textTransform: 'none', backgroundColor: activeAppIconKey === 'BVP_BKJ' ? '#666666' : '#107c41', borderColor: activeAppIconKey === 'BVP_BKJ' ? '#666666' : '#107c41' }}
-              >
-                {activeAppIconKey === 'BVP_BKJ' ? '✓ Currently Active' : '⚡ Trigger & Push BVP-BKJ Icon'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

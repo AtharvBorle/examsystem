@@ -13,17 +13,25 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const adminId = searchParams.get('adminId')
-    const schoolId = searchParams.get('schoolId')
+    const schoolIdsParam = searchParams.get('schoolIds')
+    const schoolIdParam = searchParams.getAll('schoolId')
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+
+    let targetSchoolIds: string[] = []
+    if (schoolIdsParam && schoolIdsParam !== 'all') {
+      targetSchoolIds = schoolIdsParam.split(',').filter(Boolean)
+    } else if (schoolIdParam.length > 0 && !schoolIdParam.includes('all')) {
+      targetSchoolIds = schoolIdParam
+    }
 
     // Build School filter
     const schoolWhere: any = {}
     if (adminId && adminId !== 'all') {
       schoolWhere.adminId = adminId
     }
-    if (schoolId && schoolId !== 'all') {
-      schoolWhere.id = schoolId
+    if (targetSchoolIds.length > 0) {
+      schoolWhere.id = { in: targetSchoolIds }
     }
 
     // Fetch Schools with students
@@ -102,8 +110,8 @@ export async function GET(req: NextRequest) {
         { exam: { adminId } },
       ]
     }
-    if (schoolId && schoolId !== 'all') {
-      attemptWhere.student = { schoolId }
+    if (targetSchoolIds.length > 0) {
+      attemptWhere.student = { schoolId: { in: targetSchoolIds } }
     }
     if (startDate || endDate) {
       attemptWhere.startedAt = {}
@@ -139,7 +147,6 @@ export async function GET(req: NextRequest) {
     // 2. Exam Completion Time (duration = submittedAt - startedAt ascending)
     // 3. Marks Obtained (score descending)
     rawAttempts.sort((a, b) => {
-      // Completed attempts take priority over incomplete
       if (a.completed !== b.completed) {
         return a.completed ? -1 : 1
       }
