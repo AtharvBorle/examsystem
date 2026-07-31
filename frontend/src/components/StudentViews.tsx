@@ -1667,6 +1667,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           </div>
 
         {renderResourceModal()}
+        {renderSettingsModal()}
+        {renderDeleteConfirmModal()}
+        {renderSuccessModal()}
         </div>
       </div>
     )
