@@ -42,9 +42,24 @@ export async function GET(req: NextRequest) {
         },
         exams: {
           include: {
-            questions: true,
-            classrooms: {
-              include: { classroom: { select: { name: true } } },
+            questions: {
+              include: {
+                questionMaster: {
+                  include: {
+                    translations: true,
+                  },
+                },
+              },
+            },
+            groups: {
+              include: {
+                group: { select: { name: true } },
+              },
+            },
+            schools: {
+              include: {
+                school: { select: { name: true } },
+              },
             },
           },
         },
@@ -78,7 +93,7 @@ export async function GET(req: NextRequest) {
           },
         },
         exam: {
-          select: { name: true, examCode: true },
+          select: { name: true },
         },
       },
     })
@@ -120,7 +135,6 @@ export async function GET(req: NextRequest) {
     const formattedCategories = admin.categories.map((cat) => ({
       id: cat.id,
       name: cat.name,
-      language: cat.language,
       createdAt: cat.createdAt,
     }))
 
@@ -136,31 +150,34 @@ export async function GET(req: NextRequest) {
     const formattedExams = admin.exams.map((ex) => ({
       id: ex.id,
       name: ex.name,
-      examCode: ex.examCode,
-      language: ex.language,
-      totalQuestions: ex.questions.length,
-      durationMinutes: ex.durationMinutes,
-      passMarks: ex.passMarks,
-      totalMarks: ex.totalMarks,
-      assignedClassrooms: ex.classrooms.map((ec) => ec.classroom.name).join(', '),
+      nameHindi: ex.nameHindi || '',
+      totalQuestions: ex.questionCount,
+      durationMinutes: ex.duration,
+      marksPerQuestion: ex.marksPerQuestion,
+      totalMarks: ex.questionCount * ex.marksPerQuestion,
+      assignedGroups: ex.groups.map((eg) => eg.group.name).join(', '),
+      assignedSchools: ex.schools.map((es) => es.school.name).join(', '),
       createdAt: ex.createdAt,
     }))
 
     // Format Questions
     const formattedQuestions: any[] = []
     admin.exams.forEach((ex) => {
-      ex.questions.forEach((q, idx) => {
-        formattedQuestions.push({
-          examName: ex.name,
-          questionNo: idx + 1,
-          questionText: q.questionText,
-          optionA: q.optionA,
-          optionB: q.optionB,
-          optionC: q.optionC,
-          optionD: q.optionD,
-          correctOption: q.correctOption,
-          explanation: q.explanation || '',
-        })
+      ex.questions.forEach((eq, idx) => {
+        const transEn = eq.questionMaster.translations.find((t) => t.language === 'en') || eq.questionMaster.translations[0]
+        if (transEn) {
+          formattedQuestions.push({
+            examName: ex.name,
+            questionNo: idx + 1,
+            code: eq.questionMaster.code,
+            questionText: transEn.text,
+            optionA: transEn.optionA,
+            optionB: transEn.optionB,
+            optionC: transEn.optionC,
+            optionD: transEn.optionD,
+            correctOption: transEn.correctOption,
+          })
+        }
       })
     })
 
