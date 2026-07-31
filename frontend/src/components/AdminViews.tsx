@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { useAuth, User } from '../context/AuthContext'
 import { generateCertificatePDF } from '../utils/pdfGenerator'
 import { translations, Language } from '../utils/localization'
+import { handlePositiveNumberKeyDown, sanitizePositiveNumber } from '../utils/numberInput'
 import { renderContent } from '../utils/contentRenderer'
 import { 
   LogOut, Shield, Award, Users, School as SchoolIcon, 
@@ -1171,9 +1172,12 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                 <label className="form-label">Attempt / User Count (Optional)</label>
                 <input
                   type="number"
+                  min="1"
                   className="form-input"
                   value={userCountLimit}
-                  onChange={(e) => setUserCountLimit(e.target.value)}
+                  onKeyDown={(e) => handlePositiveNumberKeyDown(e)}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  onChange={(e) => setUserCountLimit(sanitizePositiveNumber(e.target.value))}
                   placeholder="e.g. 20000 (leave blank for unlimited)"
                 />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -3548,9 +3552,12 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
               type="number"
               min={1}
               value={pageSize}
+              onKeyDown={(e) => handlePositiveNumberKeyDown(e)}
+              onWheel={(e) => e.currentTarget.blur()}
               onChange={(e) => {
-                const val = parseInt(e.target.value)
-                setPageSize(isNaN(val) ? 5 : val)
+                const sanitized = sanitizePositiveNumber(e.target.value)
+                const val = parseInt(sanitized)
+                setPageSize(isNaN(val) || val < 1 ? 1 : val)
               }}
               style={{
                 width: '70px',
@@ -6201,9 +6208,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
               <label className="form-label">{t.examsDurationLabel}</label>
               <input
                 type="number"
+                min="1"
                 className="form-input"
                 value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+                onKeyDown={(e) => handlePositiveNumberKeyDown(e)}
+                onWheel={(e) => e.currentTarget.blur()}
+                onChange={(e) => setDuration(sanitizePositiveNumber(e.target.value))}
                 placeholder={t.adminMins}
                 required
               />
@@ -6212,9 +6222,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
               <label className="form-label">{t.examsQuestionCount}</label>
               <input
                 type="number"
+                min="1"
                 className="form-input"
                 value={questionCount}
-                onChange={(e) => setQuestionCount(e.target.value)}
+                onKeyDown={(e) => handlePositiveNumberKeyDown(e)}
+                onWheel={(e) => e.currentTarget.blur()}
+                onChange={(e) => setQuestionCount(sanitizePositiveNumber(e.target.value))}
                 placeholder={t.adminPlaceholderQCount}
                 required
               />
@@ -6224,9 +6237,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
               <input
                 type="number"
                 step="0.1"
+                min="1"
                 className="form-input"
                 value={marksPerQuestion}
-                onChange={(e) => setMarksPerQuestion(e.target.value)}
+                onKeyDown={(e) => handlePositiveNumberKeyDown(e, true)}
+                onWheel={(e) => e.currentTarget.blur()}
+                onChange={(e) => setMarksPerQuestion(sanitizePositiveNumber(e.target.value, true))}
                 placeholder={t.adminPlaceholderMarks}
                 required
               />
@@ -6449,9 +6465,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
                       <label className="form-label" style={{ fontWeight: 600 }}>{t.examsDurationLabel}</label>
                       <input
                         type="number"
+                        min="1"
                         className="form-input"
                         value={editDuration}
-                        onChange={(e) => setEditDuration(e.target.value)}
+                        onKeyDown={(e) => handlePositiveNumberKeyDown(e)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        onChange={(e) => setEditDuration(sanitizePositiveNumber(e.target.value))}
                         required
                       />
                     </div>
@@ -6459,9 +6478,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
                       <label className="form-label" style={{ fontWeight: 600 }}>{t.examsQuestionCount}</label>
                       <input
                         type="number"
+                        min="1"
                         className="form-input"
                         value={editQuestionCount}
-                        onChange={(e) => setEditQuestionCount(e.target.value)}
+                        onKeyDown={(e) => handlePositiveNumberKeyDown(e)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        onChange={(e) => setEditQuestionCount(sanitizePositiveNumber(e.target.value))}
                         required
                       />
                     </div>
@@ -6470,9 +6492,12 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
                       <input
                         type="number"
                         step="0.1"
+                        min="1"
                         className="form-input"
                         value={editMarksPerQuestion}
-                        onChange={(e) => setEditMarksPerQuestion(e.target.value)}
+                        onKeyDown={(e) => handlePositiveNumberKeyDown(e, true)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        onChange={(e) => setEditMarksPerQuestion(sanitizePositiveNumber(e.target.value, true))}
                         required
                       />
                     </div>

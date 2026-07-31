@@ -5,7 +5,7 @@ import { generateCertificatePDF, generateAnswersheetPDF } from '../utils/pdfGene
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
-  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon, Globe, ExternalLink
+  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon, Globe, ExternalLink, HelpCircle
 } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 import downloadCertBg from '../assets/rss_download_cert.png'
@@ -1859,6 +1859,18 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                           <span className="val">{ex.duration} {lang === 'hi' ? 'मिनट' : 'Min'}</span>
                         </div>
                       </div>
+
+                      <div className="meta-divider"></div>
+
+                      <div className="meta-col">
+                        <div className="meta-icon">
+                          <HelpCircle size={20} />
+                        </div>
+                        <div className="meta-labels">
+                          <span className="label">{lang === 'hi' ? 'कुल प्रश्न' : 'Total Questions'}</span>
+                          <span className="val">{ex.questionCount} {lang === 'hi' ? 'प्रश्न' : 'Qs'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Action Button */}
@@ -2083,16 +2095,41 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   return (
     <div className="container">
       <div className="header-banner" style={{ padding: '2rem', borderRadius: '4px', backgroundColor: '#ffffff', border: '1px solid var(--border-muted)', marginBottom: '2rem' }}>
-        <h1 className="header-banner-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', color: 'var(--primary-navy)', marginBottom: '0.75rem', textAlign: 'left' }}>
-          {t.welcomeUser.replace('{name}', user.name || 'Student')}
-        </h1>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <span className="badge badge-outline" style={{ fontSize: '0.85rem', textTransform: 'none', padding: '0.4rem 0.8rem' }}>
-            {t.classBadge}: <strong>{user.classroom?.name}</strong>
-          </span>
-          <span className="badge badge-outline" style={{ fontSize: '0.85rem', textTransform: 'none', padding: '0.4rem 0.8rem' }}>
-            {t.schoolBadge}: <strong>{user.school?.name}</strong>
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 className="header-banner-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', color: 'var(--primary-navy)', marginBottom: '0.75rem', textAlign: 'left' }}>
+              {t.welcomeUser.replace('{name}', user.name || 'Student')}
+            </h1>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <span className="badge badge-outline" style={{ fontSize: '0.85rem', textTransform: 'none', padding: '0.4rem 0.8rem' }}>
+                {t.classBadge}: <strong>{user.classroom?.name}</strong>
+              </span>
+              <span className="badge badge-outline" style={{ fontSize: '0.85rem', textTransform: 'none', padding: '0.4rem 0.8rem' }}>
+                {t.schoolBadge}: <strong>{user.school?.name}</strong>
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="btn btn-outline"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              borderColor: '#c59f2d',
+              color: '#0b2240',
+              backgroundColor: '#fbf9f5'
+            }}
+            title={lang === 'hi' ? 'सेटिंग्स' : 'Settings'}
+          >
+            <Settings size={18} style={{ color: '#c59f2d' }} />
+            <span>{lang === 'hi' ? 'सेटिंग्स' : 'Settings'}</span>
+          </button>
         </div>
       </div>
 
@@ -2117,8 +2154,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                         {ex.categoryName}{ex.subcategoryName ? ` > ${ex.subcategoryName}` : ''}
                       </span>
                       <h4 className="card-title" style={{ border: 'none', padding: 0 }}>{ex.name}</h4>
-                      <div className="card-metadata">
+                      <div className="card-metadata" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                         <span><Clock size={14} /> {ex.duration} {t.mins}</span>
+                        <span><HelpCircle size={14} /> {ex.questionCount} {lang === 'hi' ? 'प्रश्न' : 'Questions'}</span>
                         <span><TrophyIcon size={14} /> {t.maxMarks}: {ex.totalMarks}</span>
                       </div>
                     </div>

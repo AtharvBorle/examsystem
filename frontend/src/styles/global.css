@@ -42,6 +42,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Disable mouse wheel scrolling on number inputs & remove spin buttons */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif);
   font-weight: 500;

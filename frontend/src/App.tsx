@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth, User } from './context/AuthContext'
 import { translations, Language } from './utils/localization'
-import { LogOut } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
 import { LoginView, RegisterView, AdminLoginView } from './components/AuthViews'
 import { StandaloneSchoolDetailView, SuperAdminDashboard, AdminDashboard } from './components/AdminViews'
 import { StudentDashboard } from './components/StudentViews'
@@ -14,6 +14,13 @@ import { FaqView } from './components/FaqView'
 import { LanguageSelector } from './components/LanguageSelector'
 
 if (typeof window !== 'undefined') {
+  // Prevent mouse wheel scrolling from changing number input values globally
+  window.addEventListener('wheel', (e) => {
+    if (document.activeElement && (document.activeElement as HTMLInputElement).type === 'number') {
+      (document.activeElement as HTMLElement).blur()
+    }
+  }, { passive: true })
+
   const customAlert = (message: string) => {
     const existing = document.getElementById('custom-global-alert');
     if (existing) {
