@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { useAuth, User } from '../context/AuthContext'
 import { generateCertificatePDF } from '../utils/pdfGenerator'
 import { translations, Language } from '../utils/localization'
+import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { handlePositiveNumberKeyDown, sanitizePositiveNumber } from '../utils/numberInput'
 import { renderContent } from '../utils/contentRenderer'
 import { 
@@ -7329,7 +7330,8 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
                 type="text"
                 className="form-input"
                 value={presidentName}
-                onChange={(e) => setPresidentName(e.target.value)}
+                onKeyDown={handleNameKeyDown}
+                onChange={(e) => setPresidentName(sanitizeName(e.target.value))}
                 placeholder="e.g. Dr. Ramesh Patil"
               />
             </div>
@@ -7340,7 +7342,8 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
                 type="text"
                 className="form-input"
                 value={presidentNameHindi}
-                onChange={(e) => setPresidentNameHindi(e.target.value)}
+                onKeyDown={handleNameKeyDown}
+                onChange={(e) => setPresidentNameHindi(sanitizeName(e.target.value))}
                 placeholder="उदा. डॉ. रमेश पाटील"
               />
             </div>
@@ -7380,7 +7383,8 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
                 type="text"
                 className="form-input"
                 value={secretaryName}
-                onChange={(e) => setSecretaryName(e.target.value)}
+                onKeyDown={handleNameKeyDown}
+                onChange={(e) => setSecretaryName(sanitizeName(e.target.value))}
                 placeholder="e.g. Prof. Sunita Deshmukh"
               />
             </div>
@@ -7391,7 +7395,8 @@ function AdminCertificateTab({ token, lang }: { token: string | null; lang: Lang
                 type="text"
                 className="form-input"
                 value={secretaryNameHindi}
-                onChange={(e) => setSecretaryNameHindi(e.target.value)}
+                onKeyDown={handleNameKeyDown}
+                onChange={(e) => setSecretaryNameHindi(sanitizeName(e.target.value))}
                 placeholder="उदा. प्रो. सुनीता देशमुख"
               />
             </div>

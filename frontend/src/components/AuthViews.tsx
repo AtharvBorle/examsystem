@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import appIcon from '../assets/app_icon.jpeg'
 
+import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { translations, Language } from '../utils/localization'
 import { useAuth } from '../context/AuthContext'
 import { Search, Phone, Lock, User, School, GraduationCap, MapPin, Building2, Eye, EyeOff, Info, FileText, Shield, HelpCircle, BookOpen, X, ChevronRight } from 'lucide-react'
@@ -867,8 +868,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   type="text"
                   className="input-field"
                   value={firstName}
+                  onKeyDown={handleNameKeyDown}
                   onChange={(e) => {
-                    const val = e.target.value
+                    const val = sanitizeName(e.target.value)
                     const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                     if (filtered.length <= 25) {
                       setFirstName(filtered)
@@ -888,8 +890,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   type="text"
                   className="input-field"
                   value={lastName}
+                  onKeyDown={handleNameKeyDown}
                   onChange={(e) => {
-                    const val = e.target.value
+                    const val = sanitizeName(e.target.value)
                     const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                     if (filtered.length <= 25) {
                       setLastName(filtered)
@@ -912,8 +915,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   type="text"
                   className="input-field"
                   value={motherName}
+                  onKeyDown={handleNameKeyDown}
                   onChange={(e) => {
-                    const val = e.target.value
+                    const val = sanitizeName(e.target.value)
                     const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                     if (filtered.length <= 25) {
                       setMotherName(filtered)
@@ -933,8 +937,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                   type="text"
                   className="input-field"
                   value={fatherName}
+                  onKeyDown={handleNameKeyDown}
                   onChange={(e) => {
-                    const val = e.target.value
+                    const val = sanitizeName(e.target.value)
                     const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                     if (filtered.length <= 25) {
                       setFatherName(filtered)
@@ -1303,8 +1308,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="text"
                 className="form-input"
                 value={firstName}
+                onKeyDown={handleNameKeyDown}
                 onChange={(e) => {
-                  const val = e.target.value
+                  const val = sanitizeName(e.target.value)
                   const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                   if (filtered.length <= 25) {
                     setFirstName(filtered)
@@ -1320,8 +1326,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="text"
                 className="form-input"
                 value={lastName}
+                onKeyDown={handleNameKeyDown}
                 onChange={(e) => {
-                  const val = e.target.value
+                  const val = sanitizeName(e.target.value)
                   const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                   if (filtered.length <= 25) {
                     setLastName(filtered)
@@ -1340,8 +1347,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="text"
                 className="form-input"
                 value={motherName}
+                onKeyDown={handleNameKeyDown}
                 onChange={(e) => {
-                  const val = e.target.value
+                  const val = sanitizeName(e.target.value)
                   const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                   if (filtered.length <= 25) {
                     setMotherName(filtered)
@@ -1357,8 +1365,9 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 type="text"
                 className="form-input"
                 value={fatherName}
+                onKeyDown={handleNameKeyDown}
                 onChange={(e) => {
-                  const val = e.target.value
+                  const val = sanitizeName(e.target.value)
                   const filtered = val.replace(/[^A-Za-z\s\u0900-\u097F]/g, '')
                   if (filtered.length <= 25) {
                     setFatherName(filtered)

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { translations, Language } from '../utils/localization'
 import { useAuth, User } from '../context/AuthContext'
 import { generateCertificatePDF, generateAnswersheetPDF } from '../utils/pdfGenerator'
+import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
@@ -309,7 +310,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   <input
                     type="text"
                     value={editFirstName}
-                    onChange={(e) => setEditFirstName(e.target.value)}
+                    onKeyDown={handleNameKeyDown}
+                    onChange={(e) => setEditFirstName(sanitizeName(e.target.value))}
                     style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
                     required
                   />
@@ -320,7 +322,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   <input
                     type="text"
                     value={editMotherName}
-                    onChange={(e) => setEditMotherName(e.target.value)}
+                    onKeyDown={handleNameKeyDown}
+                    onChange={(e) => setEditMotherName(sanitizeName(e.target.value))}
                     style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
                     required
                   />
@@ -331,7 +334,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   <input
                     type="text"
                     value={editFatherName}
-                    onChange={(e) => setEditFatherName(e.target.value)}
+                    onKeyDown={handleNameKeyDown}
+                    onChange={(e) => setEditFatherName(sanitizeName(e.target.value))}
                     style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
                     required
                   />
@@ -342,7 +346,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                   <input
                     type="text"
                     value={editLastName}
-                    onChange={(e) => setEditLastName(e.target.value)}
+                    onKeyDown={handleNameKeyDown}
+                    onChange={(e) => setEditLastName(sanitizeName(e.target.value))}
                     style={{ padding: '0.4rem', border: '1px solid #f2e2cc', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
                     required
                   />
