@@ -795,6 +795,20 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const [attemptSchoolFilter, setAttemptSchoolFilter] = useState('')
   const [attemptExamFilter, setAttemptExamFilter] = useState('')
 
+  // Enhanced Filters for Schools Database Overview
+  const [schoolAdminFilter, setSchoolAdminFilter] = useState('all')
+  const [schoolDistrictFilter, setSchoolDistrictFilter] = useState('all')
+  const [schoolTehsilFilter, setSchoolTehsilFilter] = useState('all')
+  const [schoolLanguageFilter, setSchoolLanguageFilter] = useState('all')
+  const [schoolPage, setSchoolPage] = useState(1)
+  const [schoolPageSize, setSchoolPageSize] = useState(10)
+
+  // Advanced Filters for Export Data tab
+  const [exportAdminId, setExportAdminId] = useState('all')
+  const [exportSchoolId, setExportSchoolId] = useState('all')
+  const [exportStartDate, setExportStartDate] = useState('')
+  const [exportEndDate, setExportEndDate] = useState('')
+
   // Students view states
   const [allStudents, setAllStudents] = useState<any[]>([])
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
@@ -1048,6 +1062,108 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     }
   }
 
+  const handleSingleClickDownloadAllData = async (opts?: { adminId?: string; schoolId?: string; startDate?: string; endDate?: string; fileNamePrefix?: string }) => {
+    try {
+      setSubmitting(true)
+      const aId = opts?.adminId || exportAdminId || 'all'
+      const sId = opts?.schoolId || exportSchoolId || 'all'
+      const stDate = opts?.startDate || exportStartDate || ''
+      const enDate = opts?.endDate || exportEndDate || ''
+
+      const queryParams = new URLSearchParams()
+      if (aId) queryParams.set('adminId', aId)
+      if (sId) queryParams.set('schoolId', sId)
+      if (stDate) queryParams.set('startDate', stDate)
+      if (enDate) queryParams.set('endDate', enDate)
+
+      const res = await fetch(`/api/superadmin/admins/export-data?${queryParams.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!data.success) {
+        alert(data.error || 'Failed to fetch data for export')
+        return
+      }
+
+      // Create Multi-Sheet Excel Workbook
+      const wb = XLSX.utils.book_new()
+
+      // 1. Admin / System Summary Sheet
+      if (data.admin) {
+        const adminRows = [
+          ['Field', 'Value'],
+          ['Admin ID', data.admin.id],
+          ['Email ID', data.admin.email],
+          ['Mobile Number', data.admin.mobile],
+          ['Branch (English)', data.admin.branch],
+          ['Branch (Hindi)', data.admin.branchHindi],
+          ['User Count Limit', data.admin.userCountLimit],
+          ['User Count Used', data.admin.userCountUsed],
+          ['President Name', data.admin.presidentName],
+          ['Secretary Name', data.admin.secretaryName],
+          ['Created Date', new Date(data.admin.createdAt).toLocaleString()],
+        ]
+        const wsAdmin = XLSX.utils.aoa_to_sheet(adminRows)
+        XLSX.utils.book_append_sheet(wb, wsAdmin, 'Admin Profile')
+      }
+
+      // 2. Schools Sheet
+      const schoolHeaders = ['School ID', 'School Name', 'UDISE', 'Tehsil', 'District', 'Language', 'Admin Email', 'Registered Students', 'Created Date']
+      const schoolRows = data.schools.map((s: any) => [
+        s.id, s.name, s.udise, s.tehsil, s.district, s.language, s.adminEmail, s.studentsCount, new Date(s.createdAt).toLocaleString()
+      ])
+      const wsSchools = XLSX.utils.aoa_to_sheet([schoolHeaders, ...schoolRows])
+      XLSX.utils.book_append_sheet(wb, wsSchools, 'Schools Database')
+
+      // 3. Classrooms Sheet
+      const classHeaders = ['Classroom ID', 'Classroom Name', 'Created Date']
+      const classRows = data.classrooms.map((c: any) => [c.id, c.name, new Date(c.createdAt).toLocaleString()])
+      const wsClassrooms = XLSX.utils.aoa_to_sheet([classHeaders, ...classRows])
+      XLSX.utils.book_append_sheet(wb, wsClassrooms, 'Classrooms')
+
+      // 4. Exams Sheet
+      const examHeaders = ['Exam ID', 'Exam Name', 'Total Questions', 'Duration (Mins)', 'Marks Per Question', 'Total Marks', 'Assigned Groups', 'Assigned Schools', 'Created Date']
+      const examRows = data.exams.map((ex: any) => [
+        ex.id, ex.name, ex.totalQuestions, ex.durationMinutes, ex.marksPerQuestion, ex.totalMarks, ex.assignedGroups, ex.assignedSchools, new Date(ex.createdAt).toLocaleString()
+      ])
+      const wsExams = XLSX.utils.aoa_to_sheet([examHeaders, ...examRows])
+      XLSX.utils.book_append_sheet(wb, wsExams, 'Exams')
+
+      // 5. Questions Sheet
+      const qHeaders = ['Exam Name', 'Question No.', 'Code', 'Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option']
+      const qRows = data.questions.map((q: any) => [
+        q.examName, q.questionNo, q.code, q.questionText, q.optionA, q.optionB, q.optionC, q.optionD, q.correctOption
+      ])
+      const wsQuestions = XLSX.utils.aoa_to_sheet([qHeaders, ...qRows])
+      XLSX.utils.book_append_sheet(wb, wsQuestions, 'Questions')
+
+      // 6. Registered Students Sheet
+      const stdHeaders = ['Student ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
+      const stdRows = data.students.map((st: any) => [
+        st.id, st.name, st.mobile, st.schoolName, st.udise, st.classroomName, st.district, st.tehsil, new Date(st.registeredAt).toLocaleString()
+      ])
+      const wsStudents = XLSX.utils.aoa_to_sheet([stdHeaders, ...stdRows])
+      XLSX.utils.book_append_sheet(wb, wsStudents, 'Registered Students')
+
+      // 7. Exam Attempts & Full Rankings Sheet
+      const attHeaders = ['Rank', 'Attempt ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'Exam Name', 'Score', 'Correct Answers', 'Total Questions', 'Duration (Mins)', 'Completed', 'Started Time', 'Submitted Time']
+      const attRows = data.attempts.map((att: any) => [
+        att.rank, att.attemptId, att.studentName, att.studentMobile, att.schoolName, att.udise, att.classroomName, att.examName, att.score, att.correctAnswers, att.totalQuestions, att.durationMinutes, att.completed, new Date(att.startedAt).toLocaleString(), att.submittedAt ? new Date(att.submittedAt).toLocaleString() : ''
+      ])
+      const wsAttempts = XLSX.utils.aoa_to_sheet([attHeaders, ...attRows])
+      XLSX.utils.book_append_sheet(wb, wsAttempts, 'Exam Attempts & Rankings')
+
+      const prefix = opts?.fileNamePrefix || 'System_All_Data'
+      XLSX.writeFile(wb, `${prefix}_export.xlsx`)
+      downloadCSV(`${prefix}_attempts_rankings.csv`, attHeaders, attRows)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to download system data')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   // Filter students for SuperAdmin Students view
   const filteredSuperAdminStudents = React.useMemo(() => {
     return allStudents.filter((st) => {
@@ -1074,14 +1190,44 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
     return filteredSuperAdminStudents.slice(start, start + studentPageSize)
   }, [filteredSuperAdminStudents, studentPage, studentPageSize])
 
-  const filteredSchools = schools.filter(s => {
-    const query = schoolSearchQuery.toLowerCase()
-    return (
-      s.name.toLowerCase().includes(query) ||
-      s.udise.toLowerCase().includes(query) ||
-      s.adminEmail.toLowerCase().includes(query)
-    )
-  })
+  // Unique Districts & Tehsils for School filters
+  const uniqueDistricts = React.useMemo(() => {
+    const list = Array.from(new Set(schools.map(s => s.district).filter(Boolean)))
+    list.sort()
+    return list
+  }, [schools])
+
+  const uniqueTehsils = React.useMemo(() => {
+    const list = Array.from(new Set(schools.map(s => s.tehsil).filter(Boolean)))
+    list.sort()
+    return list
+  }, [schools])
+
+  const filteredSchools = React.useMemo(() => {
+    return schools.filter(s => {
+      const query = schoolSearchQuery.toLowerCase()
+      const matchSearch = !query || (
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.udise || '').toLowerCase().includes(query) ||
+        (s.adminEmail || '').toLowerCase().includes(query) ||
+        (s.tehsil || '').toLowerCase().includes(query) ||
+        (s.district || '').toLowerCase().includes(query)
+      )
+      const matchAdmin = schoolAdminFilter === 'all' || s.adminEmail === schoolAdminFilter
+      const matchDistrict = schoolDistrictFilter === 'all' || s.district === schoolDistrictFilter
+      const matchTehsil = schoolTehsilFilter === 'all' || s.tehsil === schoolTehsilFilter
+      const matchLanguage = schoolLanguageFilter === 'all' || (s.language || 'en').toLowerCase() === schoolLanguageFilter.toLowerCase()
+
+      return matchSearch && matchAdmin && matchDistrict && matchTehsil && matchLanguage
+    })
+  }, [schools, schoolSearchQuery, schoolAdminFilter, schoolDistrictFilter, schoolTehsilFilter, schoolLanguageFilter])
+
+  const totalSchoolPages = Math.max(1, Math.ceil(filteredSchools.length / schoolPageSize))
+
+  const paginatedSchools = React.useMemo(() => {
+    const start = (schoolPage - 1) * schoolPageSize
+    return filteredSchools.slice(start, start + schoolPageSize)
+  }, [filteredSchools, schoolPage, schoolPageSize])
 
   const filteredAttempts = recentAttempts.filter(a => {
     const sQuery = attemptSearchQuery.toLowerCase()
@@ -1546,37 +1692,125 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 
       {activeTab === 'SCHOOLS' && (
         <div className="card" style={{ marginTop: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', flexWrap: 'nowrap' }}>
-            <h3 className="card-title" style={{ border: 'none', margin: 0, padding: 0, whiteSpace: 'nowrap' }}>Schools Database Overview</h3>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'nowrap', flexGrow: 1, justifyContent: 'flex-end' }}>
-              <input
-                type="text"
-                className="form-input"
-                style={{ maxWidth: '320px', width: '100%', margin: 0, padding: '0.5rem' }}
-                placeholder="Search by school, UDISE, or Admin email..."
-                value={schoolSearchQuery}
-                onChange={(e) => setSchoolSearchQuery(e.target.value)}
-              />
-              <button
-                onClick={() => handleExportSchools(filteredSchools)}
-                className="btn btn-secondary"
-                style={{ textTransform: 'none', padding: '0.5rem 1rem', whiteSpace: 'nowrap' }}
-              >
-                Export CSV
-              </button>
-              <button
-                onClick={() => handleExportSchoolsExcel(filteredSchools)}
-                className="btn btn-primary"
-                style={{ textTransform: 'none', padding: '0.5rem 1rem', whiteSpace: 'nowrap' }}
-              >
-                Export Excel
-              </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              <h3 className="card-title" style={{ border: 'none', margin: 0, padding: 0 }}>Schools Database Overview ({filteredSchools.length})</h3>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => handleSingleClickDownloadAllData({ fileNamePrefix: 'Schools_Database' })}
+                  className="btn btn-primary"
+                  style={{ textTransform: 'none', padding: '0.5rem 1rem', backgroundColor: '#107c41', borderColor: '#107c41', color: '#ffffff' }}
+                >
+                  📥 Single Click Download All Schools Data & Rankings
+                </button>
+                <button
+                  onClick={() => handleExportSchools(filteredSchools)}
+                  className="btn btn-secondary"
+                  style={{ textTransform: 'none', padding: '0.5rem 0.8rem' }}
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => handleExportSchoolsExcel(filteredSchools)}
+                  className="btn btn-primary"
+                  style={{ textTransform: 'none', padding: '0.5rem 0.8rem' }}
+                >
+                  Export Excel
+                </button>
+              </div>
+            </div>
+
+            {/* Filter controls row for Schools Database */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', backgroundColor: '#fcfaf7', padding: '0.75rem', border: '1px solid var(--border-muted)', borderRadius: '4px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', display: 'block', marginBottom: '0.25rem' }}>Search School / UDISE</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  style={{ margin: 0, padding: '0.4rem', fontSize: '0.85rem' }}
+                  placeholder="Search school name, UDISE..."
+                  value={schoolSearchQuery}
+                  onChange={(e) => {
+                    setSchoolSearchQuery(e.target.value)
+                    setSchoolPage(1)
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', display: 'block', marginBottom: '0.25rem' }}>Managed By Admin</label>
+                <select
+                  className="form-select"
+                  style={{ margin: 0, padding: '0.4rem', fontSize: '0.85rem' }}
+                  value={schoolAdminFilter}
+                  onChange={(e) => {
+                    setSchoolAdminFilter(e.target.value)
+                    setSchoolPage(1)
+                  }}
+                >
+                  <option value="all">All Administrators</option>
+                  {admins.map((adm) => (
+                    <option key={adm.id} value={adm.email}>{adm.email}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', display: 'block', marginBottom: '0.25rem' }}>Filter District</label>
+                <select
+                  className="form-select"
+                  style={{ margin: 0, padding: '0.4rem', fontSize: '0.85rem' }}
+                  value={schoolDistrictFilter}
+                  onChange={(e) => {
+                    setSchoolDistrictFilter(e.target.value)
+                    setSchoolPage(1)
+                  }}
+                >
+                  <option value="all">All Districts</option>
+                  {uniqueDistricts.map((dist) => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', display: 'block', marginBottom: '0.25rem' }}>Filter Tehsil</label>
+                <select
+                  className="form-select"
+                  style={{ margin: 0, padding: '0.4rem', fontSize: '0.85rem' }}
+                  value={schoolTehsilFilter}
+                  onChange={(e) => {
+                    setSchoolTehsilFilter(e.target.value)
+                    setSchoolPage(1)
+                  }}
+                >
+                  <option value="all">All Tehsils</option>
+                  {uniqueTehsils.map((teh) => (
+                    <option key={teh} value={teh}>{teh}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', display: 'block', marginBottom: '0.25rem' }}>Language</label>
+                <select
+                  className="form-select"
+                  style={{ margin: 0, padding: '0.4rem', fontSize: '0.85rem' }}
+                  value={schoolLanguageFilter}
+                  onChange={(e) => {
+                    setSchoolLanguageFilter(e.target.value)
+                    setSchoolPage(1)
+                  }}
+                >
+                  <option value="all">All Languages</option>
+                  <option value="en">English (EN)</option>
+                  <option value="hi">Hindi (HI)</option>
+                </select>
+              </div>
             </div>
           </div>
+
           <div className="table-container">
             <table>
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>School Name</th>
                   <th>UDISE Number</th>
                   <th>Tehsil</th>
@@ -1584,54 +1818,140 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                   <th>Linked Classes</th>
                   <th>Managed By</th>
                   <th>Registered Students</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSchools.length === 0 ? (
+                {paginatedSchools.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No matching schools found.</td>
+                    <td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No matching schools found.</td>
                   </tr>
                 ) : (
-                  filteredSchools.map((sch) => (
-                    <tr key={sch.id}>
-                      <td>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <button
-                            onClick={() => handleOpenSchoolDetail(sch.udise)}
-                            className="btn-text"
-                            style={{ padding: 0, textDecoration: 'underline', fontWeight: 'bold', color: 'var(--primary-navy)', fontFamily: 'var(--font-sans)', textTransform: 'none', textAlign: 'left' }}
-                          >
-                            {sch.name}
-                          </button>
-                          <span className="badge badge-outline" style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
-                            {sch.language?.toUpperCase() || 'EN'}
-                          </span>
-                        </div>
-                      </td>
-                      <td>{sch.udise}</td>
-                      <td>{sch.tehsil || '-'}</td>
-                      <td>{sch.district || '-'}</td>
-                      <td>
-                        {sch.classrooms && sch.classrooms.length > 0 ? (
-                          <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                            {sch.classrooms.map((c: any) => (
-                              <span key={c.id} className="badge badge-outline" style={{ fontSize: '0.75rem', padding: '0.15rem 0.4rem', textTransform: 'none' }}>
-                                {c.name}
-                              </span>
-                            ))}
+                  paginatedSchools.map((sch, idx) => {
+                    const srNo = (schoolPage - 1) * schoolPageSize + idx + 1
+                    return (
+                      <tr key={sch.id}>
+                        <td>{srNo}</td>
+                        <td>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <button
+                              onClick={() => handleOpenSchoolDetail(sch.udise)}
+                              className="btn-text"
+                              style={{ padding: 0, textDecoration: 'underline', fontWeight: 'bold', color: 'var(--primary-navy)', fontFamily: 'var(--font-sans)', textTransform: 'none', textAlign: 'left' }}
+                            >
+                              {sch.name}
+                            </button>
+                            <span className="badge badge-outline" style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
+                              {sch.language?.toUpperCase() || 'EN'}
+                            </span>
                           </div>
-                        ) : (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>-</span>
-                        )}
-                      </td>
-                      <td>{sch.adminEmail}</td>
-                      <td>{sch.studentsCount} students</td>
-                    </tr>
-                  ))
+                        </td>
+                        <td>{sch.udise}</td>
+                        <td>{sch.tehsil || '-'}</td>
+                        <td>{sch.district || '-'}</td>
+                        <td>
+                          {sch.classrooms && sch.classrooms.length > 0 ? (
+                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                              {sch.classrooms.map((c: any) => (
+                                <span key={c.id} className="badge badge-outline" style={{ fontSize: '0.75rem', padding: '0.15rem 0.4rem', textTransform: 'none' }}>
+                                  {c.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
+                        <td>{sch.adminEmail}</td>
+                        <td>{sch.studentsCount} students</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', flexWrap: 'nowrap' }}>
+                            <button
+                              onClick={() => handleOpenSchoolDetail(sch.udise)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem', textTransform: 'none' }}
+                            >
+                              👁️ View
+                            </button>
+                            <button
+                              onClick={() => handleSingleClickDownloadAllData({ schoolId: sch.id, fileNamePrefix: `School_${sch.name.replace(/[^a-zA-Z0-9]/g, '_')}` })}
+                              className="btn btn-primary"
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', textTransform: 'none', backgroundColor: '#107c41', borderColor: '#107c41', color: '#ffffff' }}
+                            >
+                              📥 Download Data
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* Schools Pagination Controls */}
+          {totalSchoolPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Showing {(schoolPage - 1) * schoolPageSize + 1} to {Math.min(schoolPage * schoolPageSize, filteredSchools.length)} of {filteredSchools.length} schools
+              </div>
+              <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                <button
+                  className="btn btn-secondary"
+                  disabled={schoolPage === 1}
+                  onClick={() => setSchoolPage(1)}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  « First
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  disabled={schoolPage === 1}
+                  onClick={() => setSchoolPage(p => Math.max(1, p - 1))}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  ‹ Prev
+                </button>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', margin: '0 0.5rem' }}>
+                  Page {schoolPage} of {totalSchoolPages}
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  disabled={schoolPage === totalSchoolPages}
+                  onClick={() => setSchoolPage(p => Math.min(totalSchoolPages, p + 1))}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  Next ›
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  disabled={schoolPage === totalSchoolPages}
+                  onClick={() => setSchoolPage(totalSchoolPages)}
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                >
+                  Last »
+                </button>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                <span>Per Page:</span>
+                <select
+                  className="form-select"
+                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', width: '70px', margin: 0 }}
+                  value={schoolPageSize}
+                  onChange={(e) => {
+                    setSchoolPageSize(Number(e.target.value))
+                    setSchoolPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1894,40 +2214,78 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       )}
 
       {activeTab === 'DOWNLOAD_ADMIN_DATA' && (
-        <div className="card" style={{ marginTop: 0, maxWidth: '650px' }}>
-          <h3 className="card-title">Download Complete Administrator Data</h3>
+        <div className="card" style={{ marginTop: 0, maxWidth: '750px' }}>
+          <h3 className="card-title">Single Click Download All System Data & Candidate Rankings</h3>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            Select a System Administrator from the list below to export all associated records including managed schools, classrooms, exams, question banks, registered students, and student exam attempts into a multi-sheet Excel workbook.
+            Filter by Administrator, School, or Date Range to export all associated records—including admin profiles, schools, classrooms, exams, question sets, registered students, and student exam attempts with candidate rankings—into a single structured multi-sheet Excel & CSV file.
           </p>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: 'bold' }}>Select Administrator</label>
-            <select
-              className="form-select"
-              value={selectedExportAdminId}
-              onChange={(e) => setSelectedExportAdminId(e.target.value)}
-              style={{ fontSize: '0.95rem', padding: '0.6rem' }}
-            >
-              <option value="">-- Choose an Administrator --</option>
-              {admins.map((adm) => (
-                <option key={adm.id} value={adm.id}>
-                  {adm.email} (Mob: {adm.mobile}) {adm.branch ? `- ${adm.branch}` : ''}
-                </option>
-              ))}
-            </select>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontWeight: 'bold' }}>Filter Administrator</label>
+              <select
+                className="form-select"
+                value={exportAdminId}
+                onChange={(e) => setExportAdminId(e.target.value)}
+                style={{ fontSize: '0.9rem', padding: '0.5rem' }}
+              >
+                <option value="all">All Administrators</option>
+                {admins.map((adm) => (
+                  <option key={adm.id} value={adm.id}>
+                    {adm.email} (Mob: {adm.mobile}) {adm.branch ? `- ${adm.branch}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontWeight: 'bold' }}>Filter School</label>
+              <select
+                className="form-select"
+                value={exportSchoolId}
+                onChange={(e) => setExportSchoolId(e.target.value)}
+                style={{ fontSize: '0.9rem', padding: '0.5rem' }}
+              >
+                <option value="all">All Schools</option>
+                {schools.map((sch) => (
+                  <option key={sch.id} value={sch.id}>
+                    {sch.name} ({sch.udise})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontWeight: 'bold' }}>Start Date (Optional)</label>
+              <input
+                type="date"
+                className="form-input"
+                value={exportStartDate}
+                onChange={(e) => setExportStartDate(e.target.value)}
+                style={{ fontSize: '0.9rem', padding: '0.5rem', margin: 0 }}
+              />
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ fontWeight: 'bold' }}>End Date (Optional)</label>
+              <input
+                type="date"
+                className="form-input"
+                value={exportEndDate}
+                onChange={(e) => setExportEndDate(e.target.value)}
+                style={{ fontSize: '0.9rem', padding: '0.5rem', margin: 0 }}
+              />
+            </div>
           </div>
+
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!selectedExportAdminId || submitting}
-            onClick={() => {
-              const selectedAdmin = admins.find(a => a.id === selectedExportAdminId)
-              if (selectedAdmin) {
-                handleDownloadAdminData(selectedAdmin.id, selectedAdmin.email)
-              }
-            }}
-            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', backgroundColor: '#107c41', borderColor: '#107c41', color: '#ffffff' }}
+            disabled={submitting}
+            onClick={() => handleSingleClickDownloadAllData()}
+            style={{ width: '100%', padding: '0.85rem', fontSize: '1.05rem', backgroundColor: '#107c41', borderColor: '#107c41', color: '#ffffff', textTransform: 'none' }}
           >
-            {submitting ? 'Preparing Export Data...' : '📥 Download Complete Admin Data (.xlsx)'}
+            {submitting ? 'Preparing Export Data...' : '📥 Single Click Download All Data & Rankings (.xlsx & .csv)'}
           </button>
         </div>
       )}
