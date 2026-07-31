@@ -165,17 +165,33 @@ function SchoolDetailPanel({
       completed = completed.filter((att: any) => new Date(att.submittedAt) <= toLimit)
     }
 
-    completed = [...completed].sort((a: any, b: any) => b.score - a.score)
-
-    let currentRank = 0
-    let lastScore = -1
-    return completed.map((att: any, index: number) => {
-      if (att.score !== lastScore) {
-        currentRank = index + 1
-        lastScore = att.score
+    completed = [...completed].sort((a: any, b: any) => {
+      // 1. First Submission – Earlier submittedAt timestamp receives higher rank
+      const subA = a.submittedAt ? new Date(a.submittedAt).getTime() : Infinity
+      const subB = b.submittedAt ? new Date(b.submittedAt).getTime() : Infinity
+      if (subA !== subB) {
+        return subA - subB
       }
-      return { ...att, rank: currentRank }
+
+      // 2. Exam Completion Time – Shortest duration (submittedAt - startedAt) receives higher rank
+      const startA = a.startedAt ? new Date(a.startedAt).getTime() : subA
+      const startB = b.startedAt ? new Date(b.startedAt).getTime() : subB
+      const durA = Math.max(0, subA - startA)
+      const durB = Math.max(0, subB - startB)
+      if (durA !== durB) {
+        return durA - durB
+      }
+
+      // 3. Marks Obtained – Higher marks (score) receives higher rank
+      const scoreA = a.score !== undefined && a.score !== null ? Number(a.score) : 0
+      const scoreB = b.score !== undefined && b.score !== null ? Number(b.score) : 0
+      return scoreB - scoreA
     })
+
+    return completed.map((att: any, index: number) => ({
+      ...att,
+      rank: index + 1
+    }))
   }, [schoolDetail.attempts, selectedClassroomId, selectedExamId, selectedGroupId, groups, startDate, startTime, endDate, endTime])
 
   const handleSaveClasses = async () => {

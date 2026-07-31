@@ -4,6 +4,31 @@ import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middlewa
 
 export const dynamic = 'force-dynamic'
 
+function sortAttemptsByRankCriteria(attempts: any[]) {
+  return [...attempts].sort((a, b) => {
+    // 1. First Submission – Earlier submittedAt timestamp receives higher rank
+    const subA = a.submittedAt ? new Date(a.submittedAt).getTime() : Infinity
+    const subB = b.submittedAt ? new Date(b.submittedAt).getTime() : Infinity
+    if (subA !== subB) {
+      return subA - subB
+    }
+
+    // 2. Exam Completion Time – Shortest duration (submittedAt - startedAt) receives higher rank
+    const startA = a.startedAt ? new Date(a.startedAt).getTime() : subA
+    const startB = b.startedAt ? new Date(b.startedAt).getTime() : subB
+    const durA = Math.max(0, subA - startA)
+    const durB = Math.max(0, subB - startB)
+    if (durA !== durB) {
+      return durA - durB
+    }
+
+    // 3. Marks Obtained – Higher marks (score) receives higher rank
+    const scoreA = a.score !== undefined && a.score !== null ? Number(a.score) : 0
+    const scoreB = b.score !== undefined && b.score !== null ? Number(b.score) : 0
+    return scoreB - scoreA
+  })
+}
+
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)
@@ -78,13 +103,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (isMultiSchoolMode) {
-      // Fetch attempts across all selected schools, sorted by score desc and startedAt asc
+      // Fetch completed attempts across all selected schools
       const attempts = await prisma.examAttempt.findMany({
         where,
-        orderBy: [
-          { score: 'desc' },
-          { startedAt: 'asc' },
-        ],
         include: {
           student: {
             select: {
@@ -100,17 +121,20 @@ export async function GET(req: NextRequest) {
         },
       })
 
-      // Group attempts by schoolId and take TOP 3 per school
+      // Group attempts by schoolId
       const schoolGroupsMap = new Map<string, any[]>()
       for (const attempt of attempts) {
         const sId = attempt.student.schoolId || 'unknown'
         if (!schoolGroupsMap.has(sId)) {
           schoolGroupsMap.set(sId, [])
         }
-        const list = schoolGroupsMap.get(sId)!
-        if (list.length < 3) {
-          list.push(attempt)
-        }
+        schoolGroupsMap.get(sId)!.push(attempt)
+      }
+
+      // Sort each school's attempts by criteria and take top 3
+      for (const [sId, sAttempts] of schoolGroupsMap.entries()) {
+        const sorted = sortAttemptsByRankCriteria(sAttempts)
+        schoolGroupsMap.set(sId, sorted.slice(0, 3))
       }
 
       // Sort schools by school name alphabetically
@@ -153,11 +177,6 @@ export async function GET(req: NextRequest) {
       // Single school or standard top 3 query
       const attempts = await prisma.examAttempt.findMany({
         where,
-        orderBy: [
-          { score: 'desc' },
-          { startedAt: 'asc' }, // Tie breaker
-        ],
-        take: 3, // Top 3 results
         include: {
           student: {
             select: {
@@ -172,7 +191,10 @@ export async function GET(req: NextRequest) {
         },
       })
 
-      const formatted = attempts.map((attempt: any, index) => {
+      const sortedAttempts = sortAttemptsByRankCriteria(attempts)
+      const top3 = sortedAttempts.slice(0, 3)
+
+      const formatted = top3.map((attempt: any, index) => {
         const durationMs = attempt.submittedAt
           ? new Date(attempt.submittedAt).getTime() - new Date(attempt.startedAt).getTime()
           : 0
