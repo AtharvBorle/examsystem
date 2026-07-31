@@ -6,14 +6,33 @@ import { useAuth } from '../context/AuthContext'
 import { Search, Phone, Lock, User, School, GraduationCap, MapPin, Building2, Eye, EyeOff, Info, FileText, Shield, HelpCircle, BookOpen, X, ChevronRight } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 
+export const getAbsolutePolicyUrl = (path: string) => {
+  if (typeof window === 'undefined') return path
+  const origin = window.location.origin
+  let routePath = path
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    try {
+      const u = new URL(path)
+      routePath = u.pathname
+    } catch (e) {
+      routePath = path
+    }
+  }
+  if (!routePath.startsWith('/')) {
+    routePath = '/' + routePath
+  }
+  return `${origin}${routePath}`
+}
+
 export const openExternalPolicyLink = (url: string) => {
+  const targetUrl = getAbsolutePolicyUrl(url)
   if ((window as any).ReactNativeWebView && (window as any).ReactNativeWebView.postMessage) {
     (window as any).ReactNativeWebView.postMessage(JSON.stringify({
       type: 'OPEN_EXTERNAL_URL',
-      url: url
+      url: targetUrl
     }))
   } else {
-    window.open(url, '_blank', 'noopener,noreferrer')
+    window.open(targetUrl, '_blank', 'noopener,noreferrer')
   }
 }
 
@@ -27,31 +46,31 @@ export function InfoButton({ lang }: { lang: Language }) {
     {
       title: lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions',
       desc: lang === 'hi' ? 'पोर्टल उपयोग एवं नियम' : 'Rules & portal usage guidelines',
-      path: 'https://bvpindia.org/oes/T&C',
+      path: '/oes/T&C',
       icon: <FileText size={20} style={{ color: '#c59f2d' }} />
     },
     {
       title: lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy',
       desc: lang === 'hi' ? 'डेटा सुरक्षा एवं निजता' : 'Data protection & privacy rights',
-      path: 'https://bvpindia.org/oes/privacypolicy',
+      path: '/oes/privacypolicy',
       icon: <Shield size={20} style={{ color: '#2b6cb0' }} />
     },
     {
       title: lang === 'hi' ? 'परीक्षा प्रक्रिया' : 'Examination Process',
       desc: lang === 'hi' ? 'परीक्षा नियम, टाइमर एवं रंग कोड' : 'Exam rules, timer & status guide',
-      path: 'https://bvpindia.org/oes/examprocess',
+      path: '/oes/examprocess',
       icon: <BookOpen size={20} style={{ color: '#2f855a' }} />
     },
     {
       title: lang === 'hi' ? 'छात्र मार्गदर्शिका एवं सहायता' : 'Student Guide & Support',
       desc: lang === 'hi' ? 'पंजीकरण, खाता हटाने की नीति एवं संपर्क' : 'Registration, deletion policy & contact',
-      path: 'https://bvpindia.org/oes/help&suppport',
+      path: '/oes/help&suppport',
       icon: <GraduationCap size={20} style={{ color: '#d69e2e' }} />
     },
     {
       title: lang === 'hi' ? 'सामान्य प्रश्न (FAQs)' : 'Frequently Asked Questions',
       desc: lang === 'hi' ? 'अक्सर पूछे जाने वाले प्रश्न और उनके उत्तर' : 'Quick answers to common questions',
-      path: 'https://bvpindia.org/oes/faq',
+      path: '/oes/faq',
       icon: <HelpCircle size={20} style={{ color: '#805ad5' }} />
     }
   ]
@@ -417,12 +436,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
           <div>Powered by Neopace Infotech LLP</div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
             <a 
-              href="https://bvpindia.org/oes/T&C" 
+              href={getAbsolutePolicyUrl('/oes/T&C')} 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                openExternalPolicyLink('https://bvpindia.org/oes/T&C')
+                openExternalPolicyLink('/oes/T&C')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -430,12 +449,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="https://bvpindia.org/oes/privacypolicy" 
+              href={getAbsolutePolicyUrl('/oes/privacypolicy')} 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                openExternalPolicyLink('https://bvpindia.org/oes/privacypolicy')
+                openExternalPolicyLink('/oes/privacypolicy')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -443,12 +462,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="https://bvpindia.org/oes/examprocess" 
+              href={getAbsolutePolicyUrl('/oes/examprocess')} 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                openExternalPolicyLink('https://bvpindia.org/oes/examprocess')
+                openExternalPolicyLink('/oes/examprocess')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -456,12 +475,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="https://bvpindia.org/oes/help&suppport" 
+              href={getAbsolutePolicyUrl('/oes/help&suppport')} 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                openExternalPolicyLink('https://bvpindia.org/oes/help&suppport')
+                openExternalPolicyLink('/oes/help&suppport')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -469,12 +488,12 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
             </a>
             <span>•</span>
             <a 
-              href="https://bvpindia.org/oes/faq" 
+              href={getAbsolutePolicyUrl('/oes/faq')} 
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault()
-                openExternalPolicyLink('https://bvpindia.org/oes/faq')
+                openExternalPolicyLink('/oes/faq')
               }}
               style={{ color: '#0f3d7a', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -1193,12 +1212,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
               <label htmlFor="acceptTerms1" style={{ fontSize: '0.825rem', color: '#0b2240', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500 }}>
                 {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
                 <a
-                  href="https://bvpindia.org/oes/T&C"
+                  href={getAbsolutePolicyUrl('/oes/T&C')}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => {
                     e.preventDefault()
-                    openExternalPolicyLink('https://bvpindia.org/oes/T&C')
+                    openExternalPolicyLink('/oes/T&C')
                   }}
                   style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
                 >
@@ -1206,12 +1225,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
                 </a>
                 {lang === 'hi' ? ' और ' : ' and '}
                 <a
-                  href="https://bvpindia.org/oes/privacypolicy"
+                  href={getAbsolutePolicyUrl('/oes/privacypolicy')}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => {
                     e.preventDefault()
-                    openExternalPolicyLink('https://bvpindia.org/oes/privacypolicy')
+                    openExternalPolicyLink('/oes/privacypolicy')
                   }}
                   style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
                 >
@@ -1596,12 +1615,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
             <label htmlFor="acceptTerms2" style={{ fontSize: '0.825rem', color: '#334155', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500 }}>
               {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
               <a
-                href="https://bvpindia.org/oes/T&C"
+                href={getAbsolutePolicyUrl('/oes/T&C')}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => {
                   e.preventDefault()
-                  openExternalPolicyLink('https://bvpindia.org/oes/T&C')
+                  openExternalPolicyLink('/oes/T&C')
                 }}
                 style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
               >
@@ -1609,12 +1628,12 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
               </a>
               {lang === 'hi' ? ' और ' : ' and '}
               <a
-                href="https://bvpindia.org/oes/privacypolicy"
+                href={getAbsolutePolicyUrl('/oes/privacypolicy')}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => {
                   e.preventDefault()
-                  openExternalPolicyLink('https://bvpindia.org/oes/privacypolicy')
+                  openExternalPolicyLink('/oes/privacypolicy')
                 }}
                 style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
               >
