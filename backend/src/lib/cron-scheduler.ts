@@ -1,6 +1,6 @@
 import cron from 'node-cron'
 import { prisma } from './prisma'
-import { getAccountDeletionThresholdDate, getAccountDeletionGraceDisplayString } from './account-deletion-config'
+import { getAccountDeletionThresholdDate, getAccountDeletionGraceDisplayString, getAnonymizeCronSchedule } from './account-deletion-config'
 
 const ADVISORY_LOCK_ID = BigInt('884729103847219')
 
@@ -10,22 +10,24 @@ export function initAnonymizeCron() {
   if (isInitialized) return
   isInitialized = true
 
-  // Schedule task to run every midnight at 00:00
-  cron.schedule('0 0 * * *', async () => {
-    console.log('[MIDNIGHT CRON] Triggered account anonymization check...')
+  const schedule = getAnonymizeCronSchedule()
+
+  // Schedule task according to configured schedule
+  cron.schedule(schedule, async () => {
+    console.log(`[ANONYMIZE CRON] Triggered account anonymization check (schedule: '${schedule}')...`)
     try {
       // Try acquiring Postgres Advisory Lock across cluster workers
       const lockResult: any[] = await prisma.$queryRaw`SELECT pg_try_advisory_lock(${ADVISORY_LOCK_ID}) as acquired;`
       const acquired = lockResult[0]?.acquired === true
 
       if (!acquired) {
-        console.log('[MIDNIGHT CRON] Postgres Advisory Lock held by another cluster worker. Skipping execution.')
+        console.log('[ANONYMIZE CRON] Postgres Advisory Lock held by another cluster worker. Skipping execution.')
         return
       }
 
       try {
         const displayTime = getAccountDeletionGraceDisplayString()
-        console.log(`[MIDNIGHT CRON] Lock acquired. Executing expired account anonymization (retention: ${displayTime})...`)
+        console.log(`[ANONYMIZE CRON] Lock acquired. Executing expired account anonymization (retention: ${displayTime})...`)
         const thresholdDate = getAccountDeletionThresholdDate()
 
         const expiredStudents = await prisma.student.findMany({
@@ -58,15 +60,15 @@ export function initAnonymizeCron() {
           count++
         }
 
-        console.log(`[MIDNIGHT CRON] Complete. Anonymized ${count} expired user account(s).`)
+        console.log(`[ANONYMIZE CRON] Complete. Anonymized ${count} expired user account(s).`)
       } finally {
         await prisma.$queryRaw`SELECT pg_advisory_unlock(${ADVISORY_LOCK_ID});`
-        console.log('[MIDNIGHT CRON] Postgres Advisory Lock released.')
+        console.log('[ANONYMIZE CRON] Postgres Advisory Lock released.')
       }
     } catch (err) {
-      console.error('[MIDNIGHT CRON] Error executing account anonymization:', err)
+      console.error('[ANONYMIZE CRON] Error executing account anonymization:', err)
     }
   })
 
-  console.log('[CRON INITIALIZED] Daily midnight account anonymization scheduled (00:00) with Postgres Advisory Locking.')
+  console.log(`[CRON INITIALIZED] Account anonymization scheduled with pattern: '${schedule}' with Postgres Advisory Locking.`)
 }

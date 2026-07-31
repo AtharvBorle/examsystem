@@ -38,3 +38,25 @@ export function getAccountDeletionGraceDisplayString(): string {
   const days = Math.round(minutes / (24 * 60))
   return `${days} days`
 }
+
+/**
+ * Determines the node-cron schedule expression.
+ * 1. If explicit ANONYMIZE_CRON_SCHEDULE or ACCOUNT_DELETION_CRON_SCHEDULE is set in process.env, use it.
+ * 2. If ACCOUNT_DELETION_GRACE_MINUTES is < 60 (short testing period like 5 or 10 mins), run every 1 minute ('* * * * *').
+ * 3. Otherwise (30 days, 1 day, etc.), run daily at midnight ('0 0 * * *').
+ */
+export function getAnonymizeCronSchedule(): string {
+  const explicitSchedule = process.env.ANONYMIZE_CRON_SCHEDULE || process.env.ACCOUNT_DELETION_CRON_SCHEDULE
+  if (explicitSchedule && explicitSchedule.trim()) {
+    return explicitSchedule.trim()
+  }
+
+  const graceMinutes = getAccountDeletionGraceMinutes()
+  if (graceMinutes < 60) {
+    // For short testing intervals (< 1 hour), check every minute
+    return '* * * * *'
+  }
+
+  // Default: daily at midnight (00:00)
+  return '0 0 * * *'
+}
