@@ -161,16 +161,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    checkRealConnection()
-
-    const connInterval = setInterval(() => {
-      checkRealConnection()
-    }, 2500)
-
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
-      clearInterval(connInterval)
     }
   }, [token])
 
@@ -194,19 +187,29 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
   const handleTouchEnd = async () => {
     if (pullY >= 45 && !refreshing) {
+      setRefreshing(true)
+      setPullY(50)
+
       if (!navigator.onLine) {
+        setIsOffline(true)
         setShowNoInternetStartModal(true)
+        setRefreshing(false)
         setPullY(0)
         touchStartRef.current = 0
         return
       }
-      setRefreshing(true)
-      setPullY(50)
-      await Promise.all([fetchExams(), fetchResources()])
+
+      setIsOffline(false)
+      setShowNoInternetStartModal(false)
+      setShowNoInternetDownloadModal(false)
+      setShowNoInternetResourceModal(false)
+
+      await Promise.all([fetchExams(), fetchResources(), syncOfflineSubmissions()])
+
       setTimeout(() => {
         setRefreshing(false)
         setPullY(0)
-      }, 400)
+      }, 250)
     } else {
       setPullY(0)
     }
@@ -1424,32 +1427,6 @@ fetchExams()
   if (activeSession) {
     return (
       <div style={{ position: 'relative' }}>
-        {isOffline && (
-          <div style={{
-            backgroundColor: '#fffbe6',
-            borderBottom: '2px solid #ffe58f',
-            color: '#d48806',
-            padding: '0.65rem 1rem',
-            fontSize: '0.85rem',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 9999,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
-          }}>
-            <WifiOff size={18} style={{ flexShrink: 0 }} />
-            <span>
-              {lang === 'hi'
-                ? '⚠️ आप वर्तमान में ऑफ़लाइन हैं। आप अपनी परीक्षा जारी रख सकते हैं, लेकिन आपका सबमिशन इंटरनेट वापस आने पर स्वतः सिंक्रनाइज़ हो जाएगा।'
-                : "⚠️ You're currently offline. You can continue your exam, but your submission will be synchronized automatically when your internet connection is restored."}
-            </span>
-          </div>
-        )}
         <ExamSessionView
           session={activeSession}
           exams={exams}
@@ -2153,30 +2130,6 @@ fetchExams()
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Persistent Offline Status Banner */}
-        {isOffline && (
-          <div style={{
-            backgroundColor: '#fffbe6',
-            border: '1px solid #ffe58f',
-            borderRadius: '8px',
-            color: '#d48806',
-            padding: '0.65rem 0.85rem',
-            fontSize: '0.8rem',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '0.75rem',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
-          }}>
-            <WifiOff size={18} style={{ flexShrink: 0 }} />
-            <span>
-              {lang === 'hi'
-                ? '⚠️ आप वर्तमान में ऑफ़लाइन हैं। आप अपनी परीक्षा जारी रख सकते हैं, लेकिन आपका सबमिशन इंटरनेट वापस आने पर स्वतः सिंक्रनाइज़ हो जाएगा।'
-                : "⚠️ You're currently offline. You can continue your exam, but your submission will be synchronized automatically when your internet connection is restored."}
-            </span>
-          </div>
-        )}
         {/* Pull to Refresh Banner */}
         {(pullY > 0 || refreshing) && (
           <div style={{
