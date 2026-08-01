@@ -133,15 +133,23 @@ function MainLayout() {
   const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN' | 'TERMS' | 'PRIVACY' | 'EXAM_PROCESS' | 'HELP_SUPPORT' | 'FAQ'>('LOGIN')
   const [directSchoolUdise, setDirectSchoolUdise] = useState<string | null>(null)
 
-  const [lang, setLang] = useState<Language>('en')
+  const [lang, setLang] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('preferred_language')
+      if (saved === 'hi' || saved === 'en') return saved
+    }
+    return 'en'
+  })
 
   const handleLanguageChange = async (newLang: Language) => {
     setLang(newLang)
-    window.alert(newLang === 'hi'
-      ? 'भाषा सफलतापूर्वक बदल दी गई है।'
-      : 'Language changed successfully.'
-    )
+    try {
+      localStorage.setItem('preferred_language', newLang)
+    } catch (e) {}
+
     if (user && token) {
+      const updatedUser = { ...user, language: newLang }
+      login(token, updatedUser)
       if (user.role === 'STUDENT') {
         try {
           const res = await fetch('/api/student/language', {
@@ -154,21 +162,16 @@ function MainLayout() {
           })
           const data = await res.json()
           if (data.success) {
-            const updatedUser = {
-              ...user,
-              language: newLang,
+            login(token, {
+              ...updatedUser,
               school: data.school || user.school,
               classroom: data.classroom || user.classroom,
               branch: data.branch || user.branch
-            }
-            login(token, updatedUser)
+            })
           }
         } catch (err) {
           console.error('Failed to save language preference on backend:', err)
-          login(token, { ...user, language: newLang })
         }
-      } else {
-        login(token, { ...user, language: newLang })
       }
     }
   }

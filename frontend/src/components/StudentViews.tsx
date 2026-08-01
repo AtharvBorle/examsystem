@@ -204,7 +204,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       setShowNoInternetDownloadModal(false)
       setShowNoInternetResourceModal(false)
 
-      await Promise.all([fetchExams(), fetchResources(), syncOfflineSubmissions()])
+      await syncOfflineSubmissions()
+      await Promise.all([fetchExams(), fetchResources()])
 
       setTimeout(() => {
         setRefreshing(false)
@@ -223,7 +224,25 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       })
       const data = await res.json()
       if (data.success) {
-        setExams(data.exams)
+        let pendingAttemptIds = new Set<string>()
+        try {
+          const rawQueue = localStorage.getItem('pending_offline_submissions')
+          if (rawQueue) {
+            const pendingQueue: any[] = JSON.parse(rawQueue)
+            pendingQueue.forEach((item: any) => {
+              if (item.attemptId) pendingAttemptIds.add(item.attemptId)
+            })
+          }
+        } catch (e) {}
+
+        const updatedExams = data.exams.map((ex: any) => {
+          if (ex.attemptId && pendingAttemptIds.has(ex.attemptId)) {
+            return { ...ex, attemptStatus: 'COMPLETED' }
+          }
+          return ex
+        })
+
+        setExams(updatedExams)
         if (data.externalLink) {
           setExternalLink(data.externalLink)
           setExternalLinkTitle(data.externalLinkTitle || null)
@@ -1166,10 +1185,8 @@ fetchExams()
         }
       } catch (err) {
         console.error('Failed to fetch certificate details:', err)
-        if (!navigator.onLine || isOffline) {
-          setShowNoInternetDownloadModal(true)
-          return
-        }
+        setShowNoInternetDownloadModal(true)
+        return
       }
     }
 
@@ -1878,6 +1895,10 @@ fetchExams()
                           </div>
                           <button
                             onClick={async () => {
+                              if (!navigator.onLine || isOffline) {
+                                setShowNoInternetDownloadModal(true)
+                                return
+                              }
                               try {
                                 const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
                                   headers: { Authorization: `Bearer ${token}` }
@@ -1885,9 +1906,12 @@ fetchExams()
                                 const data = await res.json()
                                 if (data.success) {
                                   setCompletedAttempt(data.certificate)
+                                } else {
+                                  setShowNoInternetDownloadModal(true)
                                 }
                               } catch (err) {
                                 console.error(err)
+                                setShowNoInternetDownloadModal(true)
                               }
                             }}
                             style={{
@@ -2400,6 +2424,10 @@ fetchExams()
                         </div>
                         <button
                           onClick={async () => {
+                            if (!navigator.onLine || isOffline) {
+                              setShowNoInternetDownloadModal(true)
+                              return
+                            }
                             try {
                               const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -2407,9 +2435,12 @@ fetchExams()
                               const data = await res.json()
                               if (data.success) {
                                 setCompletedAttempt(data.certificate)
+                              } else {
+                                setShowNoInternetDownloadModal(true)
                               }
                             } catch (err) {
                               console.error(err)
+                              setShowNoInternetDownloadModal(true)
                             }
                           }}
                           className="btn btn-secondary"
