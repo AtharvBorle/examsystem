@@ -1131,7 +1131,29 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 fetchExams()
       }
     } catch (err) {
-      console.error('Error submitting exam, enforcing completion screen fallback:', err)
+      console.error('Error submitting exam, queuing offline and enforcing completion screen fallback:', err)
+      
+      // Save to offline queue so it can sync when connection is restored!
+      try {
+        const rawQueue = localStorage.getItem('pending_offline_submissions')
+        const pendingQueue = rawQueue ? JSON.parse(rawQueue) : []
+        
+        // Prevent duplicate queue entries
+        if (!pendingQueue.some((item: any) => item.attemptId === attemptId)) {
+          pendingQueue.push({
+            attemptId,
+            examId: finishedExamId,
+            responses,
+            language: lang,
+            submittedAt: new Date().toISOString()
+          })
+          localStorage.setItem('pending_offline_submissions', JSON.stringify(pendingQueue))
+        }
+        localStorage.removeItem(`exam_responses_${attemptId}`)
+      } catch (e) {
+        console.error('Failed to save offline submission during catch:', e)
+      }
+
       setCompletedAttempt({
         attemptId,
         studentName: user.name || 'Student',
