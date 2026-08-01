@@ -143,9 +143,9 @@ export async function GET(req: NextRequest) {
     })
 
     // Multi-tier sorting for global rankings:
-    // 1. First Submission (submittedAt timestamp ascending)
+    // 1. Marks Obtained (score descending) - Primary Criteria
     // 2. Exam Completion Time (duration = submittedAt - startedAt ascending)
-    // 3. Marks Obtained (score descending)
+    // 3. First Submission (submittedAt timestamp ascending)
     rawAttempts.sort((a, b) => {
       if (a.completed !== b.completed) {
         return a.completed ? -1 : 1
@@ -154,18 +154,22 @@ export async function GET(req: NextRequest) {
       if (!a.submittedAt) return 1
       if (!b.submittedAt) return -1
 
-      // 1. Submission Time
-      const subA = new Date(a.submittedAt).getTime()
-      const subB = new Date(b.submittedAt).getTime()
-      if (subA !== subB) return subA - subB
+      // 1. Marks Obtained (score descending)
+      const scoreA = a.score !== undefined && a.score !== null ? Number(a.score) : 0
+      const scoreB = b.score !== undefined && b.score !== null ? Number(b.score) : 0
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA
+      }
 
       // 2. Completion Duration
+      const subA = new Date(a.submittedAt).getTime()
+      const subB = new Date(b.submittedAt).getTime()
       const durA = subA - new Date(a.startedAt).getTime()
       const durB = subB - new Date(b.startedAt).getTime()
       if (durA !== durB) return durA - durB
 
-      // 3. Marks Obtained
-      return b.score - a.score
+      // 3. Submission Time
+      return subA - subB
     })
 
     // Format Admin profile if specific adminId is passed

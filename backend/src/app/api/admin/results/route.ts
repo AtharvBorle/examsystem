@@ -6,14 +6,16 @@ export const dynamic = 'force-dynamic'
 
 function sortAttemptsByRankCriteria(attempts: any[]) {
   return [...attempts].sort((a, b) => {
-    // 1. First Submission – Earlier submittedAt timestamp receives higher rank
-    const subA = a.submittedAt ? new Date(a.submittedAt).getTime() : Infinity
-    const subB = b.submittedAt ? new Date(b.submittedAt).getTime() : Infinity
-    if (subA !== subB) {
-      return subA - subB
+    // 1. Marks Obtained – Higher marks (score) receives higher rank (Primary Criteria)
+    const scoreA = a.score !== undefined && a.score !== null ? Number(a.score) : 0
+    const scoreB = b.score !== undefined && b.score !== null ? Number(b.score) : 0
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA
     }
 
     // 2. Exam Completion Time – Shortest duration (submittedAt - startedAt) receives higher rank
+    const subA = a.submittedAt ? new Date(a.submittedAt).getTime() : Infinity
+    const subB = b.submittedAt ? new Date(b.submittedAt).getTime() : Infinity
     const startA = a.startedAt ? new Date(a.startedAt).getTime() : subA
     const startB = b.startedAt ? new Date(b.startedAt).getTime() : subB
     const durA = Math.max(0, subA - startA)
@@ -22,10 +24,8 @@ function sortAttemptsByRankCriteria(attempts: any[]) {
       return durA - durB
     }
 
-    // 3. Marks Obtained – Higher marks (score) receives higher rank
-    const scoreA = a.score !== undefined && a.score !== null ? Number(a.score) : 0
-    const scoreB = b.score !== undefined && b.score !== null ? Number(b.score) : 0
-    return scoreB - scoreA
+    // 3. First Submission – Earlier submittedAt timestamp receives higher rank
+    return subA - subB
   })
 }
 
