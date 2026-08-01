@@ -1070,10 +1070,88 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         return
       }
 
-      // Create Multi-Sheet Excel Workbook
+      // Build Combined Single-Sheet & Single CSV Data Array (Sections Stacked Sequentially)
+      const combinedRows: any[][] = []
+
+      // SECTION 1: ADMINISTRATOR PROFILE & DETAILS
+      combinedRows.push(['SECTION 1: ADMINISTRATOR PROFILE & DETAILS'])
+      if (data.admin) {
+        combinedRows.push(['Field', 'Value'])
+        combinedRows.push(['Admin ID', data.admin.id])
+        combinedRows.push(['Email ID', data.admin.email])
+        combinedRows.push(['Mobile Number', data.admin.mobile])
+        combinedRows.push(['Branch (English)', data.admin.branch || '-'])
+        combinedRows.push(['Branch (Hindi)', data.admin.branchHindi || '-'])
+        combinedRows.push(['User Count Limit', data.admin.userCountLimit])
+        combinedRows.push(['User Count Used', data.admin.userCountUsed])
+        combinedRows.push(['President Name', data.admin.presidentName || '-'])
+        combinedRows.push(['Secretary Name', data.admin.secretaryName || '-'])
+        combinedRows.push(['Registration Date', new Date(data.admin.createdAt).toLocaleString()])
+      } else {
+        combinedRows.push(['Administrator', 'All Administrators Included'])
+      }
+      combinedRows.push([''])
+      combinedRows.push([''])
+
+      // SECTION 2: SEEDED & MANAGED SCHOOLS
+      combinedRows.push(['SECTION 2: SEEDED & MANAGED SCHOOLS'])
+      const schoolHeaders = ['School ID', 'School Name', 'UDISE Number', 'Tehsil', 'District', 'Language', 'Admin Email', 'Registered Students', 'Created Date']
+      const schoolRows = data.schools.map((s: any) => [
+        s.id, s.name, s.udise, s.tehsil, s.district, s.language, s.adminEmail, s.studentsCount, new Date(s.createdAt).toLocaleString()
+      ])
+      combinedRows.push(schoolHeaders)
+      schoolRows.forEach((r: any) => combinedRows.push(r))
+      combinedRows.push([''])
+      combinedRows.push([''])
+
+      // SECTION 3: CLASSROOMS CREATED
+      combinedRows.push(['SECTION 3: CLASSROOMS CREATED'])
+      const classHeaders = ['Classroom ID', 'Classroom Name', 'Created Date']
+      const classRows = data.classrooms.map((c: any) => [c.id, c.name, new Date(c.createdAt).toLocaleString()])
+      combinedRows.push(classHeaders)
+      classRows.forEach((r: any) => combinedRows.push(r))
+      combinedRows.push([''])
+      combinedRows.push([''])
+
+      // SECTION 4: EXAMS CREATED
+      combinedRows.push(['SECTION 4: EXAMS CREATED'])
+      const examHeaders = ['Exam ID', 'Exam Name', 'Total Questions', 'Duration (Mins)', 'Marks Per Question', 'Total Marks', 'Assigned Groups', 'Assigned Schools', 'Created Date']
+      const examRows = data.exams.map((ex: any) => [
+        ex.id, ex.name, ex.totalQuestions, ex.durationMinutes, ex.marksPerQuestion, ex.totalMarks, ex.assignedGroups, ex.assignedSchools, new Date(ex.createdAt).toLocaleString()
+      ])
+      combinedRows.push(examHeaders)
+      examRows.forEach((r: any) => combinedRows.push(r))
+      combinedRows.push([''])
+      combinedRows.push([''])
+
+      // SECTION 5: REGISTERED STUDENTS
+      combinedRows.push(['SECTION 5: REGISTERED STUDENTS DATABASE'])
+      const stdHeaders = ['Student ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
+      const stdRows = data.students.map((st: any) => [
+        st.id, st.name, st.mobile, st.schoolName, st.udise, st.classroomName, st.district, st.tehsil, new Date(st.registeredAt).toLocaleString()
+      ])
+      combinedRows.push(stdHeaders)
+      stdRows.forEach((r: any) => combinedRows.push(r))
+      combinedRows.push([''])
+      combinedRows.push([''])
+
+      // SECTION 6: CANDIDATE RANKINGS & EXAM ATTEMPTS
+      combinedRows.push(['SECTION 6: EXAM ATTEMPTS & CANDIDATE RANKINGS'])
+      const attHeaders = ['Rank', 'Attempt ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'Exam Name', 'Score', 'Correct Answers', 'Total Questions', 'Duration (Mins)', 'Completed', 'Started Time', 'Submitted Time']
+      const attRows = data.attempts.map((att: any) => [
+        att.rank, att.attemptId, att.studentName, att.studentMobile, att.schoolName, att.udise, att.classroomName, att.examName, att.score, att.correctAnswers, att.totalQuestions, att.durationMinutes, att.completed, new Date(att.startedAt).toLocaleString(), att.submittedAt ? new Date(att.submittedAt).toLocaleString() : ''
+      ])
+      combinedRows.push(attHeaders)
+      attRows.forEach((r: any) => combinedRows.push(r))
+
+      // Create Excel Workbook
       const wb = XLSX.utils.book_new()
 
-      // 1. Executive Summary Sheet
+      // 1. Combined Single Sheet
+      const wsCombined = XLSX.utils.aoa_to_sheet(combinedRows)
+      XLSX.utils.book_append_sheet(wb, wsCombined, 'All Data Combined')
+
+      // 2. Executive Summary Sheet
       const summaryRows = [
         ['ALL SYSTEM DATA & CANDIDATE RANKINGS REPORT'],
         ['Report Generated At', new Date().toLocaleString()],
@@ -1110,29 +1188,19 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows)
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Executive Summary')
 
-      // 2. Seeded & Managed Schools Sheet
-      const schoolHeaders = ['School ID', 'School Name', 'UDISE Number', 'Tehsil', 'District', 'Language', 'Admin Email', 'Registered Students', 'Created Date']
-      const schoolRows = data.schools.map((s: any) => [
-        s.id, s.name, s.udise, s.tehsil, s.district, s.language, s.adminEmail, s.studentsCount, new Date(s.createdAt).toLocaleString()
-      ])
+      // 3. Seeded & Managed Schools Sheet
       const wsSchools = XLSX.utils.aoa_to_sheet([schoolHeaders, ...schoolRows])
       XLSX.utils.book_append_sheet(wb, wsSchools, 'Seeded & Managed Schools')
 
-      // 3. Classrooms & Groups Sheet
-      const classHeaders = ['Classroom ID', 'Classroom Name', 'Created Date']
-      const classRows = data.classrooms.map((c: any) => [c.id, c.name, new Date(c.createdAt).toLocaleString()])
+      // 4. Classrooms Sheet
       const wsClassrooms = XLSX.utils.aoa_to_sheet([classHeaders, ...classRows])
       XLSX.utils.book_append_sheet(wb, wsClassrooms, 'Classrooms & Groups')
 
-      // 4. Exams Master Sheet
-      const examHeaders = ['Exam ID', 'Exam Name', 'Total Questions', 'Duration (Mins)', 'Marks Per Question', 'Total Marks', 'Assigned Groups', 'Assigned Schools', 'Created Date']
-      const examRows = data.exams.map((ex: any) => [
-        ex.id, ex.name, ex.totalQuestions, ex.durationMinutes, ex.marksPerQuestion, ex.totalMarks, ex.assignedGroups, ex.assignedSchools, new Date(ex.createdAt).toLocaleString()
-      ])
+      // 5. Exams Master Sheet
       const wsExams = XLSX.utils.aoa_to_sheet([examHeaders, ...examRows])
       XLSX.utils.book_append_sheet(wb, wsExams, 'Exams Master')
 
-      // 5. Question Banks Sheet
+      // 6. Question Banks Sheet
       const qHeaders = ['Exam Name', 'Question No.', 'Code', 'Question Text', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option']
       const qRows = data.questions.map((q: any) => [
         q.examName, q.questionNo, q.code, q.questionText, q.optionA, q.optionB, q.optionC, q.optionD, q.correctOption
@@ -1140,25 +1208,35 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       const wsQuestions = XLSX.utils.aoa_to_sheet([qHeaders, ...qRows])
       XLSX.utils.book_append_sheet(wb, wsQuestions, 'Question Banks')
 
-      // 6. Registered Students Sheet
-      const stdHeaders = ['Student ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
-      const stdRows = data.students.map((st: any) => [
-        st.id, st.name, st.mobile, st.schoolName, st.udise, st.classroomName, st.district, st.tehsil, new Date(st.registeredAt).toLocaleString()
-      ])
+      // 7. Registered Students Sheet
       const wsStudents = XLSX.utils.aoa_to_sheet([stdHeaders, ...stdRows])
       XLSX.utils.book_append_sheet(wb, wsStudents, 'Registered Students')
 
-      // 7. Candidate Rankings & Exam Attempts Sheet
-      const attHeaders = ['Rank', 'Attempt ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'Exam Name', 'Score', 'Correct Answers', 'Total Questions', 'Duration (Mins)', 'Completed', 'Started Time', 'Submitted Time']
-      const attRows = data.attempts.map((att: any) => [
-        att.rank, att.attemptId, att.studentName, att.studentMobile, att.schoolName, att.udise, att.classroomName, att.examName, att.score, att.correctAnswers, att.totalQuestions, att.durationMinutes, att.completed, new Date(att.startedAt).toLocaleString(), att.submittedAt ? new Date(att.submittedAt).toLocaleString() : ''
-      ])
+      // 8. Candidate Rankings & Exam Attempts Sheet
       const wsAttempts = XLSX.utils.aoa_to_sheet([attHeaders, ...attRows])
       XLSX.utils.book_append_sheet(wb, wsAttempts, 'Candidate Rankings & Attempts')
 
       const prefix = opts?.fileNamePrefix || 'System_All_Data'
-      XLSX.writeFile(wb, `${prefix}_export.xlsx`)
-      downloadCSV(`${prefix}_candidate_rankings.csv`, attHeaders, attRows)
+      XLSX.writeFile(wb, `${prefix}_all_data.xlsx`)
+
+      // Download single combined CSV file containing all stacked sections!
+      const csvContent = combinedRows.map(row => 
+        row.map(cell => {
+          if (cell === null || cell === undefined) return '""'
+          const str = String(cell).replace(/"/g, '""')
+          return `"${str}"`
+        }).join(',')
+      ).join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `${prefix}_all_data.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     } catch (err) {
       console.error(err)
       alert('Failed to download system data')
