@@ -219,8 +219,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
   const fetchExams = async () => {
     try {
-      const res = await fetch('/api/student/exams', {
+      const res = await fetch(`/api/student/exams?t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
       })
       const data = await res.json()
       if (data.success) {
@@ -258,8 +259,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
   const fetchResources = async () => {
     try {
-      const res = await fetch('/api/student/resources', {
+      const res = await fetch(`/api/student/resources?t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
       })
       const data = await res.json()
       if (data.success) {

@@ -77,7 +77,8 @@ export async function GET(req: NextRequest) {
     })
 
     const formatted = exams.map((exam) => {
-      const studentAttempt = exam.attempts[0] || null
+      const completedAttempt = exam.attempts.find(a => a.completed)
+      const studentAttempt = completedAttempt || exam.attempts[0] || null
       const examName = (studentLang === 'hi' && exam.nameHindi) ? exam.nameHindi : exam.name
       const schoolExam = exam.schools[0]
       const pushedAt = schoolExam?.pushedAt || exam.createdAt
