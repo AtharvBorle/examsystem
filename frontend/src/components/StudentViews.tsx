@@ -6,7 +6,7 @@ import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { renderContent } from '../utils/contentRenderer'
 import { 
   Award, Clock, Award as TrophyIcon, CheckCircle, ChevronLeft, ChevronRight,
-  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon, Globe, ExternalLink, HelpCircle
+  GraduationCap, Building2, Calendar, FileEdit, LogOut, FileText, Check, Home, Download, Settings, Mail, AlertTriangle, User as UserIcon, Globe, ExternalLink, HelpCircle, WifiOff
 } from 'lucide-react'
 import { LanguageSelector } from './LanguageSelector'
 import downloadCertBg from '../assets/rss_download_cert.png'
@@ -57,6 +57,92 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [refreshing, setRefreshing] = useState(false)
   const [pullY, setPullY] = useState(0)
   const touchStartRef = useRef(0)
+
+  // Offline State Monitoring & Modals
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+  const [showNoInternetStartModal, setShowNoInternetStartModal] = useState(false)
+  const [showNoInternetDownloadModal, setShowNoInternetDownloadModal] = useState(false)
+  const [showNoInternetResourceModal, setShowNoInternetResourceModal] = useState(false)
+
+  const handleOpenResource = (title: string, link: string) => {
+    if (!navigator.onLine) {
+      setShowNoInternetResourceModal(true)
+      return
+    }
+    setViewingResourceTitle(title)
+    setViewingResourceUrl(link)
+  }
+
+  // Sync queued offline submissions when internet is restored
+  const syncOfflineSubmissions = async () => {
+    if (!navigator.onLine) return
+    try {
+      const rawQueue = localStorage.getItem('pending_offline_submissions')
+      if (!rawQueue) return
+      const pendingQueue: any[] = JSON.parse(rawQueue)
+      if (pendingQueue.length === 0) return
+
+      const remainingQueue: any[] = []
+      for (const item of pendingQueue) {
+        try {
+          const res = await fetch('/api/student/exams/attempt/submit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              attemptId: item.attemptId,
+              responses: item.responses,
+              language: item.language || 'en'
+            }),
+          })
+          const data = await res.json()
+          if (data.success) {
+            localStorage.removeItem(`exam_responses_${item.attemptId}`)
+          } else {
+            remainingQueue.push(item)
+          }
+        } catch (e) {
+          remainingQueue.push(item)
+        }
+      }
+
+      if (remainingQueue.length > 0) {
+        localStorage.setItem('pending_offline_submissions', JSON.stringify(remainingQueue))
+      } else {
+        localStorage.removeItem('pending_offline_submissions')
+      }
+      fetchExams()
+    } catch (e) {
+      console.error('Offline sync error:', e)
+    }
+  }
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false)
+      syncOfflineSubmissions()
+    }
+    const handleOffline = () => {
+      setIsOffline(true)
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    const syncInterval = setInterval(() => {
+      if (navigator.onLine) {
+        syncOfflineSubmissions()
+      }
+    }, 6000)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      clearInterval(syncInterval)
+    }
+  }, [token])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (window.scrollY === 0) {
@@ -658,12 +744,199 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     )
   }
 
+  const renderNoInternetStartModal = () => {
+    if (!showNoInternetStartModal) return null
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 4000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        animation: 'fadeIn 0.2s ease-out'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #fcd34d',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          padding: '1.5rem',
+          maxWidth: '360px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <WifiOff size={48} style={{ color: '#d97706', marginBottom: '1rem' }} />
+          
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#92400e', fontSize: '1.2rem', fontWeight: 700 }}>
+            {lang === 'hi' ? 'कोई इंटरनेट कनेक्शन नहीं' : 'No Internet Connection'}
+          </h3>
+          
+          <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+            {lang === 'hi' 
+              ? 'परीक्षा शुरू करने के लिए कृपया इंटरनेट से कनेक्ट करें।'
+              : 'Please connect to the internet to start your exam.'}
+          </p>
+
+          <button
+            onClick={() => setShowNoInternetStartModal(false)}
+            style={{
+              backgroundColor: '#0f3d7a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.55rem 1.5rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              outline: 'none',
+              fontSize: '0.85rem'
+            }}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderNoInternetDownloadModal = () => {
+    if (!showNoInternetDownloadModal) return null
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 4000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        animation: 'fadeIn 0.2s ease-out'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #fcd34d',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          padding: '1.5rem',
+          maxWidth: '360px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <WifiOff size={48} style={{ color: '#d97706', marginBottom: '1rem' }} />
+          
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#92400e', fontSize: '1.2rem', fontWeight: 700 }}>
+            {lang === 'hi' ? 'इंटरनेट कनेक्शन आवश्यक है' : 'Internet Connection Required'}
+          </h3>
+          
+          <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+            {lang === 'hi' 
+              ? 'अपनी उत्तर पुस्तिका या प्रमाण पत्र डाउनलोड करने के लिए कृपया इंटरनेट से कनेक्ट करें।'
+              : 'Please connect to the internet to download your answer sheet or certificate.'}
+          </p>
+
+          <button
+            onClick={() => setShowNoInternetDownloadModal(false)}
+            style={{
+              backgroundColor: '#0f3d7a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.55rem 1.5rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              outline: 'none',
+              fontSize: '0.85rem'
+            }}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderNoInternetResourceModal = () => {
+    if (!showNoInternetResourceModal) return null
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 4000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        animation: 'fadeIn 0.2s ease-out'
+      }}>
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #fcd34d',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          padding: '1.5rem',
+          maxWidth: '360px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <WifiOff size={48} style={{ color: '#d97706', marginBottom: '1rem' }} />
+          
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#92400e', fontSize: '1.2rem', fontWeight: 700 }}>
+            {lang === 'hi' ? 'कोई इंटरनेट कनेक्शन नहीं' : 'Internet Connection Required'}
+          </h3>
+          
+          <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: '1.5', margin: '0 0 1.25rem 0' }}>
+            {lang === 'hi' 
+              ? 'अध्ययन सामग्री देखने के लिए कृपया इंटरनेट से कनेक्ट करें।'
+              : 'Please connect to the internet to view study resources.'}
+          </p>
+
+          <button
+            onClick={() => setShowNoInternetResourceModal(false)}
+            style={{
+              backgroundColor: '#0f3d7a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '0.55rem 1.5rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              outline: 'none',
+              fontSize: '0.85rem'
+            }}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   useEffect(() => {
     fetchExams()
     fetchResources()
   }, [token, user.language])
 
   const handleStartExam = async (examId: string) => {
+    if (!navigator.onLine) {
+      setShowNoInternetStartModal(true)
+      return
+    }
     setError('')
     setStartingExamId(examId)
     try {
@@ -699,6 +972,39 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   }
 
   const handleFinishExamSubmit = async (attemptId: string, responses: any) => {
+    // If device is offline during manual or auto-submission
+    if (!navigator.onLine) {
+      try {
+        const rawQueue = localStorage.getItem('pending_offline_submissions')
+        const pendingQueue = rawQueue ? JSON.parse(rawQueue) : []
+        pendingQueue.push({
+          attemptId,
+          responses,
+          language: lang,
+          submittedAt: new Date().toISOString()
+        })
+        localStorage.setItem('pending_offline_submissions', JSON.stringify(pendingQueue))
+        localStorage.removeItem(`exam_responses_${attemptId}`)
+      } catch (e) {
+        console.error('Failed to save offline submission:', e)
+      }
+
+      setCompletedAttempt({
+        attemptId,
+        studentName: user.name || 'Student',
+        schoolName: user.school?.name || 'School',
+        classroomName: user.classroom?.name || 'Classroom',
+        examName: activeSession?.examName || 'Examination',
+        completedAt: new Date().toISOString(),
+        language: activeSession?.language || 'en',
+        score: 0,
+        totalMarks: 50,
+      })
+      setActiveSession(null)
+      fetchExams()
+      return
+    }
+
     try {
       const res = await fetch('/api/student/exams/attempt/submit', {
         method: 'POST',
@@ -745,7 +1051,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
           totalMarks: data?.totalMarks !== undefined ? data.totalMarks : 50,
         })
         setActiveSession(null)
-        fetchExams()
+fetchExams()
       }
     } catch (err) {
       console.error('Error submitting exam, enforcing completion screen fallback:', err)
@@ -766,6 +1072,10 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   }
 
   const handleCertificateDownload = async () => {
+    if (!navigator.onLine) {
+      setShowNoInternetDownloadModal(true)
+      return
+    }
     const attemptId = completedAttempt?.attemptId
     if (attemptId) {
       if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
@@ -838,6 +1148,10 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [downloadingAnswersheet, setDownloadingAnswersheet] = useState(false)
 
   const handleAnswersheetDownload = async () => {
+    if (!navigator.onLine) {
+      setShowNoInternetDownloadModal(true)
+      return
+    }
     if (!completedAttempt?.attemptId) return
     setDownloadingAnswersheet(true)
     try {
@@ -1052,13 +1366,43 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
   if (activeSession) {
     return (
-      <ExamSessionView
-        session={activeSession}
-        exams={exams}
-        onSubmit={handleFinishExamSubmit}
-        lang={lang}
-        onChangeLang={onChangeLang}
-      />
+      <div style={{ position: 'relative' }}>
+        {isOffline && (
+          <div style={{
+            backgroundColor: '#fffbe6',
+            borderBottom: '2px solid #ffe58f',
+            color: '#d48806',
+            padding: '0.65rem 1rem',
+            fontSize: '0.85rem',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+          }}>
+            <WifiOff size={18} style={{ flexShrink: 0 }} />
+            <span>
+              {lang === 'hi'
+                ? '⚠️ आप वर्तमान में ऑफ़लाइन हैं। आप अपनी परीक्षा जारी रख सकते हैं, लेकिन आपका सबमिशन इंटरनेट वापस आने पर स्वतः सिंक्रनाइज़ हो जाएगा।'
+                : "⚠️ You're currently offline. You can continue your exam, but your submission will be synchronized automatically when your internet connection is restored."}
+            </span>
+          </div>
+        )}
+        <ExamSessionView
+          session={activeSession}
+          exams={exams}
+          onSubmit={handleFinishExamSubmit}
+          lang={lang}
+          onChangeLang={onChangeLang}
+        />
+        {renderNoInternetStartModal()}
+        {renderNoInternetDownloadModal()}
+      </div>
     )
   }
 
@@ -1207,6 +1551,8 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
             <Home size={20} style={{ color: '#f2bb50' }} /> {lang === 'hi' ? 'डैशबोर्ड पर वापस जाएं' : 'BACK TO DASHBOARD'}
           </button>
         </div>
+        {renderNoInternetStartModal()}
+        {renderNoInternetDownloadModal()}
       </div>
     )
   }
@@ -1705,10 +2051,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                       
                       {link && (
                         <button 
-                          onClick={() => {
-                            setViewingResourceTitle(title)
-                            setViewingResourceUrl(link)
-                          }}
+                          onClick={() => handleOpenResource(title, link)}
                           style={{ 
                             alignSelf: 'flex-start',
                             color: '#c59f2d', 
@@ -1753,6 +2096,30 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Persistent Offline Status Banner */}
+        {isOffline && (
+          <div style={{
+            backgroundColor: '#fffbe6',
+            border: '1px solid #ffe58f',
+            borderRadius: '8px',
+            color: '#d48806',
+            padding: '0.65rem 0.85rem',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.75rem',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+          }}>
+            <WifiOff size={18} style={{ flexShrink: 0 }} />
+            <span>
+              {lang === 'hi'
+                ? '⚠️ आप वर्तमान में ऑफ़लाइन हैं। आप अपनी परीक्षा जारी रख सकते हैं, लेकिन आपका सबमिशन इंटरनेट वापस आने पर स्वतः सिंक्रनाइज़ हो जाएगा।'
+                : "⚠️ You're currently offline. You can continue your exam, but your submission will be synchronized automatically when your internet connection is restored."}
+            </span>
+          </div>
+        )}
         {/* Pull to Refresh Banner */}
         {(pullY > 0 || refreshing) && (
           <div style={{
@@ -2192,10 +2559,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
                       
                       {link && (
                         <button 
-                          onClick={() => {
-                            setViewingResourceTitle(title)
-                            setViewingResourceUrl(link)
-                          }}
+                          onClick={() => handleOpenResource(title, link)}
                           style={{ 
                             alignSelf: 'flex-start',
                             color: '#c59f2d', 
@@ -2227,6 +2591,9 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         {renderSettingsModal()}
         {renderDeleteConfirmModal()}
         {renderSuccessModal()}
+        {renderNoInternetStartModal()}
+        {renderNoInternetDownloadModal()}
+        {renderNoInternetResourceModal()}
         <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#8c6239', padding: '0.5rem 0', marginTop: 'auto', opacity: 0.85, fontWeight: 'bold' }}>
           Powered by Neopace Infotech LLP
         </div>
