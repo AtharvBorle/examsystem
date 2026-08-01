@@ -53,6 +53,44 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [externalLink, setExternalLink] = useState<string | null>(null)
   const [externalLinkTitle, setExternalLinkTitle] = useState<string | null>(null)
 
+  // Pull-to-refresh states & touch handlers
+  const [refreshing, setRefreshing] = useState(false)
+  const [pullY, setPullY] = useState(0)
+  const touchStartRef = useRef(0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY === 0) {
+      touchStartRef.current = e.touches[0].clientY
+    } else {
+      touchStartRef.current = 0
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartRef.current > 0 && window.scrollY === 0) {
+      const currentY = e.touches[0].clientY
+      const dy = currentY - touchStartRef.current
+      if (dy > 0) {
+        setPullY(Math.min(70, dy * 0.4))
+      }
+    }
+  }
+
+  const handleTouchEnd = async () => {
+    if (pullY >= 45 && !refreshing) {
+      setRefreshing(true)
+      setPullY(50)
+      await Promise.all([fetchExams(), fetchResources()])
+      setTimeout(() => {
+        setRefreshing(false)
+        setPullY(0)
+      }, 400)
+    } else {
+      setPullY(0)
+    }
+    touchStartRef.current = 0
+  }
+
   const fetchExams = async () => {
     try {
       const res = await fetch('/api/student/exams', {
@@ -1709,7 +1747,34 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
   if (isNew) {
     return (
-      <div className="mobile-dashboard-container">
+      <div 
+        className="mobile-dashboard-container"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Pull to Refresh Banner */}
+        {(pullY > 0 || refreshing) && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: `${pullY}px`,
+            overflow: 'hidden',
+            transition: refreshing ? 'height 0.2s ease' : 'none',
+            backgroundColor: '#ffffff',
+            color: '#8c6239',
+            fontSize: '0.85rem',
+            fontWeight: 'bold',
+            gap: '0.5rem',
+            marginBottom: '0.5rem',
+            borderRadius: '8px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+          }}>
+            <span style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none', display: 'inline-block' }}>🔄</span>
+            <span>{refreshing ? (lang === 'hi' ? 'डेटा रीफ्रेश हो रहा है...' : 'Refreshing data...') : pullY >= 45 ? (lang === 'hi' ? 'रीफ्रेश करने के लिए छोड़ें' : 'Release to refresh') : (lang === 'hi' ? 'रीफ्रेश के लिए नीचे खींचें' : 'Pull down to refresh')}</span>
+          </div>
+        )}
         {/* Top bar with Settings, LanguageSelector and Logout button */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
           <button 

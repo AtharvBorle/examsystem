@@ -797,6 +797,7 @@ function App() {
             allowFileAccess={true}
             allowUniversalAccessFromFileURLs={true}
             allowFileAccessFromFileURLs={true}
+            pullToRefreshEnabled={true}
             style={styles.webview}
             onNavigationStateChange={(navState: any) => {
               setCanGoBack(navState.canGoBack);
