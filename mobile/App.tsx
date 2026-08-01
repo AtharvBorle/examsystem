@@ -430,7 +430,12 @@ function App() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'OPEN_EXTERNAL_URL' && data.url) {
-        Linking.openURL(data.url).catch((err) => console.log('Error opening external URL:', err));
+        Linking.openURL(data.url).catch((err) => {
+          Alert.alert(
+            'Internet Connection Required',
+            'Please connect to the internet to view study resources.'
+          );
+        });
         return;
       }
       if (data.type === 'DOWNLOAD_PDF') {
@@ -517,6 +522,17 @@ function App() {
       } else if (data.type === 'DOWNLOAD_FILE') {
         const { url, filename } = data;
         if (Platform.OS === 'android') {
+          // Verify network connectivity before starting resource download
+          try {
+            const check = await fetch(url, { method: 'HEAD' });
+            if (!check.ok && check.status === 0) {
+              Alert.alert('Internet Connection Required', 'Please connect to the internet to download study resources.');
+              return;
+            }
+          } catch (netErr) {
+            Alert.alert('Internet Connection Required', 'Please connect to the internet to download study resources.');
+            return;
+          }
           const tempPath = `${RNFS.CachesDirectoryPath}/${filename}`;
           try {
             const sdkVersion = Platform.Version;
