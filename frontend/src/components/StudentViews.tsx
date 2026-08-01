@@ -225,18 +225,21 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
       const data = await res.json()
       if (data.success) {
         let pendingAttemptIds = new Set<string>()
+        let pendingExamIds = new Set<string>()
         try {
           const rawQueue = localStorage.getItem('pending_offline_submissions')
           if (rawQueue) {
             const pendingQueue: any[] = JSON.parse(rawQueue)
             pendingQueue.forEach((item: any) => {
               if (item.attemptId) pendingAttemptIds.add(item.attemptId)
+              if (item.examId) pendingExamIds.add(item.examId)
             })
           }
         } catch (e) {}
 
         const updatedExams = data.exams.map((ex: any) => {
-          if (ex.attemptId && pendingAttemptIds.has(ex.attemptId)) {
+          const isPending = (ex.attemptId && pendingAttemptIds.has(ex.attemptId)) || pendingExamIds.has(ex.id)
+          if (isPending) {
             return { ...ex, attemptStatus: 'COMPLETED' }
           }
           return ex
@@ -1050,6 +1053,7 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         const pendingQueue = rawQueue ? JSON.parse(rawQueue) : []
         pendingQueue.push({
           attemptId,
+          examId: finishedExamId,
           responses,
           language: lang,
           submittedAt: new Date().toISOString()
@@ -1225,7 +1229,7 @@ fetchExams()
   const [downloadingAnswersheet, setDownloadingAnswersheet] = useState(false)
 
   const handleAnswersheetDownload = async () => {
-    if (!navigator.onLine) {
+    if (!navigator.onLine || isOffline) {
       setShowNoInternetDownloadModal(true)
       return
     }
@@ -1250,11 +1254,11 @@ fetchExams()
         }
         generateAnswersheetPDF({ ...data.answersheet, language: lang })
       } else {
-        alert(data.error || 'Failed to fetch answersheet details')
+        setShowNoInternetDownloadModal(true)
       }
     } catch (err) {
       console.error(err)
-      alert('Connection failed')
+      setShowNoInternetDownloadModal(true)
     } finally {
       setDownloadingAnswersheet(false)
     }
@@ -2719,6 +2723,10 @@ fetchExams()
                           </div>
                           <button
                             onClick={async () => {
+                              if (!navigator.onLine || isOffline) {
+                                setShowNoInternetDownloadModal(true)
+                                return
+                              }
                               try {
                                 const res = await fetch(`/api/student/exams/attempt/${ex.attemptId}/certificate`, {
                                   headers: { Authorization: `Bearer ${token}` }
@@ -2726,9 +2734,12 @@ fetchExams()
                                 const data = await res.json()
                                 if (data.success) {
                                   setCompletedAttempt(data.certificate)
+                                } else {
+                                  setShowNoInternetDownloadModal(true)
                                 }
                               } catch (err) {
                                 console.error(err)
+                                setShowNoInternetDownloadModal(true)
                               }
                             }}
                             className="btn btn-secondary"
