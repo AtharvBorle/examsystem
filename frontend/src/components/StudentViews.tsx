@@ -64,6 +64,13 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
   const [showNoInternetDownloadModal, setShowNoInternetDownloadModal] = useState(false)
   const [showNoInternetResourceModal, setShowNoInternetResourceModal] = useState(false)
 
+  useEffect(() => {
+    if ((isOffline || !navigator.onLine) && viewingResourceUrl) {
+      setViewingResourceUrl(null)
+      setShowNoInternetResourceModal(true)
+    }
+  }, [isOffline, viewingResourceUrl])
+
   const handleOpenResource = (title: string, link: string) => {
     if (!navigator.onLine) {
       setShowNoInternetResourceModal(true)
@@ -119,6 +126,29 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     }
   }
 
+  const checkRealConnection = async () => {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 1500)
+      const response = await fetch('/api/student/status', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+        cache: 'no-store'
+      })
+      clearTimeout(timeoutId)
+      if (response.ok || response.status < 500) {
+        setIsOffline(false)
+        syncOfflineSubmissions()
+        return true
+      }
+    } catch (e) {
+      setIsOffline(true)
+      return false
+    }
+    return false
+  }
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false)
@@ -131,16 +161,16 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    const syncInterval = setInterval(() => {
-      if (navigator.onLine) {
-        syncOfflineSubmissions()
-      }
-    }, 6000)
+    checkRealConnection()
+
+    const connInterval = setInterval(() => {
+      checkRealConnection()
+    }, 2500)
 
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
-      clearInterval(syncInterval)
+      clearInterval(connInterval)
     }
   }, [token])
 
@@ -164,6 +194,12 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
 
   const handleTouchEnd = async () => {
     if (pullY >= 45 && !refreshing) {
+      if (!navigator.onLine) {
+        setShowNoInternetStartModal(true)
+        setPullY(0)
+        touchStartRef.current = 0
+        return
+      }
       setRefreshing(true)
       setPullY(50)
       await Promise.all([fetchExams(), fetchResources()])
@@ -965,15 +1001,28 @@ export function StudentDashboard({ token, user, lang, onChangeLang, onLogout }: 
         setError(data.error || 'Failed to start exam.')
       }
     } catch (err) {
-      setError('Connection to server failed.')
+      if (!navigator.onLine) {
+        setShowNoInternetStartModal(true)
+      } else {
+        setError(lang === 'hi' ? 'कोई इंटरनेट कनेक्शन नहीं - कृपया इंटरनेट से कनेक्ट करें।' : 'No Internet Connection - Please connect to the internet.')
+      }
     } finally {
       setStartingExamId(null)
     }
   }
 
   const handleFinishExamSubmit = async (attemptId: string, responses: any) => {
+    const finishedExamId = activeSession?.examId
+    if (finishedExamId) {
+      setExams((prevExams) =>
+        prevExams.map((ex) =>
+          ex.id === finishedExamId ? { ...ex, attemptStatus: 'COMPLETED' } : ex
+        )
+      )
+    }
+
     // If device is offline during manual or auto-submission
-    if (!navigator.onLine) {
+    if (!navigator.onLine || isOffline) {
       try {
         const rawQueue = localStorage.getItem('pending_offline_submissions')
         const pendingQueue = rawQueue ? JSON.parse(rawQueue) : []
@@ -1072,30 +1121,29 @@ fetchExams()
   }
 
   const handleCertificateDownload = async () => {
-    if (!navigator.onLine) {
+    if (!navigator.onLine || isOffline) {
       setShowNoInternetDownloadModal(true)
       return
     }
     const attemptId = completedAttempt?.attemptId
     if (attemptId) {
-      if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
-        (window as any).showCustomAlert(lang === 'hi'
-          ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
-          : 'Generating your certificate. It will be downloaded/saved shortly.'
-        );
-      } else {
-        window.alert(lang === 'hi'
-          ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
-          : 'Generating your certificate. It will be downloaded/saved shortly.'
-        );
-      }
-
       try {
         const res = await fetch(`/api/student/exams/attempt/${attemptId}/certificate?lang=${lang}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await res.json()
         if (data.success) {
+          if (typeof window !== 'undefined' && (window as any).showCustomAlert) {
+            (window as any).showCustomAlert(lang === 'hi'
+              ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+              : 'Generating your certificate. It will be downloaded/saved shortly.'
+            );
+          } else {
+            window.alert(lang === 'hi'
+              ? 'आपका प्रमाण पत्र तैयार किया जा रहा है। इसे जल्द ही डाउनलोड/सहेज लिया जाएगा।'
+              : 'Generating your certificate. It will be downloaded/saved shortly.'
+            );
+          }
           generateCertificatePDF({
             studentName: data.certificate.studentName,
             schoolName: data.certificate.schoolName,
@@ -1115,7 +1163,16 @@ fetchExams()
         }
       } catch (err) {
         console.error('Failed to fetch certificate details:', err)
+        if (!navigator.onLine || isOffline) {
+          setShowNoInternetDownloadModal(true)
+          return
+        }
       }
+    }
+
+    if (!navigator.onLine || isOffline) {
+      setShowNoInternetDownloadModal(true)
+      return
     }
 
     const baseData = completedAttempt ? {

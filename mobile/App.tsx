@@ -647,12 +647,14 @@ function App() {
   const renderErrorView = () => (
     <View style={styles.errorContainer}>
       <View style={styles.errorCard}>
-        <Text style={styles.errorTitle}>Connection Error</Text>
+        <Text style={styles.errorTitle}>No Internet Connection</Text>
         <Text style={styles.errorSubtitle}>
-          Unable to reach the examination portal. Please verify your internet connection and try again.
+          Please connect to the internet to start your exam or refresh your data.
+          {"\n\n"}
+          कोई इंटरनेट कनेक्शन नहीं। कृपया अपनी परीक्षा शुरू करने या डेटा रीफ्रेश करने के लिए इंटरनेट से कनेक्ट करें।
         </Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleReload}>
-          <Text style={styles.retryButtonText}>Retry Connection</Text>
+          <Text style={styles.retryButtonText}>Retry Connection / पुनः प्रयास करें</Text>
         </TouchableOpacity>
       </View>
     </View>

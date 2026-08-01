@@ -285,7 +285,7 @@ export function LoginView({ onViewRegister, lang, onChangeLang }: { onViewRegist
         setError(data.error || (lang === 'hi' ? 'लॉगिन विफल।' : 'Login failed.'))
       }
     } catch (err) {
-      setError('Connection to server failed.')
+      setError(lang === 'hi' ? 'कोई इंटरनेट कनेक्शन नहीं - कृपया इंटरनेट से कनेक्ट करें।' : 'No Internet Connection - Please connect to the internet.')
     } finally {
       setSubmitting(false)
     }
@@ -832,7 +832,7 @@ export function RegisterView({ onViewLogin, lang, onChangeLang }: { onViewLogin:
         setError(data.error || 'Registration failed.')
       }
     } catch (err) {
-      setError('Connection to server failed.')
+      setError(lang === 'hi' ? 'कोई इंटरनेट कनेक्शन नहीं - कृपया इंटरनेट से कनेक्ट करें।' : 'No Internet Connection - Please connect to the internet.')
     } finally {
       setSubmitting(false)
     }
@@ -1749,7 +1749,7 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
         setError(data.error || (lang === 'hi' ? 'लॉगिन विफल।' : 'Login failed.'))
       }
     } catch (err) {
-      setError('Connection to server failed.')
+      setError(lang === 'hi' ? 'कोई इंटरनेट कनेक्शन नहीं - कृपया इंटरनेट से कनेक्ट करें।' : 'No Internet Connection - Please connect to the internet.')
     } finally {
       setSubmitting(false)
     }
