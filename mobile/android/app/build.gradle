@@ -93,10 +93,20 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file('my-release-key.keystore')
-            storePassword 'onlineexamsystem'
-            keyAlias 'my-key-alias'
-            keyPassword 'onlineexamsystem'
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            def keystoreProperties = new Properties()
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            } else {
+                storeFile file('onlineexamsystem.keystore')
+                storePassword 'placeholder_password'
+                keyAlias 'onlineexamsystem-key'
+                keyPassword 'placeholder_password'
+            }
         }
     }
     buildTypes {
