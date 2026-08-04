@@ -53,20 +53,24 @@ export const openExternalPolicyLink = (url: string) => {
 /* ==========================================
    COMPONENT: CIRCULAR INFO BUTTON & MODAL
    ========================================== */
-export function InfoButton({ lang }: { lang: Language }) {
+export function InfoButton({ lang, isAdmin = false }: { lang: Language; isAdmin?: boolean }) {
   const [open, setOpen] = useState(false)
 
   const infoPages = [
     {
-      title: lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions',
+      title: isAdmin
+        ? (lang === 'hi' ? 'एडमिन नियम और शर्तें' : 'Admin Terms & Conditions')
+        : (lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'),
       desc: lang === 'hi' ? 'पोर्टल उपयोग एवं नियम' : 'Rules & portal usage guidelines',
-      path: '/oes/T&C',
+      path: isAdmin ? '/oes/admin/admin_t&c' : '/oes/T&C',
       icon: <FileText size={20} style={{ color: '#c59f2d' }} />
     },
     {
-      title: lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy',
+      title: isAdmin 
+        ? (lang === 'hi' ? 'एडमिन गोपनीयता नीति' : 'Admin Privacy Policy')
+        : (lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'),
       desc: lang === 'hi' ? 'डेटा सुरक्षा एवं निजता' : 'Data protection & privacy rights',
-      path: '/oes/privacypolicy',
+      path: isAdmin ? '/oes/admin/admin_privacypolicy' : '/oes/privacypolicy',
       icon: <Shield size={20} style={{ color: '#2b6cb0' }} />
     },
     {
@@ -1716,10 +1720,16 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!acceptedTerms) {
+      setError(lang === 'hi' ? 'कृपया जारी रखने के लिए नियम और शर्तों को स्वीकार करें।' : 'Please accept the Terms & Conditions and Privacy Policy to proceed.')
+      return
+    }
 
     if (!identifier || !password) {
       setError(lang === 'hi' ? 'कृपया पहचानकर्ता और पासवर्ड दोनों दर्ज करें।' : 'Please enter both identifier and password.')
@@ -1762,7 +1772,7 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
       <div className="mobile-login-container new-bg">
         {/* Top bar with InfoButton and LanguageSelector */}
         <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <InfoButton lang={lang} />
+          <InfoButton lang={lang} isAdmin={true} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
           </div>
@@ -1832,11 +1842,61 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
               </button>
             </div>
 
+            {/* Terms & Privacy Policy Agreement Checkbox */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              marginTop: '1.25rem',
+              marginBottom: '0.5rem',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              padding: '10px 12px'
+            }}>
+              <input
+                type="checkbox"
+                id="acceptTermsAdmin1"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: '#0b2240' }}
+                required
+              />
+              <label htmlFor="acceptTermsAdmin1" style={{ fontSize: '0.825rem', color: '#334155', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500, textAlign: 'left' }}>
+                {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
+                <a
+                  href={getAbsolutePolicyUrl('/oes/admin/admin_t&c')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    openExternalPolicyLink('/oes/admin/admin_t&c')
+                  }}
+                  style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  {lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'}
+                </a>
+                {lang === 'hi' ? ' और ' : ' and '}
+                <a
+                  href={getAbsolutePolicyUrl('/oes/admin/admin_privacypolicy')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    openExternalPolicyLink('/oes/admin/admin_privacypolicy')
+                  }}
+                  style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  {lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'}
+                </a>
+              </label>
+            </div>
+
             <button
               type="submit"
               className="new-login-btn"
-              disabled={submitting}
-              style={{ marginTop: '1rem' }}
+              disabled={submitting || !acceptedTerms}
+              style={{ marginTop: '1rem', opacity: (acceptedTerms && !submitting) ? 1 : 0.6 }}
             >
               {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
             </button>
@@ -1863,7 +1923,7 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
     <div className="mobile-login-container">
       {/* Top bar with InfoButton and LanguageSelector */}
       <div className="mobile-login-topbar" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <InfoButton lang={lang} />
+        <InfoButton lang={lang} isAdmin={true} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSelector lang={lang} onChangeLang={onChangeLang} isDark={false} />
         </div>
@@ -1926,11 +1986,61 @@ export function AdminLoginView({ lang, onChangeLang }: { lang: Language; onChang
             </button>
           </div>
 
+          {/* Terms & Privacy Policy Agreement Checkbox */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+            marginTop: '1.25rem',
+            marginBottom: '0.5rem',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            padding: '10px 12px'
+          }}>
+            <input
+              type="checkbox"
+              id="acceptTermsAdmin2"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', accentColor: '#0b2240' }}
+              required
+            />
+            <label htmlFor="acceptTermsAdmin2" style={{ fontSize: '0.825rem', color: '#334155', lineHeight: 1.45, cursor: 'pointer', margin: 0, fontWeight: 500, textAlign: 'left' }}>
+              {lang === 'hi' ? 'मैं स्वीकार करता/करती हूँ ' : 'I accept the '}
+              <a
+                href={getAbsolutePolicyUrl('/oes/admin/admin_t&c')}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  openExternalPolicyLink('/oes/admin/admin_t&c')
+                }}
+                style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+              >
+                {lang === 'hi' ? 'नियम और शर्तें' : 'Terms & Conditions'}
+              </a>
+              {lang === 'hi' ? ' और ' : ' and '}
+              <a
+                href={getAbsolutePolicyUrl('/oes/admin/admin_privacypolicy')}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  openExternalPolicyLink('/oes/admin/admin_privacypolicy')
+                }}
+                style={{ color: '#0f3d7a', textDecoration: 'underline', fontWeight: 700 }}
+              >
+                {lang === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'}
+              </a>
+            </label>
+          </div>
+
           <button
             type="submit"
             className="mobile-login-btn"
-            disabled={submitting}
-            style={{ marginTop: '1rem' }}
+            disabled={submitting || !acceptedTerms}
+            style={{ marginTop: '1rem', opacity: (acceptedTerms && !submitting) ? 1 : 0.6 }}
           >
             {submitting ? (lang === 'hi' ? 'लॉगिन किया जा रहा है...' : 'Authenticating...') : (lang === 'hi' ? 'लॉगिन' : 'Login')}
           </button>

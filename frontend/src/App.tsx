@@ -7,7 +7,9 @@ import { LoginView, RegisterView, AdminLoginView } from './components/AuthViews'
 import { StandaloneSchoolDetailView, SuperAdminDashboard, AdminDashboard } from './components/AdminViews'
 import { StudentDashboard } from './components/StudentViews'
 import { TermsAndConditionsView } from './components/TermsAndConditionsView'
+import { AdminTermsAndConditionsView } from './components/AdminTermsAndConditionsView'
 import { PrivacyPolicyView } from './components/PrivacyPolicyView'
+import { AdminPrivacyPolicyView } from './components/AdminPrivacyPolicyView'
 import { ExamProcessView } from './components/ExamProcessView'
 import { StudentGuideHelpView } from './components/StudentGuideHelpView'
 import { FaqView } from './components/FaqView'
@@ -130,7 +132,7 @@ function App() {
 
 function MainLayout() {
   const { user, token, logout, loading, login } = useAuth()
-  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN' | 'TERMS' | 'PRIVACY' | 'EXAM_PROCESS' | 'HELP_SUPPORT' | 'FAQ'>('LOGIN')
+  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN' | 'TERMS' | 'ADMIN_TERMS' | 'PRIVACY' | 'ADMIN_PRIVACY' | 'EXAM_PROCESS' | 'HELP_SUPPORT' | 'FAQ'>('LOGIN')
   const [directSchoolUdise, setDirectSchoolUdise] = useState<string | null>(null)
 
   const [lang, setLang] = useState<Language>(() => {
@@ -234,12 +236,35 @@ function MainLayout() {
       ) {
         setCurrentView('EXAM_PROCESS')
       } else if (
+        lowerPath.endsWith('/admin/admin_privacypolicy') || 
+        lowerPath.endsWith('/admin/admin-privacypolicy') || 
+        lowerPath.endsWith('/admin/admin_privacy') || 
+        lowerPath.endsWith('/admin/admin-privacy') ||
+        lowerPath.endsWith('/admin/privacypolicy') || 
+        lowerPath.endsWith('/admin/privacy-policy') || 
+        lowerPath.endsWith('/admin/privacy') ||
+        lowerPath.includes('/oes/admin/admin_privacypolicy') ||
+        lowerPath.includes('/oes/admin/admin-privacypolicy') ||
+        lowerPath.includes('/oes/admin/privacypolicy') ||
+        lowerPath.includes('/oes/admin/privacy-policy')
+      ) {
+        setCurrentView('ADMIN_PRIVACY')
+      } else if (
         lowerPath.endsWith('/privacypolicy') || 
         lowerPath.endsWith('/privacy-policy') || 
         lowerPath.endsWith('/privacy') ||
         lowerPath.includes('/oes/privacypolicy')
       ) {
         setCurrentView('PRIVACY')
+      } else if (
+        lowerPath.endsWith('/admin/admin_t&c') || 
+        lowerPath.endsWith('/admin/admin-t&c') || 
+        lowerPath.endsWith('/admin/admin_tc') || 
+        lowerPath.endsWith('/admin/admin-tc') ||
+        lowerPath.includes('/oes/admin/admin_t&c') ||
+        lowerPath.includes('/oes/admin/admin-t&c')
+      ) {
+        setCurrentView('ADMIN_TERMS')
       } else if (
         lowerPath.endsWith('/t&c') || 
         lowerPath.endsWith('/tc') || 
@@ -285,8 +310,12 @@ function MainLayout() {
       targetPath = '/oes/admin'
     } else if (currentView === 'TERMS') {
       targetPath = '/oes/T&C'
+    } else if (currentView === 'ADMIN_TERMS') {
+      targetPath = '/oes/admin/admin_t&c'
     } else if (currentView === 'PRIVACY') {
       targetPath = '/oes/privacypolicy'
+    } else if (currentView === 'ADMIN_PRIVACY') {
+      targetPath = '/oes/admin/admin_privacypolicy'
     } else if (currentView === 'EXAM_PROCESS') {
       targetPath = '/oes/examprocess'
     } else if (currentView === 'HELP_SUPPORT') {
@@ -317,7 +346,7 @@ function MainLayout() {
   }
 
   const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
-  const showNavbar = user && (!isNew || user.role !== 'STUDENT') && currentView !== 'TERMS' && currentView !== 'PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ'
+  const showNavbar = user && (!isNew || user.role !== 'STUDENT') && currentView !== 'TERMS' && currentView !== 'ADMIN_TERMS' && currentView !== 'PRIVACY' && currentView !== 'ADMIN_PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ'
 
   return (
     <div>
@@ -373,6 +402,17 @@ function MainLayout() {
               }}
             />
           )}
+          {currentView === 'ADMIN_TERMS' && (
+            <AdminTermsAndConditionsView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
+              onBack={() => {
+                const target = user ? ((user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? '/oes/admin' : '/oes/') : '/oes/admin'
+                window.history.pushState({}, '', target)
+                setCurrentView(user ? 'DASHBOARD' : 'ADMIN_LOGIN')
+              }}
+            />
+          )}
           {currentView === 'PRIVACY' && (
             <PrivacyPolicyView 
               lang={lang}
@@ -380,6 +420,17 @@ function MainLayout() {
               onBack={() => {
                 window.history.pushState({}, '', '/oes/')
                 setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
+              }}
+            />
+          )}
+          {currentView === 'ADMIN_PRIVACY' && (
+            <AdminPrivacyPolicyView 
+              lang={lang}
+              onChangeLang={handleLanguageChange}
+              onBack={() => {
+                const target = user ? ((user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? '/oes/admin' : '/oes/') : '/oes/admin'
+                window.history.pushState({}, '', target)
+                setCurrentView(user ? 'DASHBOARD' : 'ADMIN_LOGIN')
               }}
             />
           )}
