@@ -20,6 +20,10 @@ model SuperAdmin {
   password  String
   createdAt DateTime @default(now())
   admins    Admin[]
+
+  acceptedTerms   Boolean?     @default(false)
+  acceptedTermsAt DateTime?
+  lastLoginAt     DateTime?
 }
 
 model Admin {
@@ -51,6 +55,10 @@ model Admin {
   secretarySignature  String?
   externalLink        String?
   externalLinkTitle   String?
+
+  acceptedTerms   Boolean?     @default(false)
+  acceptedTermsAt DateTime?
+  lastLoginAt     DateTime?
 }
 
 model School {

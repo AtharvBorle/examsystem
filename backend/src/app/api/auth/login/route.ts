@@ -124,6 +124,14 @@ export async function POST(req: NextRequest) {
         where: { email: normalizedIdentifier },
       })
       if (superAdmin && (await bcrypt.compare(password, superAdmin.password))) {
+        await prisma.superAdmin.update({
+          where: { id: superAdmin.id },
+          data: {
+            acceptedTerms: true,
+            acceptedTermsAt: new Date(),
+            lastLoginAt: new Date(),
+          }
+        })
         const token = signToken({
           userId: superAdmin.id,
           role: 'SUPER_ADMIN',
@@ -140,6 +148,14 @@ export async function POST(req: NextRequest) {
         where: { email: normalizedIdentifier },
       })
       if (admin && (await bcrypt.compare(password, admin.password))) {
+        await prisma.admin.update({
+          where: { id: admin.id },
+          data: {
+            acceptedTerms: true,
+            acceptedTermsAt: new Date(),
+            lastLoginAt: new Date(),
+          }
+        })
         const token = signToken({
           userId: admin.id,
           role: 'ADMIN',
@@ -157,6 +173,14 @@ export async function POST(req: NextRequest) {
         where: { mobile: identifier },
       })
       if (superAdmin && (await bcrypt.compare(password, superAdmin.password))) {
+        await prisma.superAdmin.update({
+          where: { id: superAdmin.id },
+          data: {
+            acceptedTerms: true,
+            acceptedTermsAt: new Date(),
+            lastLoginAt: new Date(),
+          }
+        })
         const token = signToken({
           userId: superAdmin.id,
           role: 'SUPER_ADMIN',
@@ -173,6 +197,14 @@ export async function POST(req: NextRequest) {
         where: { mobile: identifier },
       })
       if (admin && (await bcrypt.compare(password, admin.password))) {
+        await prisma.admin.update({
+          where: { id: admin.id },
+          data: {
+            acceptedTerms: true,
+            acceptedTermsAt: new Date(),
+            lastLoginAt: new Date(),
+          }
+        })
         const token = signToken({
           userId: admin.id,
           role: 'ADMIN',
