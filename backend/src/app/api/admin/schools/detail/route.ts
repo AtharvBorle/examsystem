@@ -5,8 +5,8 @@ import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middlewa
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)
-    if (!user || user.role !== 'ADMIN') {
-      return errorResponse('Unauthorized. Admin access required.', 401)
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+      return errorResponse('Unauthorized. Admin or Super-Admin access required.', 401)
     }
 
     const { searchParams } = new URL(req.url)
@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
       return errorResponse('School not found', 404)
     }
 
-    // Verify ownership
-    if (school.adminId !== user.userId) {
+    // Verify ownership for ADMIN role
+    if (user.role === 'ADMIN' && school.adminId !== user.userId) {
       return errorResponse('Unauthorized. You do not manage this school.', 403)
     }
 
