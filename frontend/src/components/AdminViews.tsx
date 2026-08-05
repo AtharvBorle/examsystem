@@ -86,11 +86,17 @@ function SchoolDetailPanel({
 
   const classroomsList = React.useMemo(() => {
     const list: Record<string, string> = {}
+    // Pre-populate with officially linked classrooms of the school
+    ;(schoolDetail.school.classrooms || []).forEach((c: any) => {
+      list[c.id] = c.name
+    })
+    // Supplement from student registrations
     ;(schoolDetail.students || []).forEach((s: any) => {
       if (s.classroomId && s.classroomName) {
         list[s.classroomId] = s.classroomName
       }
     })
+    // Supplement from exam attempts
     ;(schoolDetail.attempts || []).forEach((att: any) => {
       if (att.classroomId && att.classroomName) {
         list[att.classroomId] = att.classroomName
@@ -100,6 +106,11 @@ function SchoolDetailPanel({
   }, [schoolDetail])
 
   const examsList = React.useMemo(() => {
+    // Use school's officially linked exams list if returned by the backend
+    if (schoolDetail.exams && Array.isArray(schoolDetail.exams)) {
+      return schoolDetail.exams
+    }
+    // Fallback to deriving from exam attempts
     const list: Record<string, string> = {}
     ;(schoolDetail.attempts || []).forEach((att: any) => {
       if (att.examId && att.examName) {
