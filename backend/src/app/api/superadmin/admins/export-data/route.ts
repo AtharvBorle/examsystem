@@ -25,6 +25,20 @@ export async function GET(req: NextRequest) {
       targetSchoolIds = schoolIdParam
     }
 
+    // Resolve all matching language row IDs for the target school IDs
+    if (targetSchoolIds.length > 0) {
+      const schoolsForUdise = await prisma.school.findMany({
+        where: { id: { in: targetSchoolIds } },
+        select: { udise: true }
+      })
+      const udises = schoolsForUdise.map(s => s.udise)
+      const allMatchingSchools = await prisma.school.findMany({
+        where: { udise: { in: udises } },
+        select: { id: true }
+      })
+      targetSchoolIds = allMatchingSchools.map(s => s.id)
+    }
+
     // Build School filter
     const schoolWhere: any = {}
     if (adminId && adminId !== 'all') {

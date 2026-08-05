@@ -14,16 +14,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const schoolIdParam = searchParams.get('schoolId')
     const classroomIdParam = searchParams.get('classroomId')
+    const language = searchParams.get('language') || 'en'
+
+    // Check if there are any schools seeded in the target language managed by this admin
+    const hasTargetLangSchools = await prisma.school.count({
+      where: { adminId: user.userId, language }
+    })
+
+    const targetQueryLang = hasTargetLangSchools > 0 ? language : 'en'
 
     // Fetch schools managed by this Admin to verify ownership and for filter options
-    // Fetch schools managed by this Admin to verify ownership and for filter options
-    const allSchoolsEn = await prisma.school.findMany({
-      where: { adminId: user.userId, language: 'en' },
+    const allSchools = await prisma.school.findMany({
+      where: { adminId: user.userId, language: targetQueryLang },
       select: { id: true, name: true, udise: true }
     })
-    const allSchoolIdsEn = allSchoolsEn.map((s) => s.id)
+    const allSchoolIds = allSchools.map((s) => s.id)
 
-    if (allSchoolIdsEn.length === 0) {
+    if (allSchoolIds.length === 0) {
       return successResponse({
         stats: { schools: 0, classrooms: 0, exams: 0, students: 0, attempts: 0, avgScore: 0 },
         registrationTrend: [],
@@ -35,9 +42,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Determine active UDISE numbers
-    let activeUdises = allSchoolsEn.map(s => s.udise)
+    let activeUdises = allSchools.map(s => s.udise)
     if (schoolIdParam) {
-      const selectedSchool = allSchoolsEn.find(s => s.id === schoolIdParam)
+      // Find matching UDISE from any localized school row managed by this admin
+      const relatedSchools = await prisma.school.findMany({
+        where: { adminId: user.userId },
+        select: { id: true, udise: true }
+      })
+      const selectedSchool = relatedSchools.find(s => s.id === schoolIdParam)
       if (!selectedSchool) {
         return errorResponse('Unauthorized access to this school', 403)
       }
@@ -227,7 +239,7 @@ export async function GET(req: NextRequest) {
       scoreDistribution: { excellent, good, average, poor },
       classroomPerformance,
       filterOptions: {
-        schools: allSchoolsEn.map(s => ({ id: s.id, name: s.name })),
+        schools: allSchools.map(s => ({ id: s.id, name: s.name })),
         classrooms: allClassrooms
       }
     })

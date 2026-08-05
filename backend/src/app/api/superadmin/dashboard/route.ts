@@ -17,9 +17,19 @@ export async function GET(req: NextRequest) {
     const totalStudents = await prisma.student.count()
     const totalAttempts = await prisma.examAttempt.count()
 
+    const { searchParams } = new URL(req.url)
+    const language = searchParams.get('language') || 'en'
+
+    // Check if there are any schools seeded in the target language
+    const hasTargetLangSchools = await prisma.school.count({
+      where: { language }
+    })
+
+    const targetQueryLang = hasTargetLangSchools > 0 ? language : 'en'
+
     // Fetch schools with details (admin name, students count, exams count, attempts count)
     const schools = await prisma.school.findMany({
-      where: { language: 'en' },
+      where: { language: targetQueryLang },
       include: {
         admin: {
           select: { email: true },

@@ -817,7 +817,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const fetchDashboardData = async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const resStats = await fetch('/api/superadmin/dashboard', { headers })
+      const resStats = await fetch(`/api/superadmin/dashboard?language=${lang}`, { headers })
       const dataStats = await resStats.json()
       if (dataStats.success) {
         setStats(dataStats.stats)
@@ -831,7 +831,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         setAdmins(dataAdmins.admins)
       }
 
-      const resStudents = await fetch('/api/superadmin/students', { headers })
+      const resStudents = await fetch(`/api/superadmin/students?language=${lang}`, { headers })
       const dataStudents = await resStudents.json()
       if (dataStudents.success) {
         setAllStudents(dataStudents.students)
@@ -1322,7 +1322,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 
   useEffect(() => {
     fetchDashboardData()
-  }, [token])
+  }, [token, lang])
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -2918,7 +2918,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
       }
 
       try {
-        let query = `/api/admin/results?examId=${selectedExamId}`
+        let query = `/api/admin/results?examId=${selectedExamId}&language=${lang}`
         if (selectedLeaderboardSchoolIds.length > 0 && !selectedLeaderboardSchoolIds.includes('all')) {
           query += `&schoolIds=${selectedLeaderboardSchoolIds.join(',')}`
         } else {

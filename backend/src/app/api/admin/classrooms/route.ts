@@ -83,7 +83,19 @@ export async function POST(req: NextRequest) {
       }
 
       // Only allow linking to schools owned by this admin
-      const ownedSchoolIds = schoolIds.filter((sId: string) => adminSchoolIds.includes(sId))
+      let ownedSchoolIds = schoolIds.filter((sId: string) => adminSchoolIds.includes(sId))
+      if (ownedSchoolIds.length > 0) {
+        const schools = await prisma.school.findMany({
+          where: { id: { in: ownedSchoolIds } },
+          select: { udise: true }
+        })
+        const udises = schools.map(s => s.udise)
+        const allMatchingSchools = await prisma.school.findMany({
+          where: { udise: { in: udises }, adminId: user.userId },
+          select: { id: true }
+        })
+        ownedSchoolIds = allMatchingSchools.map(s => s.id)
+      }
 
       await prisma.$transaction(async (tx) => {
         for (const cId of classroomIds) {
@@ -128,9 +140,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Only allow linking to schools owned by this admin
-    const ownedSchoolIds = Array.isArray(schoolIds)
+    let ownedSchoolIds = Array.isArray(schoolIds)
       ? schoolIds.filter((sId: string) => adminSchoolIds.includes(sId))
       : []
+    if (ownedSchoolIds.length > 0) {
+      const schools = await prisma.school.findMany({
+        where: { id: { in: ownedSchoolIds } },
+        select: { udise: true }
+      })
+      const udises = schools.map(s => s.udise)
+      const allMatchingSchools = await prisma.school.findMany({
+        where: { udise: { in: udises }, adminId: user.userId },
+        select: { id: true }
+      })
+      ownedSchoolIds = allMatchingSchools.map(s => s.id)
+    }
 
     const classroom = await prisma.$transaction(async (tx) => {
       // Find or create classroom scoped strictly to this admin

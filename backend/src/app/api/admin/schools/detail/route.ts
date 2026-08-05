@@ -45,9 +45,16 @@ export async function GET(req: NextRequest) {
       return errorResponse('Unauthorized. You do not manage this school.', 403)
     }
 
-    // Fetch students registered under this school
+    // Resolve all school IDs matching this school's UDISE number
+    const relatedSchools = await prisma.school.findMany({
+      where: { udise: school.udise },
+      select: { id: true }
+    })
+    const relatedSchoolIds = relatedSchools.map(s => s.id)
+
+    // Fetch students registered under this school (any language row sharing UDISE)
     const students = await prisma.student.findMany({
-      where: { schoolId: school.id },
+      where: { schoolId: { in: relatedSchoolIds } },
       orderBy: { name: 'asc' },
       include: {
         classroom: {
@@ -56,10 +63,10 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Fetch exam attempts under this school
+    // Fetch exam attempts under this school (any language row sharing UDISE)
     const attempts = await prisma.examAttempt.findMany({
       where: {
-        student: { schoolId: school.id },
+        student: { schoolId: { in: relatedSchoolIds } },
       },
       orderBy: { startedAt: 'desc' },
       include: {

@@ -122,6 +122,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    let finalSchoolIds = schoolIds || []
+    if (Array.isArray(finalSchoolIds) && finalSchoolIds.length > 0) {
+      const schools = await prisma.school.findMany({
+        where: { id: { in: finalSchoolIds } },
+        select: { udise: true }
+      })
+      const udises = schools.map(s => s.udise)
+      const allLinkedSchools = await prisma.school.findMany({
+        where: { udise: { in: udises }, adminId: user.userId },
+        select: { id: true }
+      })
+      finalSchoolIds = allLinkedSchools.map(s => s.id)
+    }
+
     const exam = await prisma.$transaction(async (tx) => {
       const e = await tx.exam.create({
         data: {
@@ -137,10 +151,10 @@ export async function POST(req: NextRequest) {
         },
       })
 
-            // Link Schools
-      if (schoolIds.length > 0) {
+      // Link Schools
+      if (finalSchoolIds.length > 0) {
         await tx.schoolExam.createMany({
-          data: schoolIds.map((sId) => ({
+          data: finalSchoolIds.map((sId: string) => ({
             schoolId: sId,
             examId: e.id,
             pushedAt: new Date(),
@@ -250,6 +264,20 @@ export async function PUT(req: NextRequest) {
       })
 
       // 2. Sync School links (preserve existing pushedAt for previously linked schools)
+      let finalSchoolIds = schoolIds || []
+      if (Array.isArray(finalSchoolIds) && finalSchoolIds.length > 0) {
+        const schools = await prisma.school.findMany({
+          where: { id: { in: finalSchoolIds } },
+          select: { udise: true }
+        })
+        const udises = schools.map(s => s.udise)
+        const allLinkedSchools = await prisma.school.findMany({
+          where: { udise: { in: udises }, adminId: user.userId },
+          select: { id: true }
+        })
+        finalSchoolIds = allLinkedSchools.map(s => s.id)
+      }
+
       const existingSchoolExams = await tx.schoolExam.findMany({
         where: { examId: id },
         select: { schoolId: true, pushedAt: true },
@@ -257,9 +285,9 @@ export async function PUT(req: NextRequest) {
       const existingPushedMap = new Map(existingSchoolExams.map((s) => [s.schoolId, s.pushedAt]))
 
       await tx.schoolExam.deleteMany({ where: { examId: id } })
-      if (Array.isArray(schoolIds) && schoolIds.length > 0) {
+      if (finalSchoolIds.length > 0) {
         await tx.schoolExam.createMany({
-          data: schoolIds.map((sId) => ({
+          data: finalSchoolIds.map((sId: string) => ({
             schoolId: sId,
             examId: id,
             pushedAt: existingPushedMap.get(sId) || new Date(),
