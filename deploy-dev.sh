@@ -1,26 +1,31 @@
 #!/bin/bash
-echo "=== Starting DEV (Staging) Deployment ==="
+# Exit script on first error
+set -e
 
-# Pull latest changes from dev branch
+echo "🚀 Starting development deployment..."
+
+# 1. Pull latest code
+echo "📥 Fetching latest changes from Git..."
 git pull origin dev
 
-# Build Frontend (compiled to point to dev API)
-echo "Building Frontend..."
+# 2. Build Frontend
+echo "📦 Building Frontend (Vite)..."
 cd frontend
 npm install
-VITE_API_URL=https://dev.bvpindia.org npm run build
+# Set API URL at build-time so Vite embeds the correct API endpoint for mobile/hybrid apps
+VITE_API_URL="https://api.dev.bvpindia.org" npm run build
+cd ..
 
-# Build Backend
-echo "Building Backend..."
-cd ../backend
+# 3. Build Backend
+echo "📦 Building Backend (Next.js)..."
+cd backend
 npm install
 npx prisma generate
 npx prisma db push           # Push database schema updates to dev DB
-npx prisma db seed           # Seed default data to dev DB if empty
+npm run build
+cd ..
 
-# Start or Reload PM2 Dev Process on Port 5001
-echo "Reloading Dev PM2 instance..."
-pm2 delete bvp-exam-backend-dev 2>/dev/null
-PORT=5001 pm2 start npm --name "bvp-exam-backend-dev" -- start -- -p 5001
-
-echo "=== DEV Deployment Completed successfully! ==="
+# 4. Reload PM2 and update environment variables
+echo "🔄 Reloading PM2 backend application..."
+pm2 startOrReload ecosystem.config.js --env development --update-env
+echo "✅ Deployment completed successfully!"
