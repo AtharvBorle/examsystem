@@ -27,5 +27,5 @@ cd ..
 
 # 4. Reload PM2 and update environment variables
 echo "🔄 Reloading PM2 backend application..."
-pm2 startOrReload ecosystem.config.js --env development --update-env
+pm2 startOrReload ecosystem.config.js --update-env
 echo "✅ Deployment completed successfully!"
