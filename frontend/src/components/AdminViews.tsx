@@ -1652,7 +1652,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                   className="form-input"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
-                  placeholder="e.g. Science, Commerce"
+                  placeholder="Branch Name"
                 />
               </div>
               <div className="form-group">
@@ -1662,7 +1662,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                   className="form-input"
                   value={branchHindi}
                   onChange={(e) => setBranchHindi(e.target.value)}
-                  placeholder="e.g. विज्ञान, वाणिज्य"
+                  placeholder="शाखा का नाम"
                 />
               </div>
               <button type="submit" className="btn btn-primary w-full" style={{ width: '100%' }} disabled={submitting}>
