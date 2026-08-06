@@ -32,7 +32,7 @@ export const downloadCSV = (filename: string, headers: string[], rows: any[][]) 
     ...rows.map((row) => row.map(escapeField).join(','))
   ].join('\n')
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.setAttribute('href', url)
@@ -901,7 +901,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       ...rows.map(row => row.map(escapeField).join(','))
     ].join('\n')
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
@@ -1239,7 +1239,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         }).join(',')
       ).join('\n')
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)
