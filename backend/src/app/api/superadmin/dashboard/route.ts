@@ -17,18 +17,58 @@ export async function GET(req: NextRequest) {
     const totalStudents = await prisma.student.count()
     const totalAttempts = await prisma.examAttempt.count()
 
-    // Fetch schools with details (admin name, students count, exams count, attempts count)
+    const { searchParams } = new URL(req.url)
+    const language = searchParams.get('language') || 'en'
+
+    // Check if there are any schools seeded in the target language
+    const hasTargetLangSchools = await prisma.school.count({
+      where: { language }
+    })
+
+    const targetQueryLang = hasTargetLangSchools > 0 ? language : 'en'
+
+    // Fetch student UDISE counts
+    const studentsWithUdise = await prisma.student.findMany({
+      select: {
+        school: {
+          select: { udise: true }
+        }
+      }
+    })
+    const udiseCountMap: Record<string, number> = {}
+    studentsWithUdise.forEach(std => {
+      const udise = std.school?.udise
+      if (udise) {
+        udiseCountMap[udise] = (udiseCountMap[udise] || 0) + 1
+      }
+    })
+
+    // Fetch school exam UDISE mappings (to resolve language-independent exam counts)
+    const schoolExams = await prisma.schoolExam.findMany({
+      select: {
+        school: {
+          select: { udise: true }
+        },
+        examId: true
+      }
+    })
+    const udiseExamsMap: Record<string, Set<string>> = {}
+    schoolExams.forEach(se => {
+      const udise = se.school?.udise
+      if (udise) {
+        if (!udiseExamsMap[udise]) {
+          udiseExamsMap[udise] = new Set()
+        }
+        udiseExamsMap[udise].add(se.examId)
+      }
+    })
+
+    // Fetch schools with details (admin name)
     const schools = await prisma.school.findMany({
-      where: { language: 'en' },
+      where: { language: targetQueryLang },
       include: {
         admin: {
           select: { email: true },
-        },
-        students: {
-          select: { id: true },
-        },
-        exams: {
-          select: { examId: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -42,8 +82,8 @@ export async function GET(req: NextRequest) {
         tehsil: school.tehsil,
         district: school.district,
         adminEmail: school.admin.email,
-        studentsCount: school.students.length,
-        examsCount: school.exams.length,
+        studentsCount: udiseCountMap[school.udise] || 0,
+        examsCount: udiseExamsMap[school.udise]?.size || 0,
       }
     })
 

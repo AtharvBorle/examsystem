@@ -32,7 +32,7 @@ export const downloadCSV = (filename: string, headers: string[], rows: any[][]) 
     ...rows.map((row) => row.map(escapeField).join(','))
   ].join('\n')
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.setAttribute('href', url)
@@ -86,11 +86,17 @@ function SchoolDetailPanel({
 
   const classroomsList = React.useMemo(() => {
     const list: Record<string, string> = {}
+    // Pre-populate with officially linked classrooms of the school
+    ;(schoolDetail.school.classrooms || []).forEach((c: any) => {
+      list[c.id] = c.name
+    })
+    // Supplement from student registrations
     ;(schoolDetail.students || []).forEach((s: any) => {
       if (s.classroomId && s.classroomName) {
         list[s.classroomId] = s.classroomName
       }
     })
+    // Supplement from exam attempts
     ;(schoolDetail.attempts || []).forEach((att: any) => {
       if (att.classroomId && att.classroomName) {
         list[att.classroomId] = att.classroomName
@@ -100,6 +106,11 @@ function SchoolDetailPanel({
   }, [schoolDetail])
 
   const examsList = React.useMemo(() => {
+    // Use school's officially linked exams list if returned by the backend
+    if (schoolDetail.exams && Array.isArray(schoolDetail.exams)) {
+      return schoolDetail.exams
+    }
+    // Fallback to deriving from exam attempts
     const list: Record<string, string> = {}
     ;(schoolDetail.attempts || []).forEach((att: any) => {
       if (att.examId && att.examName) {
@@ -817,7 +828,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const fetchDashboardData = async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const resStats = await fetch('/api/superadmin/dashboard', { headers })
+      const resStats = await fetch(`/api/superadmin/dashboard?language=${lang}`, { headers })
       const dataStats = await resStats.json()
       if (dataStats.success) {
         setStats(dataStats.stats)
@@ -831,7 +842,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         setAdmins(dataAdmins.admins)
       }
 
-      const resStudents = await fetch('/api/superadmin/students', { headers })
+      const resStudents = await fetch(`/api/superadmin/students?language=${lang}`, { headers })
       const dataStudents = await resStudents.json()
       if (dataStudents.success) {
         setAllStudents(dataStudents.students)
@@ -890,7 +901,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       ...rows.map(row => row.map(escapeField).join(','))
     ].join('\n')
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
@@ -1228,7 +1239,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         }).join(',')
       ).join('\n')
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)
@@ -1322,7 +1333,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 
   useEffect(() => {
     fetchDashboardData()
-  }, [token])
+  }, [token, lang])
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1641,7 +1652,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                   className="form-input"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
-                  placeholder="e.g. Science, Commerce"
+                  placeholder="Branch Name"
                 />
               </div>
               <div className="form-group">
@@ -1651,7 +1662,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
                   className="form-input"
                   value={branchHindi}
                   onChange={(e) => setBranchHindi(e.target.value)}
-                  placeholder="e.g. विज्ञान, वाणिज्य"
+                  placeholder="शाखा का नाम"
                 />
               </div>
               <button type="submit" className="btn btn-primary w-full" style={{ width: '100%' }} disabled={submitting}>
@@ -2918,7 +2929,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
       }
 
       try {
-        let query = `/api/admin/results?examId=${selectedExamId}`
+        let query = `/api/admin/results?examId=${selectedExamId}&language=${lang}`
         if (selectedLeaderboardSchoolIds.length > 0 && !selectedLeaderboardSchoolIds.includes('all')) {
           query += `&schoolIds=${selectedLeaderboardSchoolIds.join(',')}`
         } else {

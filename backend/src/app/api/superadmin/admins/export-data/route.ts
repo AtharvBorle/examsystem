@@ -25,6 +25,20 @@ export async function GET(req: NextRequest) {
       targetSchoolIds = schoolIdParam
     }
 
+    // Resolve all matching language row IDs for the target school IDs
+    if (targetSchoolIds.length > 0) {
+      const schoolsForUdise = await prisma.school.findMany({
+        where: { id: { in: targetSchoolIds } },
+        select: { udise: true }
+      })
+      const udises = schoolsForUdise.map(s => s.udise)
+      const allMatchingSchools = await prisma.school.findMany({
+        where: { udise: { in: udises } },
+        select: { id: true }
+      })
+      targetSchoolIds = allMatchingSchools.map(s => s.id)
+    }
+
     // Build School filter
     const schoolWhere: any = {}
     if (adminId && adminId !== 'all') {
@@ -192,6 +206,24 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Fetch student UDISE counts
+    const schoolUdises = schools.map((s) => s.udise)
+    const studentsWithUdise = await prisma.student.findMany({
+      where: {
+        school: { udise: { in: schoolUdises } }
+      },
+      select: {
+        school: { select: { udise: true } }
+      }
+    })
+    const udiseCountMap: Record<string, number> = {}
+    studentsWithUdise.forEach(std => {
+      const udise = std.school?.udise
+      if (udise) {
+        udiseCountMap[udise] = (udiseCountMap[udise] || 0) + 1
+      }
+    })
+
     // Format Schools
     const formattedSchools = schools.map((s) => ({
       id: s.id,
@@ -201,7 +233,7 @@ export async function GET(req: NextRequest) {
       district: s.district || '',
       language: s.language,
       adminEmail: s.admin?.email || '',
-      studentsCount: s.students.length,
+      studentsCount: udiseCountMap[s.udise] || 0,
       createdAt: s.createdAt,
     }))
 

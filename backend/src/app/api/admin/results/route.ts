@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
       return errorResponse('examId query parameter is required', 400)
     }
 
+    const language = searchParams.get('language') || 'en'
+
     // Build the query where clause
     const where: any = {
       examId,
@@ -73,11 +75,31 @@ export async function GET(req: NextRequest) {
       if (schoolIds !== 'all' && schoolIds.trim() !== '') {
         const ids = schoolIds.split(',').map(s => s.trim()).filter(Boolean)
         if (ids.length > 0) {
-          studentWhere.schoolId = { in: ids }
+          // Resolve all school IDs matching the UDISEs of the selected school IDs
+          const schools = await prisma.school.findMany({
+            where: { id: { in: ids } },
+            select: { udise: true }
+          })
+          const udises = schools.map(s => s.udise)
+          const allMatchingSchools = await prisma.school.findMany({
+            where: { udise: { in: udises } },
+            select: { id: true }
+          })
+          studentWhere.schoolId = { in: allMatchingSchools.map(s => s.id) }
         }
       }
     } else if (schoolId && schoolId !== 'all') {
-      studentWhere.schoolId = schoolId
+      const schoolObj = await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { udise: true }
+      })
+      if (schoolObj) {
+        const matchingSchools = await prisma.school.findMany({
+          where: { udise: schoolObj.udise },
+          select: { id: true }
+        })
+        studentWhere.schoolId = { in: matchingSchools.map(s => s.id) }
+      }
     }
 
     if (classroomId) {
@@ -115,10 +137,21 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Sort ALL matching attempts globally by ranking criteria:
-    // 1. First Submission (earlier submittedAt)
-    // 2. Exam Completion Time (shortest duration)
-    // 3. Marks Obtained (higher score)
+    // Fetch the school names in the requested language
+    const attemptSchoolUdises = Array.from(new Set(attempts.map(att => att.student.school?.udise).filter(Boolean))) as string[]
+    const schoolsInTargetLang = await prisma.school.findMany({
+      where: {
+        udise: { in: attemptSchoolUdises },
+        language
+      },
+      select: { udise: true, name: true }
+    })
+    const schoolNameMap: Record<string, string> = {}
+    schoolsInTargetLang.forEach(s => {
+      schoolNameMap[s.udise] = s.name
+    })
+
+    // Sort ALL matching attempts globally by ranking criteria
     const sortedAttempts = sortAttemptsByRankCriteria(attempts)
 
     // Assign global sequential ranking (1st, 2nd, 3rd, 4th, 5th...) across all queried rows
@@ -128,13 +161,16 @@ export async function GET(req: NextRequest) {
         : 0
       const durationMin = Math.round(durationMs / 60000)
 
+      const udise = attempt.student.school?.udise || ''
+      const targetSchoolName = schoolNameMap[udise] || attempt.student.school?.name || ''
+
       return {
         rank: index + 1,
         attemptId: attempt.id,
         studentName: attempt.student.name,
         studentMobile: attempt.student.mobile,
-        schoolName: attempt.student.school?.name || '',
-        udise: attempt.student.school?.udise || '',
+        schoolName: targetSchoolName,
+        udise,
         classroomName: attempt.student.classroom?.name || '',
         district: attempt.student.district || '',
         tehsil: attempt.student.tehsil || '',

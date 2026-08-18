@@ -37,9 +37,16 @@ export async function GET(req: NextRequest) {
       return errorResponse('School not found', 404)
     }
 
-    // Fetch students registered under this school
+    // Resolve all school IDs matching this school's UDISE number
+    const relatedSchools = await prisma.school.findMany({
+      where: { udise: school.udise },
+      select: { id: true }
+    })
+    const relatedSchoolIds = relatedSchools.map(s => s.id)
+
+    // Fetch students registered under this school (any language row sharing UDISE)
     const students = await prisma.student.findMany({
-      where: { schoolId: school.id },
+      where: { schoolId: { in: relatedSchoolIds } },
       orderBy: { name: 'asc' },
       include: {
         classroom: {
@@ -48,16 +55,37 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Fetch exam attempts under this school
+    // Fetch all exams pushed to this school (across any language row matching the UDISE)
+    const schoolExams = await prisma.schoolExam.findMany({
+      where: { schoolId: { in: relatedSchoolIds } },
+      include: {
+        exam: {
+          select: { id: true, name: true }
+        }
+      }
+    })
+    const uniqueExamsMap: Record<string, { id: string; name: string }> = {}
+    schoolExams.forEach((se) => {
+      if (se.exam) {
+        uniqueExamsMap[se.exam.id] = {
+          id: se.exam.id,
+          name: se.exam.name,
+        }
+      }
+    })
+    const formattedExams = Object.values(uniqueExamsMap)
+
+    // Fetch exam attempts under this school (any language row sharing UDISE)
     const attempts = await prisma.examAttempt.findMany({
       where: {
-        student: { schoolId: school.id },
+        student: { schoolId: { in: relatedSchoolIds } },
       },
       orderBy: { startedAt: 'desc' },
       include: {
         student: {
           select: {
             name: true,
+            classroomId: true,
             classroom: { select: { name: true } },
           },
         },
@@ -82,7 +110,9 @@ export async function GET(req: NextRequest) {
     const formattedAttempts = attempts.map((att) => ({
       id: att.id,
       studentName: att.student.name,
+      classroomId: att.student.classroomId,
       classroomName: att.student.classroom.name,
+      examId: att.examId,
       examName: att.exam.name,
       score: att.score,
       completed: att.completed,
@@ -100,6 +130,7 @@ export async function GET(req: NextRequest) {
       },
       students: formattedStudents,
       attempts: formattedAttempts,
+      exams: formattedExams,
     })
   } catch (error: any) {
     console.error('Fetch school details error:', error)

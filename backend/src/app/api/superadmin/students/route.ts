@@ -14,11 +14,22 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const schoolId = searchParams.get('schoolId')
     const search = searchParams.get('search')
+    const language = searchParams.get('language') || 'en'
 
     const where: any = {}
 
     if (schoolId && schoolId !== 'all') {
-      where.schoolId = schoolId
+      const selectedSchool = await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { udise: true }
+      })
+      if (selectedSchool) {
+        const matchingSchools = await prisma.school.findMany({
+          where: { udise: selectedSchool.udise },
+          select: { id: true }
+        })
+        where.schoolId = { in: matchingSchools.map(s => s.id) }
+      }
     }
 
     if (search && search.trim() !== '') {
@@ -43,21 +54,44 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    const formatted = students.map((std) => ({
-      id: std.id,
-      name: std.name,
-      mobile: std.mobile,
-      schoolId: std.schoolId,
-      schoolName: std.school?.name || '',
-      udise: std.school?.udise || '',
-      classroomId: std.classroomId,
-      classroomName: std.classroom?.name || '',
-      district: std.district || '',
-      tehsil: std.tehsil || '',
-      registeredAt: std.createdAt,
-      acceptedTerms: std.acceptedTerms ?? true,
-      acceptedTermsAt: std.acceptedTermsAt || std.createdAt,
-    }))
+    // Fetch the target-language school details for mapping
+    const studentSchoolUdises = Array.from(new Set(students.map(std => std.school?.udise).filter(Boolean))) as string[]
+    const schoolsInTargetLang = await prisma.school.findMany({
+      where: {
+        udise: { in: studentSchoolUdises },
+        language
+      },
+      select: { id: true, udise: true, name: true }
+    })
+    
+    // Create mapping of UDISE to translated school ID and name
+    const schoolMap: Record<string, { id: string; name: string }> = {}
+    schoolsInTargetLang.forEach(s => {
+      schoolMap[s.udise] = { id: s.id, name: s.name }
+    })
+
+    const formatted = students.map((std) => {
+      const udise = std.school?.udise || ''
+      const targetSchool = schoolMap[udise]
+      const schoolIdMapped = targetSchool?.id || std.schoolId
+      const schoolNameMapped = targetSchool?.name || std.school?.name || ''
+
+      return {
+        id: std.id,
+        name: std.name,
+        mobile: std.mobile,
+        schoolId: schoolIdMapped,
+        schoolName: schoolNameMapped,
+        udise,
+        classroomId: std.classroomId,
+        classroomName: std.classroom?.name || '',
+        district: std.district || '',
+        tehsil: std.tehsil || '',
+        registeredAt: std.createdAt,
+        acceptedTerms: std.acceptedTerms ?? true,
+        acceptedTermsAt: std.acceptedTermsAt || std.createdAt,
+      }
+    })
 
     return successResponse({ students: formatted })
   } catch (error: any) {
