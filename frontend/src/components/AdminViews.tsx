@@ -4,7 +4,7 @@ import { useAuth, User } from '../context/AuthContext'
 import defaultIconAsset from '../assets/app_icon.jpeg'
 import bvpBkjIconAsset from '../assets/BVP-BKJ_icon.jpeg'
 import { useAppIcon } from '../context/AppIconContext'
-import { generateCertificatePDF } from '../utils/pdfGenerator'
+import { generateCertificatePDF, generateLeaderboardPDF } from '../utils/pdfGenerator'
 import { translations, Language } from '../utils/localization'
 import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { handlePositiveNumberKeyDown, sanitizePositiveNumber } from '../utils/numberInput'
@@ -2482,6 +2482,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 interface SelectOption {
   id: string
   name: string
+  udise?: string
 }
 
 function CustomSelectObject({ 
@@ -2525,7 +2526,11 @@ function CustomSelectObject({
 
   const filteredOptions = React.useMemo(() => {
     if (!inputValue || inputValue === selectedName) return options
-    return options.filter(opt => opt.name.toLowerCase().includes(inputValue.toLowerCase()))
+    const q = inputValue.toLowerCase().trim()
+    return options.filter(opt => 
+      (opt.name && opt.name.toLowerCase().includes(q)) ||
+      (opt.udise && opt.udise.toLowerCase().includes(q))
+    )
   }, [options, inputValue, selectedName])
 
   return (
@@ -2619,7 +2624,8 @@ function CustomSelectObject({
                   fontWeight: value === opt.id ? 'bold' : 'normal'
                 }}
               >
-                {opt.name}
+                <span>{opt.name}</span>
+                {opt.udise ? <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '6px' }}>({opt.udise})</span> : null}
               </div>
             ))
           )}
@@ -2635,7 +2641,7 @@ function MultiSelectSchoolDropdown({
   onChange,
   lang = 'en'
 }: {
-  options: { id: string; name: string }[]
+  options: { id: string; name: string; udise?: string }[]
   selectedIds: string[]
   onChange: (ids: string[]) => void
   lang?: Language
@@ -2655,8 +2661,12 @@ function MultiSelectSchoolDropdown({
   }, [])
 
   const filteredOptions = React.useMemo(() => {
-    if (!searchQuery) return options
-    return options.filter(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    if (!searchQuery.trim()) return options
+    const q = searchQuery.toLowerCase().trim()
+    return options.filter(opt => 
+      (opt.name && opt.name.toLowerCase().includes(q)) || 
+      (opt.udise && opt.udise.toLowerCase().includes(q))
+    )
   }, [options, searchQuery])
 
   const isAllSelected = selectedIds.includes('all') || (options.length > 0 && selectedIds.length === options.length)
@@ -2746,7 +2756,7 @@ function MultiSelectSchoolDropdown({
             <input
               type="text"
               className="form-input"
-              placeholder={lang === 'hi' ? 'विद्यालय खोजें...' : 'Search schools...'}
+              placeholder={lang === 'hi' ? 'विद्यालय का नाम या UDISE खोजें...' : 'Search school name or UDISE...'}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', height: '30px', margin: 0 }}
@@ -2800,7 +2810,10 @@ function MultiSelectSchoolDropdown({
                       checked={checked}
                       onChange={() => toggleOption(opt.id)}
                     />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.name}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {opt.name}
+                      {opt.udise ? <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '6px' }}>({opt.udise})</span> : null}
+                    </span>
                   </label>
                 )
               })
@@ -2994,6 +3007,44 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handleDownloadExcel = () => {
+    if (leaderboardResults.length === 0) return
+
+    const headers = [
+      'Rank in School', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'District', 'Tehsil', 'Score', 'Correct Answers', 'Total Questions', 
+      'Duration (Minutes)', 'Completion Date'
+    ]
+
+    const rows = leaderboardResults.map((r) => [
+      r.rank, r.studentName, r.studentMobile, r.schoolName, r.udise, r.classroomName,
+      r.district, r.tehsil, r.score, r.correctAnswers, r.totalQuestions,
+      r.durationMinutes, new Date(r.submittedAt).toLocaleDateString()
+    ])
+
+    const worksheetData = [headers, ...rows]
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Top 3 Leaderboard')
+
+    const examObj = exams.find((e) => e.id === selectedExamId)
+    const examLabel = examObj ? examObj.name.replace(/\s+/g, '_') : 'Exam'
+    XLSX.writeFile(workbook, `${examLabel}_Top3_Per_School_Leaderboard.xlsx`)
+  }
+
+  const handleDownloadPDF = () => {
+    if (leaderboardResults.length === 0) return
+
+    const examObj = exams.find((e) => e.id === selectedExamId)
+    const examName = examObj ? ((lang === 'hi' && examObj.nameHindi) ? examObj.nameHindi : examObj.name) : 'Exam'
+
+    generateLeaderboardPDF({
+      examName,
+      language: lang,
+      results: leaderboardResults
+    })
   }
 
   const handleAdminCertificateDownload = async (row: any) => {
@@ -3464,13 +3515,50 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
               </button>
             )}
             {selectedExamId && leaderboardResults.length > 0 && (
-              <button
-                onClick={handleDownloadCSV}
-                className="btn btn-primary"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none' }}
-              >
-                {t.analyticsDownloadCsvReport}
-              </button>
+              <>
+                <button
+                  onClick={handleDownloadCSV}
+                  className="btn btn-primary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Download size={15} />
+                  {t.analyticsDownloadCsvReport}
+                </button>
+                <button
+                  onClick={handleDownloadExcel}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#107c41',
+                    borderColor: '#107c41'
+                  }}
+                >
+                  <FileText size={15} />
+                  {t.analyticsDownloadExcelReport}
+                </button>
+                <button
+                  onClick={handleDownloadPDF}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#dc2626',
+                    borderColor: '#dc2626'
+                  }}
+                >
+                  <Download size={15} />
+                  {t.analyticsDownloadPdfReport}
+                </button>
+              </>
             )}
           </div>
 

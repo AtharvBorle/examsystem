@@ -796,3 +796,293 @@ export function generateAnswersheetPDF(data: {
     doc.save(filename);
   }
 }
+
+
+export function generateLeaderboardPDF(data: {
+  examName: string
+  language?: string
+  results: Array<{
+    rank: number
+    studentName: string
+    studentMobile?: string
+    schoolName: string
+    udise?: string
+    classroomName: string
+    district?: string
+    tehsil?: string
+    score: number
+    correctAnswers: number
+    totalQuestions: number
+    durationMinutes?: number
+    submittedAt?: string | Date
+  }>
+}) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return
+  }
+
+  if (!data.results || data.results.length === 0) {
+    return
+  }
+
+  const isHindi = data.language === 'hi'
+  const fontStack = isHindi 
+    ? "'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Segoe UI', system-ui, sans-serif"
+    : "'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+
+  const setFont = (ctx: CanvasRenderingContext2D, style: 'normal' | 'bold' | 'italic', size: number) => {
+    ctx.font = `${style === 'normal' ? '' : style} ${size}px ${fontStack}`
+  }
+
+  const truncateText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string => {
+    if (!text) return ''
+    if (ctx.measureText(text).width <= maxWidth) return text
+    let truncated = text
+    while (truncated.length > 0 && ctx.measureText(truncated + '..').width > maxWidth) {
+      truncated = truncated.slice(0, -1)
+    }
+    return truncated + '..'
+  }
+
+  const pages: string[] = []
+  let canvas = document.createElement('canvas')
+  canvas.width = 1700
+  canvas.height = 1200
+  let ctx = canvas.getContext('2d')!
+
+  const initPage = (pageNum: number) => {
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, 1700, 1200)
+    
+    // Page border
+    ctx.strokeStyle = '#cbd5e1'
+    ctx.lineWidth = 3
+    ctx.strokeRect(20, 20, 1660, 1160)
+
+    // Page footer
+    setFont(ctx, 'normal', 13)
+    ctx.fillStyle = '#64748b'
+    ctx.textAlign = 'center'
+    ctx.fillText(
+      isHindi ? `पृष्ठ ${pageNum}` : `Page ${pageNum}`,
+      850,
+      1160
+    )
+    ctx.textAlign = 'left'
+  }
+
+  const drawTableHeader = (yPos: number) => {
+    ctx.fillStyle = '#1e293b'
+    ctx.fillRect(30, yPos, 1640, 38)
+
+    setFont(ctx, 'bold', 13)
+    ctx.fillStyle = '#ffffff'
+
+    ctx.fillText(isHindi ? 'रैंक' : 'Rank', 45, yPos + 24)
+    ctx.fillText(isHindi ? 'छात्र का नाम' : 'Student Name', 135, yPos + 24)
+    ctx.fillText(isHindi ? 'मोबाइल' : 'Mobile', 395, yPos + 24)
+    ctx.fillText(isHindi ? 'कक्षा' : 'Class', 545, yPos + 24)
+    ctx.fillText(isHindi ? 'स्कूल का नाम' : 'School Name', 685, yPos + 24)
+    ctx.fillText(isHindi ? 'UDISE' : 'UDISE', 1085, yPos + 24)
+    ctx.fillText(isHindi ? 'जिला / तालुका' : 'District / Taluka', 1225, yPos + 24)
+    ctx.fillText(isHindi ? 'प्राप्तांक' : 'Score', 1455, yPos + 24)
+  }
+
+  let pageCount = 1
+  initPage(pageCount)
+
+  // Draw Header Banner on Page 1
+  let y = 35
+  ctx.fillStyle = '#0b2240' // Dark Navy Banner
+  ctx.fillRect(30, y, 1640, 65)
+
+  ctx.textAlign = 'center'
+  setFont(ctx, 'bold', 22)
+  ctx.fillStyle = '#f5d782' // Gold Title
+  ctx.fillText(
+    isHindi ? 'भारत विकास परिषद - शीर्ष-3 सहभागिता लीडरबोर्ड' : 'BHARAT VIKAS PARISHAD - TOP-3 PARTICIPATION LEADERBOARD',
+    850,
+    y + 36
+  )
+  setFont(ctx, 'normal', 12)
+  ctx.fillStyle = '#e2e8f0'
+  ctx.fillText(
+    isHindi ? 'ऑनलाइन परीक्षा परिणाम एवं योग्यता सूची' : 'Online Examination Merit & Ranking Report',
+    850,
+    y + 54
+  )
+  ctx.textAlign = 'left'
+
+  y += 75
+
+  // Draw Metadata Box on Page 1
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(30, y, 1640, 48)
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.strokeRect(30, y, 1640, 48)
+
+  const formattedDate = new Date().toLocaleDateString(
+    isHindi ? 'hi-IN' : 'en-US',
+    { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+  )
+
+  setFont(ctx, 'bold', 13)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'परीक्षा: ' : 'Exam: ', 50, y + 30)
+  setFont(ctx, 'normal', 13)
+  ctx.fillStyle = '#334155'
+  ctx.fillText(data.examName, 100, y + 30)
+
+  setFont(ctx, 'bold', 13)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'दिनांक: ' : 'Generated On: ', 700, y + 30)
+  setFont(ctx, 'normal', 13)
+  ctx.fillStyle = '#334155'
+  ctx.fillText(formattedDate, 815, y + 30)
+
+  setFont(ctx, 'bold', 13)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'कुल प्रतिभागी: ' : 'Total Ranked Candidates: ', 1280, y + 30)
+  setFont(ctx, 'bold', 13)
+  ctx.fillStyle = '#0b2240'
+  ctx.fillText(`${data.results.length}`, 1485, y + 30)
+
+  y += 62
+
+  // Draw initial Table Header
+  drawTableHeader(y)
+  y += 38
+
+  // Draw Table Rows
+  const rowHeight = 34
+  data.results.forEach((r, idx) => {
+    // Check if new page is needed
+    if (y + rowHeight > 1130) {
+      pages.push(canvas.toDataURL('image/jpeg', 0.95))
+      canvas = document.createElement('canvas')
+      canvas.width = 1700
+      canvas.height = 1200
+      ctx = canvas.getContext('2d')!
+      pageCount++
+      initPage(pageCount)
+      
+      y = 40
+      drawTableHeader(y)
+      y += 38
+    }
+
+    // Row Background (Zebra Striping)
+    ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f8fafc'
+    ctx.fillRect(30, y, 1640, rowHeight)
+
+    ctx.strokeStyle = '#e2e8f0'
+    ctx.lineWidth = 1
+    ctx.strokeRect(30, y, 1640, rowHeight)
+
+    // Rank Badge
+    const rankY = y + 22
+    if (r.rank === 1) {
+      ctx.fillStyle = '#d4af37' // Gold
+      ctx.fillRect(40, y + 6, 75, 22)
+      setFont(ctx, 'bold', 11)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText('🥇 1st', 52, rankY)
+    } else if (r.rank === 2) {
+      ctx.fillStyle = '#94a3b8' // Silver
+      ctx.fillRect(40, y + 6, 75, 22)
+      setFont(ctx, 'bold', 11)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText('🥈 2nd', 52, rankY)
+    } else if (r.rank === 3) {
+      ctx.fillStyle = '#cd7f32' // Bronze
+      ctx.fillRect(40, y + 6, 75, 22)
+      setFont(ctx, 'bold', 11)
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText('🥉 3rd', 52, rankY)
+    } else {
+      setFont(ctx, 'bold', 12)
+      ctx.fillStyle = '#475569'
+      ctx.fillText(`${r.rank}th`, 55, rankY)
+    }
+
+    // Student Name
+    setFont(ctx, 'bold', 12.5)
+    ctx.fillStyle = '#0f172a'
+    const studentNameTruncated = truncateText(ctx, r.studentName, 240)
+    ctx.fillText(studentNameTruncated, 135, rankY)
+
+    // Mobile
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#475569'
+    ctx.fillText(r.studentMobile || '-', 395, rankY)
+
+    // Class
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#334155'
+    const classTruncated = truncateText(ctx, r.classroomName || '-', 130)
+    ctx.fillText(classTruncated, 545, rankY)
+
+    // School Name
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#1e293b'
+    const schoolTruncated = truncateText(ctx, r.schoolName || '-', 380)
+    ctx.fillText(schoolTruncated, 685, rankY)
+
+    // UDISE
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#475569'
+    ctx.fillText(r.udise || '-', 1085, rankY)
+
+    // District / Taluka
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#334155'
+    const geoText = [r.district, r.tehsil].filter(Boolean).join(', ') || '-'
+    const geoTruncated = truncateText(ctx, geoText, 210)
+    ctx.fillText(geoTruncated, 1225, rankY)
+
+    // Score & Marks
+    setFont(ctx, 'bold', 12.5)
+    ctx.fillStyle = '#1e3a8a'
+    const scoreText = `${r.score} pts (${r.correctAnswers}/${r.totalQuestions})`
+    ctx.fillText(scoreText, 1455, rankY)
+
+    y += rowHeight
+  })
+
+  // Save the final page
+  pages.push(canvas.toDataURL('image/jpeg', 0.95))
+
+  // Compile jsPDF document (Landscape A4)
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+  })
+
+  pages.forEach((imgData, index) => {
+    if (index > 0) {
+      doc.addPage()
+    }
+    doc.addImage(imgData, 'JPEG', 0, 0, 297, 210)
+  })
+
+  const cleanExamName = data.examName.replace(/\s+/g, '_')
+  const filename = `${cleanExamName}_Top3_Leaderboard.pdf`
+
+  if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
+    try {
+      const pdfDataUri = doc.output('datauristring')
+      ;(window as any).ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'DOWNLOAD_PDF',
+        pdfData: pdfDataUri,
+        filename
+      }))
+    } catch (err) {
+      doc.save(filename)
+    }
+  } else {
+    doc.save(filename)
+  }
+}
+
