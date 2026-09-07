@@ -13,6 +13,7 @@ import { AdminPrivacyPolicyView } from './components/AdminPrivacyPolicyView'
 import { ExamProcessView } from './components/ExamProcessView'
 import { StudentGuideHelpView } from './components/StudentGuideHelpView'
 import { FaqView } from './components/FaqView'
+import { SchoolPortalView } from './components/SchoolPortalView'
 
 import { LanguageSelector } from './components/LanguageSelector'
 
@@ -132,8 +133,9 @@ function App() {
 
 function MainLayout() {
   const { user, token, logout, loading, login } = useAuth()
-  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN' | 'TERMS' | 'ADMIN_TERMS' | 'PRIVACY' | 'ADMIN_PRIVACY' | 'EXAM_PROCESS' | 'HELP_SUPPORT' | 'FAQ'>('LOGIN')
+  const [currentView, setCurrentView] = useState<'LOGIN' | 'REGISTER' | 'DASHBOARD' | 'ADMIN_LOGIN' | 'TERMS' | 'ADMIN_TERMS' | 'PRIVACY' | 'ADMIN_PRIVACY' | 'EXAM_PROCESS' | 'HELP_SUPPORT' | 'FAQ' | 'SCHOOL_PORTAL'>('LOGIN')
   const [directSchoolUdise, setDirectSchoolUdise] = useState<string | null>(null)
+  const [schoolPortalUdise, setSchoolPortalUdise] = useState<string | null>(null)
 
   const [lang, setLang] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
@@ -209,8 +211,24 @@ function MainLayout() {
       const rawPath = decodeURIComponent(window.location.pathname)
       const cleanPath = rawPath.replace(/\/+$/, '')
       const lowerPath = cleanPath.toLowerCase()
+      const params = new URLSearchParams(window.location.search)
+      const urlUdise = params.get('udise') || params.get('schoolUdise') || params.get('udis')
 
       if (
+        lowerPath.endsWith('/school-portal') || 
+        lowerPath.endsWith('/school_portal') || 
+        lowerPath.endsWith('/schoolportal') || 
+        lowerPath.includes('/oes/school-portal') ||
+        lowerPath.includes('/oes/school_portal') ||
+        lowerPath.includes('/school-portal') ||
+        lowerPath.includes('/school/portal') ||
+        params.get('schoolPortal') === 'true'
+      ) {
+        if (urlUdise) {
+          setSchoolPortalUdise(urlUdise)
+        }
+        setCurrentView('SCHOOL_PORTAL')
+      } else if (
         lowerPath.endsWith('/faq') || 
         lowerPath.endsWith('/faqs') || 
         lowerPath.endsWith('/frequently-asked-questions') ||
@@ -306,7 +324,9 @@ function MainLayout() {
 
   useEffect(() => {
     let targetPath = '/oes/'
-    if (currentView === 'ADMIN_LOGIN' || (currentView === 'DASHBOARD' && user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'))) {
+    if (currentView === 'SCHOOL_PORTAL') {
+      targetPath = schoolPortalUdise ? `/oes/school-portal?udise=${encodeURIComponent(schoolPortalUdise)}` : '/oes/school-portal'
+    } else if (currentView === 'ADMIN_LOGIN' || (currentView === 'DASHBOARD' && user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'))) {
       targetPath = '/oes/admin'
     } else if (currentView === 'TERMS') {
       targetPath = '/oes/T&C'
@@ -328,14 +348,14 @@ function MainLayout() {
     const currentPathClean = currentPath.replace(/\/+$/, '')
     const targetPathClean = targetPath.replace(/\/+$/, '')
 
-    if (currentPathClean !== targetPathClean) {
+    if (currentPathClean !== targetPathClean && currentView !== 'SCHOOL_PORTAL') {
       try {
         window.history.replaceState({}, '', targetPath)
       } catch (err) {
         // Ignore DOMException if rate limit is hit
       }
     }
-  }, [currentView])
+  }, [currentView, schoolPortalUdise])
 
   if (loading) {
     return (
@@ -346,7 +366,7 @@ function MainLayout() {
   }
 
   const isNew = import.meta.env.VITE_SPLASH_SCREEN_VERSION === 'new'
-  const showNavbar = user && (!isNew || user.role !== 'STUDENT') && currentView !== 'TERMS' && currentView !== 'ADMIN_TERMS' && currentView !== 'PRIVACY' && currentView !== 'ADMIN_PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ'
+  const showNavbar = user && (!isNew || user.role !== 'STUDENT') && currentView !== 'TERMS' && currentView !== 'ADMIN_TERMS' && currentView !== 'PRIVACY' && currentView !== 'ADMIN_PRIVACY' && currentView !== 'EXAM_PROCESS' && currentView !== 'HELP_SUPPORT' && currentView !== 'FAQ' && currentView !== 'SCHOOL_PORTAL'
 
   return (
     <div>
@@ -431,6 +451,17 @@ function MainLayout() {
                 const target = user ? ((user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? '/oes/admin' : '/oes/') : '/oes/admin'
                 window.history.pushState({}, '', target)
                 setCurrentView(user ? 'DASHBOARD' : 'ADMIN_LOGIN')
+              }}
+            />
+          )}
+          {currentView === 'SCHOOL_PORTAL' && (
+            <SchoolPortalView 
+              initialUdise={schoolPortalUdise}
+              lang={lang}
+              onChangeLang={handleLanguageChange}
+              onExit={() => {
+                window.history.pushState({}, '', '/oes/')
+                setCurrentView(user ? 'DASHBOARD' : 'LOGIN')
               }}
             />
           )}

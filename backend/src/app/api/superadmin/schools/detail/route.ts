@@ -85,12 +85,15 @@ export async function GET(req: NextRequest) {
         student: {
           select: {
             name: true,
+            mobile: true,
             classroomId: true,
             classroom: { select: { name: true } },
+            district: true,
+            tehsil: true,
           },
         },
         exam: {
-          select: { name: true },
+          select: { name: true, nameHindi: true, duration: true },
         },
       },
     })
@@ -107,18 +110,31 @@ export async function GET(req: NextRequest) {
       acceptedTermsAt: std.acceptedTermsAt || std.createdAt,
     }))
 
-    const formattedAttempts = attempts.map((att) => ({
-      id: att.id,
-      studentName: att.student.name,
-      classroomId: att.student.classroomId,
-      classroomName: att.student.classroom.name,
-      examId: att.examId,
-      examName: att.exam.name,
-      score: att.score,
-      completed: att.completed,
-      startedAt: att.startedAt,
-      submittedAt: att.submittedAt,
-    }))
+    const formattedAttempts = attempts.map((att) => {
+      const subTime = att.submittedAt ? new Date(att.submittedAt).getTime() : 0
+      const startTime = att.startedAt ? new Date(att.startedAt).getTime() : 0
+      const durationMinutes = subTime && startTime ? Math.max(1, Math.round((subTime - startTime) / 60000)) : 0
+
+      return {
+        id: att.id,
+        studentName: att.student.name,
+        studentMobile: att.student.mobile,
+        classroomId: att.student.classroomId,
+        classroomName: att.student.classroom.name,
+        district: att.student.district,
+        tehsil: att.student.tehsil,
+        examId: att.examId,
+        examName: att.exam.name,
+        examNameHindi: att.exam.nameHindi,
+        score: att.score,
+        correctAnswers: att.correctAnswers,
+        totalQuestions: att.totalQuestions,
+        completed: att.completed,
+        startedAt: att.startedAt,
+        submittedAt: att.submittedAt,
+        durationMinutes,
+      }
+    })
 
     return successResponse({
       school: {

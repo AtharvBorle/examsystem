@@ -1086,3 +1086,345 @@ export function generateLeaderboardPDF(data: {
   }
 }
 
+export interface SchoolReportPDFParams {
+  schoolName: string
+  udise: string
+  district?: string
+  tehsil?: string
+  filterExam?: string
+  filterGroup?: string
+  filterClassroom?: string
+  language?: string
+  reportType?: 'RANKINGS' | 'ATTEMPTS'
+  results: Array<{
+    rank?: number
+    studentName: string
+    studentMobile?: string
+    classroomName?: string
+    examName?: string
+    score: number
+    correctAnswers?: number
+    totalQuestions?: number
+    durationMinutes?: number
+    submittedAt?: string
+    completed?: boolean
+  }>
+}
+
+export function generateSchoolReportPDF(data: SchoolReportPDFParams) {
+  const isHindi = data.language === 'hi'
+  const isRankings = data.reportType !== 'ATTEMPTS'
+
+  const fontStack = isHindi 
+    ? "'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Segoe UI', system-ui, sans-serif"
+    : "'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+
+  const setFont = (ctx: CanvasRenderingContext2D, style: 'normal' | 'bold' | 'italic', size: number) => {
+    ctx.font = `${style === 'normal' ? '' : style} ${size}px ${fontStack}`
+  }
+
+  const truncateText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string => {
+    if (!text) return ''
+    if (ctx.measureText(text).width <= maxWidth) return text
+    let truncated = text
+    while (truncated.length > 0 && ctx.measureText(truncated + '..').width > maxWidth) {
+      truncated = truncated.slice(0, -1)
+    }
+    return truncated + '..'
+  }
+
+  const pages: string[] = []
+  let canvas = document.createElement('canvas')
+  canvas.width = 1700
+  canvas.height = 1200
+  let ctx = canvas.getContext('2d')!
+
+  const initPage = (pageNum: number) => {
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, 1700, 1200)
+    
+    // Page border
+    ctx.strokeStyle = '#cbd5e1'
+    ctx.lineWidth = 3
+    ctx.strokeRect(20, 20, 1660, 1160)
+
+    // Page footer
+    setFont(ctx, 'normal', 13)
+    ctx.fillStyle = '#64748b'
+    ctx.textAlign = 'center'
+    ctx.fillText(
+      isHindi ? `पृष्ठ ${pageNum}` : `Page ${pageNum}`,
+      850,
+      1160
+    )
+    ctx.textAlign = 'left'
+  }
+
+  const drawTableHeader = (yPos: number) => {
+    ctx.fillStyle = '#1e293b'
+    ctx.fillRect(30, yPos, 1640, 38)
+
+    setFont(ctx, 'bold', 13)
+    ctx.fillStyle = '#ffffff'
+
+    if (isRankings) {
+      ctx.fillText(isHindi ? 'रैंक' : 'Rank', 45, yPos + 24)
+      ctx.fillText(isHindi ? 'छात्र का नाम' : 'Student Name', 140, yPos + 24)
+      ctx.fillText(isHindi ? 'मोबाइल' : 'Mobile', 430, yPos + 24)
+      ctx.fillText(isHindi ? 'कक्षा' : 'Class', 600, yPos + 24)
+      ctx.fillText(isHindi ? 'परीक्षा' : 'Exam Name', 750, yPos + 24)
+      ctx.fillText(isHindi ? 'प्राप्तांक' : 'Score / Marks', 1100, yPos + 24)
+      ctx.fillText(isHindi ? 'समय' : 'Duration', 1310, yPos + 24)
+      ctx.fillText(isHindi ? 'जमा करने की तिथि' : 'Submission Date', 1450, yPos + 24)
+    } else {
+      ctx.fillText(isHindi ? 'क्र.' : 'Sr.', 45, yPos + 24)
+      ctx.fillText(isHindi ? 'छात्र का नाम' : 'Student Name', 140, yPos + 24)
+      ctx.fillText(isHindi ? 'मोबाइल' : 'Mobile', 430, yPos + 24)
+      ctx.fillText(isHindi ? 'कक्षा' : 'Class', 600, yPos + 24)
+      ctx.fillText(isHindi ? 'परीक्षा' : 'Exam Name', 750, yPos + 24)
+      ctx.fillText(isHindi ? 'प्राप्तांक' : 'Score / Marks', 1100, yPos + 24)
+      ctx.fillText(isHindi ? 'स्थिति' : 'Status', 1310, yPos + 24)
+      ctx.fillText(isHindi ? 'दिनांक' : 'Date', 1450, yPos + 24)
+    }
+  }
+
+  let pageCount = 1
+  initPage(pageCount)
+
+  // Draw Header Banner on Page 1
+  let y = 35
+  ctx.fillStyle = '#0b2240' // Dark Navy Banner
+  ctx.fillRect(30, y, 1640, 68)
+
+  ctx.textAlign = 'center'
+  setFont(ctx, 'bold', 20)
+  ctx.fillStyle = '#f5d782' // Gold Title
+  const schoolDisplayTitle = `${data.schoolName.toUpperCase()} - ${isRankings ? (isHindi ? 'लाइव रैंकिंग रिपोर्ट' : 'STUDENT RANKINGS REPORT') : (isHindi ? 'परीक्षा प्रयास रिपोर्ट' : 'EXAM ATTEMPTS REPORT')}`
+  ctx.fillText(
+    truncateText(ctx, schoolDisplayTitle, 1550),
+    850,
+    y + 34
+  )
+  setFont(ctx, 'normal', 12)
+  ctx.fillStyle = '#e2e8f0'
+  const locParts = [`UDISE: ${data.udise}`]
+  if (data.tehsil) locParts.push(`${isHindi ? 'तहसील' : 'Tehsil'}: ${data.tehsil}`)
+  if (data.district) locParts.push(`${isHindi ? 'जिला' : 'District'}: ${data.district}`)
+  ctx.fillText(
+    locParts.join('  |  '),
+    850,
+    y + 55
+  )
+  ctx.textAlign = 'left'
+
+  y += 78
+
+  // Draw Metadata Box on Page 1
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(30, y, 1640, 46)
+  ctx.strokeStyle = '#e2e8f0'
+  ctx.lineWidth = 1
+  ctx.strokeRect(30, y, 1640, 46)
+
+  const formattedDate = new Date().toLocaleDateString(
+    isHindi ? 'hi-IN' : 'en-US',
+    { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+  )
+
+  setFont(ctx, 'bold', 12.5)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'परीक्षा: ' : 'Exam: ', 45, y + 28)
+  setFont(ctx, 'normal', 12.5)
+  ctx.fillStyle = '#334155'
+  ctx.fillText(truncateText(ctx, data.filterExam || (isHindi ? 'सभी परीक्षाएं' : 'All Exams'), 220), 100, y + 28)
+
+  setFont(ctx, 'bold', 12.5)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'कक्षा: ' : 'Class: ', 360, y + 28)
+  setFont(ctx, 'normal', 12.5)
+  ctx.fillStyle = '#334155'
+  ctx.fillText(truncateText(ctx, data.filterClassroom || (isHindi ? 'सभी कक्षाएं' : 'All Classrooms'), 180), 415, y + 28)
+
+  setFont(ctx, 'bold', 12.5)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'दिनांक: ' : 'Generated: ', 680, y + 28)
+  setFont(ctx, 'normal', 12.5)
+  ctx.fillStyle = '#334155'
+  ctx.fillText(formattedDate, 765, y + 28)
+
+  setFont(ctx, 'bold', 12.5)
+  ctx.fillStyle = '#1e293b'
+  ctx.fillText(isHindi ? 'कुल रिकॉर्ड: ' : 'Total Records: ', 1350, y + 28)
+  setFont(ctx, 'bold', 13)
+  ctx.fillStyle = '#0b2240'
+  ctx.fillText(`${data.results.length}`, 1480, y + 28)
+
+  y += 58
+
+  // Draw initial Table Header
+  drawTableHeader(y)
+  y += 38
+
+  // Draw Table Rows
+  const rowHeight = 34
+  data.results.forEach((r, idx) => {
+    // Check if new page is needed
+    if (y + rowHeight > 1130) {
+      pages.push(canvas.toDataURL('image/jpeg', 0.95))
+      canvas = document.createElement('canvas')
+      canvas.width = 1700
+      canvas.height = 1200
+      ctx = canvas.getContext('2d')!
+      pageCount++
+      initPage(pageCount)
+      
+      y = 40
+      drawTableHeader(y)
+      y += 38
+    }
+
+    // Row Background (Zebra Striping)
+    ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f8fafc'
+    ctx.fillRect(30, y, 1640, rowHeight)
+
+    ctx.strokeStyle = '#e2e8f0'
+    ctx.lineWidth = 1
+    ctx.strokeRect(30, y, 1640, rowHeight)
+
+    const rankY = y + 22
+
+    if (isRankings) {
+      // Rank Badge
+      const currentRank = r.rank !== undefined ? r.rank : idx + 1
+      if (currentRank === 1) {
+        ctx.fillStyle = '#d4af37' // Gold
+        ctx.fillRect(40, y + 6, 75, 22)
+        setFont(ctx, 'bold', 11)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText('🥇 1st', 52, rankY)
+      } else if (currentRank === 2) {
+        ctx.fillStyle = '#94a3b8' // Silver
+        ctx.fillRect(40, y + 6, 75, 22)
+        setFont(ctx, 'bold', 11)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText('🥈 2nd', 52, rankY)
+      } else if (currentRank === 3) {
+        ctx.fillStyle = '#cd7f32' // Bronze
+        ctx.fillRect(40, y + 6, 75, 22)
+        setFont(ctx, 'bold', 11)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText('🥉 3rd', 52, rankY)
+      } else {
+        setFont(ctx, 'bold', 12)
+        ctx.fillStyle = '#475569'
+        ctx.fillText(`${currentRank}th`, 55, rankY)
+      }
+    } else {
+      setFont(ctx, 'bold', 12)
+      ctx.fillStyle = '#475569'
+      ctx.fillText(`${idx + 1}`, 50, rankY)
+    }
+
+    // Student Name
+    setFont(ctx, 'bold', 12.5)
+    ctx.fillStyle = '#0f172a'
+    const studentNameTruncated = truncateText(ctx, r.studentName, 260)
+    ctx.fillText(studentNameTruncated, 140, rankY)
+
+    // Mobile
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#475569'
+    ctx.fillText(r.studentMobile || '-', 430, rankY)
+
+    // Class
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#334155'
+    const classTruncated = truncateText(ctx, r.classroomName || '-', 130)
+    ctx.fillText(classTruncated, 600, rankY)
+
+    // Exam Name
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#1e293b'
+    const examTruncated = truncateText(ctx, r.examName || '-', 320)
+    ctx.fillText(examTruncated, 750, rankY)
+
+    // Score & Marks
+    setFont(ctx, 'bold', 12.5)
+    ctx.fillStyle = '#1e3a8a'
+    let scoreDisplay = `${r.score} marks`
+    if (r.correctAnswers !== undefined && r.totalQuestions !== undefined && r.totalQuestions > 0) {
+      scoreDisplay = `${r.score} marks (${r.correctAnswers}/${r.totalQuestions})`
+    }
+    ctx.fillText(scoreDisplay, 1100, rankY)
+
+    if (isRankings) {
+      // Duration
+      setFont(ctx, 'normal', 12)
+      ctx.fillStyle = '#475569'
+      const durText = r.durationMinutes ? `${r.durationMinutes} min` : '-'
+      ctx.fillText(durText, 1310, rankY)
+
+      // Submission Date
+      setFont(ctx, 'normal', 11.5)
+      ctx.fillStyle = '#475569'
+      const dateText = r.submittedAt ? new Date(r.submittedAt).toLocaleDateString() : '-'
+      ctx.fillText(dateText, 1450, rankY)
+    } else {
+      // Status
+      setFont(ctx, 'bold', 11.5)
+      if (r.completed) {
+        ctx.fillStyle = '#16a34a'
+        ctx.fillText(isHindi ? 'पूर्ण' : 'Completed', 1310, rankY)
+      } else {
+        ctx.fillStyle = '#d97706'
+        ctx.fillText(isHindi ? 'प्रगति पर' : 'In Progress', 1310, rankY)
+      }
+
+      // Date
+      setFont(ctx, 'normal', 11.5)
+      ctx.fillStyle = '#475569'
+      const dateText = r.submittedAt ? new Date(r.submittedAt).toLocaleDateString() : '-'
+      ctx.fillText(dateText, 1450, rankY)
+    }
+
+    y += rowHeight
+  })
+
+  // Save the final page
+  pages.push(canvas.toDataURL('image/jpeg', 0.95))
+
+  // Compile jsPDF document (Landscape A4)
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4',
+  })
+
+  pages.forEach((imgData, index) => {
+    if (index > 0) {
+      doc.addPage()
+    }
+    doc.addImage(imgData, 'JPEG', 0, 0, 297, 210)
+  })
+
+  const cleanSchool = data.schoolName.replace(/[^a-zA-Z0-9_\u0900-\u097F]/g, '_').substring(0, 30)
+  const reportTag = isRankings ? 'Rankings' : 'Attempts'
+  const filename = `${cleanSchool}_${data.udise}_${reportTag}.pdf`
+
+  if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
+    try {
+      const pdfDataUri = doc.output('datauristring')
+      ;(window as any).ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'DOWNLOAD_PDF',
+        pdfData: pdfDataUri,
+        filename
+      }))
+    } catch (err) {
+      doc.save(filename)
+    }
+  } else {
+    doc.save(filename)
+  }
+}
+
+
