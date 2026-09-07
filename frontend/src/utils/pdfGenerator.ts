@@ -1,5 +1,17 @@
 import { jsPDF } from 'jspdf'
 import certificateBg from '../assets/Certificatebackground.jpg'
+import letterheadAsset from '../assets/letterhead.png'
+
+const loadPdfImage = (src: string): Promise<HTMLImageElement | null> => {
+  return new Promise((resolve) => {
+    if (!src) return resolve(null)
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = src
+  })
+}
 
 
 // Helper to translate classroom names to Hindi (Frontend-safe version)
@@ -798,7 +810,7 @@ export function generateAnswersheetPDF(data: {
 }
 
 
-export function generateLeaderboardPDF(data: {
+export async function generateLeaderboardPDF(data: {
   examName: string
   language?: string
   results: Array<{
@@ -826,6 +838,8 @@ export function generateLeaderboardPDF(data: {
   }
 
   const isHindi = data.language === 'hi'
+  const letterheadImg = await loadPdfImage(letterheadAsset)
+
   const fontStack = isHindi 
     ? "'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Segoe UI', system-ui, sans-serif"
     : "'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
@@ -891,64 +905,82 @@ export function generateLeaderboardPDF(data: {
   let pageCount = 1
   initPage(pageCount)
 
-  // Draw Header Banner on Page 1
-  let y = 35
-  ctx.fillStyle = '#0b2240' // Dark Navy Banner
-  ctx.fillRect(30, y, 1640, 65)
+  // Draw Header on Page 1
+  let y = 30
+  if (letterheadImg) {
+    ctx.drawImage(letterheadImg, 30, y, 1640, 150)
+    y += 158
 
-  ctx.textAlign = 'center'
-  setFont(ctx, 'bold', 22)
-  ctx.fillStyle = '#f5d782' // Gold Title
-  ctx.fillText(
-    isHindi ? 'भारत विकास परिषद - शीर्ष-3 सहभागिता लीडरबोर्ड' : 'BHARAT VIKAS PARISHAD - TOP-3 PARTICIPATION LEADERBOARD',
-    850,
-    y + 36
-  )
-  setFont(ctx, 'normal', 12)
-  ctx.fillStyle = '#e2e8f0'
-  ctx.fillText(
-    isHindi ? 'ऑनलाइन परीक्षा परिणाम एवं योग्यता सूची' : 'Online Examination Merit & Ranking Report',
-    850,
-    y + 54
-  )
-  ctx.textAlign = 'left'
+    ctx.fillStyle = '#0b2240'
+    ctx.fillRect(30, y, 1640, 36)
 
-  y += 75
+    ctx.textAlign = 'center'
+    setFont(ctx, 'bold', 14.5)
+    ctx.fillStyle = '#f5d782'
+    ctx.fillText(
+      isHindi ? 'शीर्ष-3 सहभागिता लीडरबोर्ड  |  ऑनलाइन परीक्षा परिणाम एवं योग्यता सूची' : 'TOP-3 PARTICIPATION LEADERBOARD  |  ONLINE EXAMINATION MERIT & RANKING REPORT',
+      850,
+      y + 24
+    )
+    ctx.textAlign = 'left'
+    y += 46
+  } else {
+    ctx.fillStyle = '#0b2240'
+    ctx.fillRect(30, y, 1640, 65)
+
+    ctx.textAlign = 'center'
+    setFont(ctx, 'bold', 22)
+    ctx.fillStyle = '#f5d782'
+    ctx.fillText(
+      isHindi ? 'भारत विकास परिषद - शीर्ष-3 सहभागिता लीडरबोर्ड' : 'BHARAT VIKAS PARISHAD - TOP-3 PARTICIPATION LEADERBOARD',
+      850,
+      y + 36
+    )
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#e2e8f0'
+    ctx.fillText(
+      isHindi ? 'ऑनलाइन परीक्षा परिणाम एवं योग्यता सूची' : 'Online Examination Merit & Ranking Report',
+      850,
+      y + 54
+    )
+    ctx.textAlign = 'left'
+    y += 75
+  }
 
   // Draw Metadata Box on Page 1
   ctx.fillStyle = '#f8fafc'
-  ctx.fillRect(30, y, 1640, 48)
+  ctx.fillRect(30, y, 1640, 44)
   ctx.strokeStyle = '#e2e8f0'
   ctx.lineWidth = 1
-  ctx.strokeRect(30, y, 1640, 48)
+  ctx.strokeRect(30, y, 1640, 44)
 
   const formattedDate = new Date().toLocaleDateString(
     isHindi ? 'hi-IN' : 'en-US',
     { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
   )
 
-  setFont(ctx, 'bold', 13)
+  setFont(ctx, 'bold', 12.5)
   ctx.fillStyle = '#1e293b'
-  ctx.fillText(isHindi ? 'परीक्षा: ' : 'Exam: ', 50, y + 30)
-  setFont(ctx, 'normal', 13)
+  ctx.fillText(isHindi ? 'परीक्षा: ' : 'Exam: ', 50, y + 28)
+  setFont(ctx, 'normal', 12.5)
   ctx.fillStyle = '#334155'
-  ctx.fillText(data.examName, 100, y + 30)
+  ctx.fillText(data.examName, 100, y + 28)
 
-  setFont(ctx, 'bold', 13)
+  setFont(ctx, 'bold', 12.5)
   ctx.fillStyle = '#1e293b'
-  ctx.fillText(isHindi ? 'दिनांक: ' : 'Generated On: ', 700, y + 30)
-  setFont(ctx, 'normal', 13)
+  ctx.fillText(isHindi ? 'दिनांक: ' : 'Generated On: ', 700, y + 28)
+  setFont(ctx, 'normal', 12.5)
   ctx.fillStyle = '#334155'
-  ctx.fillText(formattedDate, 815, y + 30)
+  ctx.fillText(formattedDate, 815, y + 28)
 
-  setFont(ctx, 'bold', 13)
+  setFont(ctx, 'bold', 12.5)
   ctx.fillStyle = '#1e293b'
-  ctx.fillText(isHindi ? 'कुल प्रतिभागी: ' : 'Total Ranked Candidates: ', 1280, y + 30)
+  ctx.fillText(isHindi ? 'कुल प्रतिभागी: ' : 'Total Ranked Candidates: ', 1280, y + 28)
   setFont(ctx, 'bold', 13)
   ctx.fillStyle = '#0b2240'
-  ctx.fillText(`${data.results.length}`, 1485, y + 30)
+  ctx.fillText(`${data.results.length}`, 1485, y + 28)
 
-  y += 62
+  y += 56
 
   // Draw initial Table Header
   drawTableHeader(y)
@@ -1111,9 +1143,10 @@ export interface SchoolReportPDFParams {
   }>
 }
 
-export function generateSchoolReportPDF(data: SchoolReportPDFParams) {
+export async function generateSchoolReportPDF(data: SchoolReportPDFParams) {
   const isHindi = data.language === 'hi'
   const isRankings = data.reportType !== 'ATTEMPTS'
+  const letterheadImg = await loadPdfImage(letterheadAsset)
 
   const fontStack = isHindi 
     ? "'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Segoe UI', system-ui, sans-serif"
@@ -1191,33 +1224,62 @@ export function generateSchoolReportPDF(data: SchoolReportPDFParams) {
   let pageCount = 1
   initPage(pageCount)
 
-  // Draw Header Banner on Page 1
-  let y = 35
-  ctx.fillStyle = '#0b2240' // Dark Navy Banner
-  ctx.fillRect(30, y, 1640, 68)
+  // Draw Header on Page 1
+  let y = 30
+  if (letterheadImg) {
+    ctx.drawImage(letterheadImg, 30, y, 1640, 150)
+    y += 158
 
-  ctx.textAlign = 'center'
-  setFont(ctx, 'bold', 20)
-  ctx.fillStyle = '#f5d782' // Gold Title
-  const schoolDisplayTitle = `${data.schoolName.toUpperCase()} - ${isRankings ? (isHindi ? 'लाइव रैंकिंग रिपोर्ट' : 'STUDENT RANKINGS REPORT') : (isHindi ? 'परीक्षा प्रयास रिपोर्ट' : 'EXAM ATTEMPTS REPORT')}`
-  ctx.fillText(
-    truncateText(ctx, schoolDisplayTitle, 1550),
-    850,
-    y + 34
-  )
-  setFont(ctx, 'normal', 12)
-  ctx.fillStyle = '#e2e8f0'
-  const locParts = [`UDISE: ${data.udise}`]
-  if (data.tehsil) locParts.push(`${isHindi ? 'तहसील' : 'Tehsil'}: ${data.tehsil}`)
-  if (data.district) locParts.push(`${isHindi ? 'जिला' : 'District'}: ${data.district}`)
-  ctx.fillText(
-    locParts.join('  |  '),
-    850,
-    y + 55
-  )
-  ctx.textAlign = 'left'
+    ctx.fillStyle = '#0b2240'
+    ctx.fillRect(30, y, 1640, 48)
 
-  y += 78
+    ctx.textAlign = 'center'
+    setFont(ctx, 'bold', 16)
+    ctx.fillStyle = '#f5d782' // Gold Title
+    const schoolDisplayTitle = `${data.schoolName.toUpperCase()} - ${isRankings ? (isHindi ? 'लाइव रैंकिंग रिपोर्ट' : 'STUDENT RANKINGS REPORT') : (isHindi ? 'परीक्षा प्रयास रिपोर्ट' : 'EXAM ATTEMPTS REPORT')}`
+    ctx.fillText(
+      truncateText(ctx, schoolDisplayTitle, 1550),
+      850,
+      y + 24
+    )
+    setFont(ctx, 'normal', 11.5)
+    ctx.fillStyle = '#e2e8f0'
+    const locParts = [`UDISE: ${data.udise}`]
+    if (data.tehsil) locParts.push(`${isHindi ? 'तहसील' : 'Tehsil'}: ${data.tehsil}`)
+    if (data.district) locParts.push(`${isHindi ? 'जिला' : 'District'}: ${data.district}`)
+    ctx.fillText(
+      locParts.join('  |  '),
+      850,
+      y + 40
+    )
+    ctx.textAlign = 'left'
+    y += 56
+  } else {
+    ctx.fillStyle = '#0b2240' // Dark Navy Banner
+    ctx.fillRect(30, y, 1640, 68)
+
+    ctx.textAlign = 'center'
+    setFont(ctx, 'bold', 20)
+    ctx.fillStyle = '#f5d782' // Gold Title
+    const schoolDisplayTitle = `${data.schoolName.toUpperCase()} - ${isRankings ? (isHindi ? 'लाइव रैंकिंग रिपोर्ट' : 'STUDENT RANKINGS REPORT') : (isHindi ? 'परीक्षा प्रयास रिपोर्ट' : 'EXAM ATTEMPTS REPORT')}`
+    ctx.fillText(
+      truncateText(ctx, schoolDisplayTitle, 1550),
+      850,
+      y + 34
+    )
+    setFont(ctx, 'normal', 12)
+    ctx.fillStyle = '#e2e8f0'
+    const locParts = [`UDISE: ${data.udise}`]
+    if (data.tehsil) locParts.push(`${isHindi ? 'तहसील' : 'Tehsil'}: ${data.tehsil}`)
+    if (data.district) locParts.push(`${isHindi ? 'जिला' : 'District'}: ${data.district}`)
+    ctx.fillText(
+      locParts.join('  |  '),
+      850,
+      y + 55
+    )
+    ctx.textAlign = 'left'
+    y += 78
+  }
 
   // Draw Metadata Box on Page 1
   ctx.fillStyle = '#f8fafc'
