@@ -908,8 +908,14 @@ export async function generateLeaderboardPDF(data: {
   // Draw Header on Page 1
   let y = 30
   if (letterheadImg) {
-    ctx.drawImage(letterheadImg, 30, y, 1640, 150)
-    y += 158
+    const imgWidth = 1640
+    const naturalW = letterheadImg.naturalWidth || letterheadImg.width || 2172
+    const naturalH = letterheadImg.naturalHeight || letterheadImg.height || 724
+    const imgAspect = naturalW / naturalH
+    const imgHeight = Math.round(imgWidth / imgAspect)
+
+    ctx.drawImage(letterheadImg, 30, y, imgWidth, imgHeight)
+    y += imgHeight + 14
 
     ctx.fillStyle = '#0b2240'
     ctx.fillRect(30, y, 1640, 36)
@@ -1227,8 +1233,14 @@ export async function generateSchoolReportPDF(data: SchoolReportPDFParams) {
   // Draw Header on Page 1
   let y = 30
   if (letterheadImg) {
-    ctx.drawImage(letterheadImg, 30, y, 1640, 150)
-    y += 158
+    const imgWidth = 1640
+    const naturalW = letterheadImg.naturalWidth || letterheadImg.width || 2172
+    const naturalH = letterheadImg.naturalHeight || letterheadImg.height || 724
+    const imgAspect = naturalW / naturalH
+    const imgHeight = Math.round(imgWidth / imgAspect)
+
+    ctx.drawImage(letterheadImg, 30, y, imgWidth, imgHeight)
+    y += imgHeight + 14
 
     ctx.fillStyle = '#0b2240'
     ctx.fillRect(30, y, 1640, 48)
@@ -1253,7 +1265,7 @@ export async function generateSchoolReportPDF(data: SchoolReportPDFParams) {
       y + 40
     )
     ctx.textAlign = 'left'
-    y += 56
+    y += 58
   } else {
     ctx.fillStyle = '#0b2240' // Dark Navy Banner
     ctx.fillRect(30, y, 1640, 68)
