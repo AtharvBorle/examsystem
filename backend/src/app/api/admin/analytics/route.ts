@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
       scoreDistribution: { excellent, good, average, poor },
       classroomPerformance,
       filterOptions: {
-        schools: allSchools.map(s => ({ id: s.id, name: s.name })),
+        schools: allSchools.map(s => ({ id: s.id, name: s.name, udise: s.udise })),
         classrooms: allClassrooms
       }
     })

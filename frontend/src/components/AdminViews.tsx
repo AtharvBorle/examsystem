@@ -4,7 +4,7 @@ import { useAuth, User } from '../context/AuthContext'
 import defaultIconAsset from '../assets/app_icon.jpeg'
 import bvpBkjIconAsset from '../assets/BVP-BKJ_icon.jpeg'
 import { useAppIcon } from '../context/AppIconContext'
-import { generateCertificatePDF } from '../utils/pdfGenerator'
+import { generateCertificatePDF, generateLeaderboardPDF, generateSchoolReportPDF } from '../utils/pdfGenerator'
 import { translations, Language } from '../utils/localization'
 import { handleNameKeyDown, sanitizeName } from '../utils/nameInput'
 import { handlePositiveNumberKeyDown, sanitizePositiveNumber } from '../utils/numberInput'
@@ -13,7 +13,7 @@ import {
   LogOut, Shield, Award, Users, School as SchoolIcon, 
   CheckCircle, Clock, Award as TrophyIcon, 
   ChevronRight, ChevronLeft, Search,
-  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe, Download
+  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe, Download, Share2, Copy, ExternalLink, Check
 } from 'lucide-react'
 
 // Global CSV Exporter
@@ -62,6 +62,7 @@ function SchoolDetailPanel({
   token: string | null;
   lang?: Language;
 }) {
+  const t = translations[lang || 'en']
   const [tab, setTab] = useState<'STUDENTS' | 'ATTEMPTS' | 'RANKINGS'>('STUDENTS')
 
   const [selectedClassroomId, setSelectedClassroomId] = useState('')
@@ -72,6 +73,22 @@ function SchoolDetailPanel({
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
+
+  // Share Modal states
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
+
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/oes/school-portal?udise=${schoolDetail.school.udise}`
+    : `https://bvpindia.org/oes/school-portal?udise=${schoolDetail.school.udise}`
+
+  const handleCopyShareLink = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2500)
+    }
+  }
 
   // Linked classrooms management states
   const [currentClassrooms, setCurrentClassrooms] = useState<any[]>(schoolDetail.school.classrooms || [])
@@ -208,6 +225,159 @@ function SchoolDetailPanel({
     }))
   }, [schoolDetail.attempts, selectedClassroomId, selectedExamId, selectedGroupId, groups, startDate, startTime, endDate, endTime])
 
+  const handleDownloadRankingsCSV = () => {
+    if (rankedAttempts.length === 0) return
+    const headers = [
+      'Rank in School', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'District', 'Tehsil', 'Exam Name', 'Score / Marks', 'Correct Answers', 'Total Questions', 
+      'Duration (Minutes)', 'Completion Date'
+    ]
+
+    const rows = rankedAttempts.map((r: any) => [
+      r.rank,
+      r.studentName,
+      r.studentMobile || '-',
+      schoolDetail.school.name,
+      schoolDetail.school.udise,
+      r.classroomName,
+      r.district || schoolDetail.school.district || '-',
+      r.tehsil || schoolDetail.school.tehsil || '-',
+      r.examName,
+      r.score,
+      r.correctAnswers !== undefined ? r.correctAnswers : '-',
+      r.totalQuestions !== undefined ? r.totalQuestions : '-',
+      r.durationMinutes || '-',
+      r.submittedAt ? new Date(r.submittedAt).toLocaleString() : '-'
+    ])
+
+    const cleanSchool = schoolDetail.school.name.replace(/\s+/g, '_')
+    downloadCSV(`${cleanSchool}_${schoolDetail.school.udise}_Live_Rankings.csv`, headers, rows)
+  }
+
+  const handleDownloadRankingsExcel = () => {
+    if (rankedAttempts.length === 0) return
+    const headers = [
+      'Rank in School', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'District', 'Tehsil', 'Exam Name', 'Score / Marks', 'Correct Answers', 'Total Questions', 
+      'Duration (Minutes)', 'Completion Date'
+    ]
+
+    const rows = rankedAttempts.map((r: any) => [
+      r.rank,
+      r.studentName,
+      r.studentMobile || '-',
+      schoolDetail.school.name,
+      schoolDetail.school.udise,
+      r.classroomName,
+      r.district || schoolDetail.school.district || '-',
+      r.tehsil || schoolDetail.school.tehsil || '-',
+      r.examName,
+      r.score,
+      r.correctAnswers !== undefined ? r.correctAnswers : '-',
+      r.totalQuestions !== undefined ? r.totalQuestions : '-',
+      r.durationMinutes || '-',
+      r.submittedAt ? new Date(r.submittedAt).toLocaleString() : '-'
+    ])
+
+    const worksheetData = [headers, ...rows]
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'School Rankings')
+
+    const cleanSchool = schoolDetail.school.name.replace(/\s+/g, '_')
+    XLSX.writeFile(workbook, `${cleanSchool}_${schoolDetail.school.udise}_Live_Rankings.xlsx`)
+  }
+
+  const handleDownloadRankingsPDF = () => {
+    if (rankedAttempts.length === 0) return
+    const examObj = examsList.find((e: any) => e.id === selectedExamId)
+    const groupObj = groups.find((g: any) => g.id === selectedGroupId)
+    const classObj = classroomsList.find((c: any) => c.id === selectedClassroomId)
+
+    generateSchoolReportPDF({
+      schoolName: schoolDetail.school.name,
+      udise: schoolDetail.school.udise,
+      district: schoolDetail.school.district,
+      tehsil: schoolDetail.school.tehsil,
+      filterExam: examObj ? examObj.name : undefined,
+      filterGroup: groupObj ? groupObj.name : undefined,
+      filterClassroom: classObj ? classObj.name : undefined,
+      language: lang,
+      reportType: 'RANKINGS',
+      results: rankedAttempts
+    })
+  }
+
+  const handleDownloadAttemptsCSV = () => {
+    if (!schoolDetail.attempts || schoolDetail.attempts.length === 0) return
+    const headers = [
+      'Sr No', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'District', 'Tehsil', 'Exam Name', 'Score / Marks', 'Status', 'Completion Date'
+    ]
+
+    const rows = schoolDetail.attempts.map((att: any, idx: number) => [
+      idx + 1,
+      att.studentName,
+      att.studentMobile || '-',
+      schoolDetail.school.name,
+      schoolDetail.school.udise,
+      att.classroomName,
+      att.district || schoolDetail.school.district || '-',
+      att.tehsil || schoolDetail.school.tehsil || '-',
+      att.examName,
+      att.score,
+      att.completed ? 'Completed' : 'In Progress',
+      att.submittedAt ? new Date(att.submittedAt).toLocaleString() : '-'
+    ])
+
+    const cleanSchool = schoolDetail.school.name.replace(/\s+/g, '_')
+    downloadCSV(`${cleanSchool}_${schoolDetail.school.udise}_Exam_Attempts.csv`, headers, rows)
+  }
+
+  const handleDownloadAttemptsExcel = () => {
+    if (!schoolDetail.attempts || schoolDetail.attempts.length === 0) return
+    const headers = [
+      'Sr No', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'District', 'Tehsil', 'Exam Name', 'Score / Marks', 'Status', 'Completion Date'
+    ]
+
+    const rows = schoolDetail.attempts.map((att: any, idx: number) => [
+      idx + 1,
+      att.studentName,
+      att.studentMobile || '-',
+      schoolDetail.school.name,
+      schoolDetail.school.udise,
+      att.classroomName,
+      att.district || schoolDetail.school.district || '-',
+      att.tehsil || schoolDetail.school.tehsil || '-',
+      att.examName,
+      att.score,
+      att.completed ? 'Completed' : 'In Progress',
+      att.submittedAt ? new Date(att.submittedAt).toLocaleString() : '-'
+    ])
+
+    const worksheetData = [headers, ...rows]
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Exam Attempts')
+
+    const cleanSchool = schoolDetail.school.name.replace(/\s+/g, '_')
+    XLSX.writeFile(workbook, `${cleanSchool}_${schoolDetail.school.udise}_Exam_Attempts.xlsx`)
+  }
+
+  const handleDownloadAttemptsPDF = () => {
+    if (!schoolDetail.attempts || schoolDetail.attempts.length === 0) return
+    generateSchoolReportPDF({
+      schoolName: schoolDetail.school.name,
+      udise: schoolDetail.school.udise,
+      district: schoolDetail.school.district,
+      tehsil: schoolDetail.school.tehsil,
+      language: lang,
+      reportType: 'ATTEMPTS',
+      results: schoolDetail.attempts
+    })
+  }
+
   const handleSaveClasses = async () => {
     setSavingClasses(true)
     try {
@@ -270,9 +440,11 @@ function SchoolDetailPanel({
                 District: {schoolDetail.school.district}
               </span>
             )}
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-              Admin: {schoolDetail.school.adminEmail} (Mob: {schoolDetail.school.adminMobile})
-            </span>
+            {schoolDetail.school.adminEmail && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                Admin: {schoolDetail.school.adminEmail} {schoolDetail.school.adminMobile ? `(Mob: ${schoolDetail.school.adminMobile})` : ''}
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.6rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Linked Classes:</span>
@@ -309,15 +481,26 @@ function SchoolDetailPanel({
             )}
           </div>
         </div>
-        {onCloseTab && (
+
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
-            onClick={onCloseTab} 
-            className="btn btn-primary" 
-            style={{ padding: '0.45rem 1rem', textTransform: 'none' }}
+            onClick={() => setShowShareModal(true)}
+            className="btn btn-secondary" 
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem', fontSize: '0.85rem', textTransform: 'none', borderColor: 'var(--accent-gold, #c5a059)' }}
           >
-            Close Tab
+            <Share2 size={16} color="var(--primary-navy)" />
+            {t.schoolPortalShareBtn || 'Share Portal'}
           </button>
-        )}
+          {onCloseTab && (
+            <button 
+              onClick={onCloseTab} 
+              className="btn btn-primary" 
+              style={{ padding: '0.45rem 1rem', textTransform: 'none' }}
+            >
+              Close Tab
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Detail Tabs */}
@@ -333,7 +516,7 @@ function SchoolDetailPanel({
             borderBottom: tab === 'STUDENTS' ? '2px solid var(--accent-gold)' : 'none',
           }}
         >
-          Registered Students ({schoolDetail.students.length})
+          {t.schoolPortalStudentsTab || 'Registered Students'} ({schoolDetail.students.length})
         </button>
         <button
           onClick={() => setTab('ATTEMPTS')}
@@ -346,7 +529,7 @@ function SchoolDetailPanel({
             borderBottom: tab === 'ATTEMPTS' ? '2px solid var(--accent-gold)' : 'none',
           }}
         >
-          Exam Attempts & Submissions ({schoolDetail.attempts.length})
+          {t.schoolPortalAttemptsTab || 'Exam Attempts & Submissions'} ({schoolDetail.attempts.length})
         </button>
         <button
           onClick={() => setTab('RANKINGS')}
@@ -359,7 +542,7 @@ function SchoolDetailPanel({
             borderBottom: tab === 'RANKINGS' ? '2px solid var(--accent-gold)' : 'none',
           }}
         >
-          🏆 Live Rankings ({rankedAttempts.length})
+          🏆 {t.schoolPortalRankingsTab || 'Live Rankings'} ({rankedAttempts.length})
         </button>
       </div>
 
@@ -411,47 +594,101 @@ function SchoolDetailPanel({
 
       {/* Tab content: ATTEMPTS */}
       {tab === 'ATTEMPTS' && (
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Student Name</th>
-                <th>Class</th>
-                <th>Exam Name</th>
-                <th>Score</th>
-                <th>Date Completed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schoolDetail.attempts.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+              Total Records: <strong>{schoolDetail.attempts.length}</strong>
+            </div>
+            {schoolDetail.attempts.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleDownloadAttemptsCSV}
+                  className="btn btn-primary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Download size={15} />
+                  {t.schoolPortalDownloadCsv || 'Download CSV'}
+                </button>
+                <button
+                  onClick={handleDownloadAttemptsExcel}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#107c41',
+                    borderColor: '#107c41'
+                  }}
+                >
+                  <FileText size={15} />
+                  {t.schoolPortalDownloadExcel || 'Download Excel'}
+                </button>
+                <button
+                  onClick={handleDownloadAttemptsPDF}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#dc2626',
+                    borderColor: '#dc2626'
+                  }}
+                >
+                  <Download size={15} />
+                  {t.schoolPortalDownloadPdf || 'Download PDF'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="table-container">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No exam attempts recorded under this school yet.
-                  </td>
+                  <th>Student Name</th>
+                  <th>Class</th>
+                  <th>Exam Name</th>
+                  <th>Score</th>
+                  <th>Date Completed</th>
                 </tr>
-              ) : (
-                schoolDetail.attempts.map((att: any) => (
-                  <tr key={att.id}>
-                    <td><strong>{att.studentName}</strong></td>
-                    <td>{att.classroomName}</td>
-                    <td>{att.examName}</td>
-                    <td>
-                      <strong>{att.score} marks</strong>
-                    </td>
-                    <td>
-                      {att.completed ? (
-                        <span style={{ fontSize: '0.85rem' }}>
-                          {new Date(att.submittedAt).toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="badge badge-outline">In Progress</span>
-                      )}
+              </thead>
+              <tbody>
+                {schoolDetail.attempts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No exam attempts recorded under this school yet.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  schoolDetail.attempts.map((att: any) => (
+                    <tr key={att.id}>
+                      <td><strong>{att.studentName}</strong></td>
+                      <td>{att.classroomName}</td>
+                      <td>{att.examName}</td>
+                      <td>
+                        <strong>{att.score} marks</strong>
+                      </td>
+                      <td>
+                        {att.completed ? (
+                          <span style={{ fontSize: '0.85rem' }}>
+                            {new Date(att.submittedAt).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="badge badge-outline">In Progress</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -561,6 +798,59 @@ function SchoolDetailPanel({
             )}
           </div>
 
+          {/* Action Row with Export Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+              Showing <strong>{rankedAttempts.length}</strong> ranked students
+            </div>
+            {rankedAttempts.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleDownloadRankingsCSV}
+                  className="btn btn-primary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Download size={15} />
+                  {t.schoolPortalDownloadCsv || 'Download CSV'}
+                </button>
+                <button
+                  onClick={handleDownloadRankingsExcel}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#107c41',
+                    borderColor: '#107c41'
+                  }}
+                >
+                  <FileText size={15} />
+                  {t.schoolPortalDownloadExcel || 'Download Excel'}
+                </button>
+                <button
+                  onClick={handleDownloadRankingsPDF}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#dc2626',
+                    borderColor: '#dc2626'
+                  }}
+                >
+                  <Download size={15} />
+                  {t.schoolPortalDownloadPdf || 'Download PDF'}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="table-container">
             <table>
               <thead>
@@ -611,6 +901,74 @@ function SchoolDetailPanel({
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Share School Portal Modal */}
+      {showShareModal && (
+        <div className="modal-overlay" style={{ zIndex: 1200 }}>
+          <div className="modal-content" style={{ maxWidth: '520px', width: '92%', padding: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-muted)', paddingBottom: '0.75rem' }}>
+              <h3 className="card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-navy)' }}>
+                <Share2 size={20} color="var(--accent-gold)" />
+                {t.schoolPortalShareTitle || 'Share School Rankings Portal'}
+              </h3>
+              <button 
+                onClick={() => setShowShareModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+              {t.schoolPortalShareDesc || 'Share this direct link with the school. School staff can enter their UDISE number and captcha to access live rankings and download CSV, Excel, and PDF reports.'}
+            </p>
+
+            <div style={{ backgroundColor: 'var(--bg-muted, #f8f9fa)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-muted)', marginBottom: '1.25rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>
+                School Portal URL:
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={shareUrl} 
+                  className="form-input" 
+                  style={{ margin: 0, fontSize: '0.85rem', backgroundColor: '#ffffff', cursor: 'text' }}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className="btn btn-primary"
+                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem', textTransform: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  {shareCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {shareCopied ? (t.schoolPortalCopied || 'Copied!') : (t.schoolPortalCopyLink || 'Copy')}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary"
+                style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none' }}
+              >
+                <ExternalLink size={15} />
+                {t.schoolPortalOpenInNewTab || 'Open Portal'}
+              </a>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="btn btn-primary"
+                style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', textTransform: 'none' }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2482,6 +2840,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
 interface SelectOption {
   id: string
   name: string
+  udise?: string
 }
 
 function CustomSelectObject({ 
@@ -2525,7 +2884,11 @@ function CustomSelectObject({
 
   const filteredOptions = React.useMemo(() => {
     if (!inputValue || inputValue === selectedName) return options
-    return options.filter(opt => opt.name.toLowerCase().includes(inputValue.toLowerCase()))
+    const q = inputValue.toLowerCase().trim()
+    return options.filter(opt => 
+      (opt.name && opt.name.toLowerCase().includes(q)) ||
+      (opt.udise && opt.udise.toLowerCase().includes(q))
+    )
   }, [options, inputValue, selectedName])
 
   return (
@@ -2619,7 +2982,8 @@ function CustomSelectObject({
                   fontWeight: value === opt.id ? 'bold' : 'normal'
                 }}
               >
-                {opt.name}
+                <span>{opt.name}</span>
+                {opt.udise ? <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '6px' }}>({opt.udise})</span> : null}
               </div>
             ))
           )}
@@ -2635,7 +2999,7 @@ function MultiSelectSchoolDropdown({
   onChange,
   lang = 'en'
 }: {
-  options: { id: string; name: string }[]
+  options: { id: string; name: string; udise?: string }[]
   selectedIds: string[]
   onChange: (ids: string[]) => void
   lang?: Language
@@ -2655,8 +3019,12 @@ function MultiSelectSchoolDropdown({
   }, [])
 
   const filteredOptions = React.useMemo(() => {
-    if (!searchQuery) return options
-    return options.filter(opt => opt.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    if (!searchQuery.trim()) return options
+    const q = searchQuery.toLowerCase().trim()
+    return options.filter(opt => 
+      (opt.name && opt.name.toLowerCase().includes(q)) || 
+      (opt.udise && opt.udise.toLowerCase().includes(q))
+    )
   }, [options, searchQuery])
 
   const isAllSelected = selectedIds.includes('all') || (options.length > 0 && selectedIds.length === options.length)
@@ -2746,7 +3114,7 @@ function MultiSelectSchoolDropdown({
             <input
               type="text"
               className="form-input"
-              placeholder={lang === 'hi' ? 'विद्यालय खोजें...' : 'Search schools...'}
+              placeholder={lang === 'hi' ? 'विद्यालय का नाम या UDISE खोजें...' : 'Search school name or UDISE...'}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ padding: '0.3rem 0.5rem', fontSize: '0.8rem', width: '100%', height: '30px', margin: 0 }}
@@ -2800,7 +3168,10 @@ function MultiSelectSchoolDropdown({
                       checked={checked}
                       onChange={() => toggleOption(opt.id)}
                     />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.name}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {opt.name}
+                      {opt.udise ? <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '6px' }}>({opt.udise})</span> : null}
+                    </span>
                   </label>
                 )
               })
@@ -2994,6 +3365,44 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handleDownloadExcel = () => {
+    if (leaderboardResults.length === 0) return
+
+    const headers = [
+      'Rank in School', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
+      'District', 'Tehsil', 'Score', 'Correct Answers', 'Total Questions', 
+      'Duration (Minutes)', 'Completion Date'
+    ]
+
+    const rows = leaderboardResults.map((r) => [
+      r.rank, r.studentName, r.studentMobile, r.schoolName, r.udise, r.classroomName,
+      r.district, r.tehsil, r.score, r.correctAnswers, r.totalQuestions,
+      r.durationMinutes, new Date(r.submittedAt).toLocaleDateString()
+    ])
+
+    const worksheetData = [headers, ...rows]
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Top 3 Leaderboard')
+
+    const examObj = exams.find((e) => e.id === selectedExamId)
+    const examLabel = examObj ? examObj.name.replace(/\s+/g, '_') : 'Exam'
+    XLSX.writeFile(workbook, `${examLabel}_Top3_Per_School_Leaderboard.xlsx`)
+  }
+
+  const handleDownloadPDF = () => {
+    if (leaderboardResults.length === 0) return
+
+    const examObj = exams.find((e) => e.id === selectedExamId)
+    const examName = examObj ? ((lang === 'hi' && examObj.nameHindi) ? examObj.nameHindi : examObj.name) : 'Exam'
+
+    generateLeaderboardPDF({
+      examName,
+      language: lang,
+      results: leaderboardResults
+    })
   }
 
   const handleAdminCertificateDownload = async (row: any) => {
@@ -3464,13 +3873,50 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
               </button>
             )}
             {selectedExamId && leaderboardResults.length > 0 && (
-              <button
-                onClick={handleDownloadCSV}
-                className="btn btn-primary"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none' }}
-              >
-                {t.analyticsDownloadCsvReport}
-              </button>
+              <>
+                <button
+                  onClick={handleDownloadCSV}
+                  className="btn btn-primary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Download size={15} />
+                  {t.analyticsDownloadCsvReport}
+                </button>
+                <button
+                  onClick={handleDownloadExcel}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#107c41',
+                    borderColor: '#107c41'
+                  }}
+                >
+                  <FileText size={15} />
+                  {t.analyticsDownloadExcelReport}
+                </button>
+                <button
+                  onClick={handleDownloadPDF}
+                  className="btn btn-primary"
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    fontSize: '0.85rem', 
+                    textTransform: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    backgroundColor: '#dc2626',
+                    borderColor: '#dc2626'
+                  }}
+                >
+                  <Download size={15} />
+                  {t.analyticsDownloadPdfReport}
+                </button>
+              </>
             )}
           </div>
 
