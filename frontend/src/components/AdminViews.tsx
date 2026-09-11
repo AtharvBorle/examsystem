@@ -4825,9 +4825,13 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
     setSuccess('')
 
     try {
-      const res = await fetch(`/api/admin/schools?id=${schoolId}`, {
+      const res = await fetch('/api/admin/schools', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id: schoolId }),
       })
       const data = await res.json()
       if (data.success) {
@@ -4848,9 +4852,13 @@ function AdminSchoolsTab({ token, lang }: { token: string | null; lang: Language
     setSuccess('')
 
     try {
-      const res = await fetch(`/api/admin/schools?ids=${selectedIds.join(',')}`, {
+      const res = await fetch('/api/admin/schools', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ids: selectedIds }),
       })
       const data = await res.json()
       if (data.success) {
@@ -5502,9 +5510,13 @@ function AdminClassroomsTab({ token, lang }: { token: string | null; lang: Langu
     setClassSuccess('')
 
     try {
-      const res = await fetch(`/api/admin/classrooms?ids=${selectedClassroomsForPush.join(',')}`, {
+      const res = await fetch('/api/admin/classrooms', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ids: selectedClassroomsForPush }),
       })
       const data = await res.json()
       if (data.success) {
@@ -5618,9 +5630,13 @@ function AdminClassroomsTab({ token, lang }: { token: string | null; lang: Langu
     setGroupSuccess('')
 
     try {
-      const res = await fetch(`/api/admin/groups?ids=${selectedGroupIds.join(',')}`, {
+      const res = await fetch('/api/admin/groups', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ids: selectedGroupIds }),
       })
       const data = await res.json()
       if (data.success) {
@@ -6522,10 +6538,13 @@ function AdminCategoriesTab({ token, lang }: { token: string | null; lang: Langu
     }
 
     try {
-      const idsStr = selectedQuestionIds.join(',')
-      const res = await fetch(`/api/admin/questions?ids=${idsStr}`, {
+      const res = await fetch('/api/admin/questions', {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ids: selectedQuestionIds }),
       })
       const data = await res.json()
       if (data.success) {
