@@ -175,38 +175,42 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    const idsStr = searchParams.get('ids')
-    const categoryId = searchParams.get('categoryId')
-    const subcategoryId = searchParams.get('subcategoryId')
+    let id = searchParams.get('id')
+    let idsStr = searchParams.get('ids')
+    let categoryId = searchParams.get('categoryId')
+    let subcategoryId = searchParams.get('subcategoryId')
+    let qSetName = searchParams.get('questionSetName')
+    let bodyIds: string[] = []
 
-    if (!id && !idsStr && !categoryId) {
-      return errorResponse('Missing parameter: id, ids, or categoryId is required', 400)
+    try {
+      const body = await req.json()
+      if (body) {
+        if (typeof body.id === 'string' && body.id) id = body.id
+        if (Array.isArray(body.ids)) bodyIds = body.ids.filter((x: any) => typeof x === 'string' && x.trim().length > 0)
+        if (body.categoryId) categoryId = body.categoryId
+        if (body.subcategoryId) subcategoryId = body.subcategoryId
+        if (body.questionSetName) qSetName = body.questionSetName
+      }
+    } catch (e) {
+      // Body may be empty
     }
 
-    if (id) {
-      const existing = await prisma.questionMaster.findFirst({
-        where: { id, adminId: user.userId },
-      })
-      if (!existing) return errorResponse('Question not found', 404)
+    const targetIds: string[] = []
+    if (id) targetIds.push(id)
+    if (idsStr) targetIds.push(...idsStr.split(',').map(s => s.trim()).filter(Boolean))
+    if (bodyIds.length > 0) targetIds.push(...bodyIds)
 
-      await prisma.questionMaster.delete({ where: { id } })
-      return successResponse({ success: true, message: 'Question deleted successfully' })
-    }
-
-    if (idsStr) {
-      const targetIds = idsStr.split(',').filter(Boolean)
+    if (targetIds.length > 0) {
       const deleteResult = await prisma.questionMaster.deleteMany({
         where: {
           id: { in: targetIds },
           adminId: user.userId,
         },
       })
-      return successResponse({ success: true, message: `${deleteResult.count} questions deleted successfully` })
+      return successResponse({ success: true, message: `${deleteResult.count} question(s) deleted successfully` })
     }
 
     if (categoryId) {
-      const qSetName = searchParams.get('questionSetName')
       const whereClause: any = {
         categoryId,
         adminId: user.userId,
@@ -227,7 +231,7 @@ export async function DELETE(req: NextRequest) {
       return successResponse({ success: true, message: msg })
     }
 
-    return errorResponse('Bad request', 400)
+    return errorResponse('Missing parameter: id, ids, or categoryId is required', 400)
   } catch (error: any) {
     console.error('Delete questions error:', error)
     return errorResponse('Internal server error', 500)

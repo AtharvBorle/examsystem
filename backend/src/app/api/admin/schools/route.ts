@@ -152,87 +152,108 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    const idsStr = searchParams.get('ids')
+    let id = searchParams.get('id')
+    let idsStr = searchParams.get('ids')
+    let bodyIds: string[] = []
 
-    if (!id && !idsStr) {
+    // Also parse JSON body if provided (recommended for bulk deletes to avoid URL length limit)
+    try {
+      const body = await req.json()
+      if (body) {
+        if (typeof body.id === 'string' && body.id) {
+          id = body.id
+        }
+        if (Array.isArray(body.ids)) {
+          bodyIds = body.ids.filter((x: any) => typeof x === 'string' && x.trim().length > 0)
+        }
+      }
+    } catch (e) {
+      // Body might be empty when using query params
+    }
+
+    const targetIds: string[] = []
+    if (id) targetIds.push(id)
+    if (idsStr) targetIds.push(...idsStr.split(',').map(s => s.trim()).filter(Boolean))
+    if (bodyIds.length > 0) targetIds.push(...bodyIds)
+
+    if (targetIds.length === 0) {
       return errorResponse('Missing parameter: id or ids is required', 400)
     }
 
-            if (id) {
-      // Verify existence
-      const school = await prisma.school.findUnique({ where: { id } })
-      if (!school) {
-        return errorResponse('School not found', 404)
-      }
+    // Find all schools in targetIds owned by this admin
+    const ownedSchools = await prisma.school.findMany({
+      where: {
+        id: { in: targetIds },
+        adminId: user.userId,
+      },
+      select: { id: true, udise: true },
+    })
 
-      // Fetch student IDs under this school
-      const students = await prisma.student.findMany({
-        where: { schoolId: id },
-        select: { id: true }
-      })
-      const studentIds = students.map(s => s.id)
-
-      await prisma.$transaction([
-        prisma.examAttempt.deleteMany({
-          where: { studentId: { in: studentIds } }
-        }),
-        prisma.student.deleteMany({
-          where: { schoolId: id }
-        }),
-        prisma.schoolClassroom.deleteMany({
-          where: { schoolId: id }
-        }),
-        prisma.schoolExam.deleteMany({
-          where: { schoolId: id }
-        }),
-        prisma.school.delete({ where: { id } })
-      ])
-      return successResponse({ success: true, message: 'School and all associated student records deleted successfully' })
+    if (ownedSchools.length === 0) {
+      return errorResponse('No matching schools found or unauthorized', 404)
     }
 
-    if (idsStr) {
-      const targetIds = idsStr.split(',').filter(Boolean)
+    // Get all unique UDISEs
+    const targetUdises = Array.from(new Set(ownedSchools.map((s) => s.udise)))
 
-      // Filter targetIds to check existence
-      const ownedSchools = await prisma.school.findMany({
-        where: { id: { in: targetIds } },
-        select: { id: true }
+    // Find ALL school record IDs sharing these UDISEs for this admin (both 'en' and 'hi' entries)
+    const allMatchingSchools = await prisma.school.findMany({
+      where: {
+        udise: { in: targetUdises },
+        adminId: user.userId,
+      },
+      select: { id: true },
+    })
+    const allSchoolIds = allMatchingSchools.map((s) => s.id)
+
+    // Perform cascade delete inside transaction with extended timeout
+    const deleteResult = await prisma.$transaction(async (tx) => {
+      // 1. Delete all exam attempts for students belonging to these schools
+      await tx.examAttempt.deleteMany({
+        where: {
+          student: {
+            schoolId: { in: allSchoolIds },
+          },
+        },
       })
-      const ownedIds = ownedSchools.map(s => s.id)
 
-      if (ownedIds.length === 0) {
-        return errorResponse('No matching schools found for deletion', 400)
-      }
-
-      // Fetch student IDs under these schools
-      const students = await prisma.student.findMany({
-        where: { schoolId: { in: ownedIds } },
-        select: { id: true }
+      // 2. Delete all students belonging to these schools
+      await tx.student.deleteMany({
+        where: {
+          schoolId: { in: allSchoolIds },
+        },
       })
-      const studentIds = students.map(s => s.id)
 
-      await prisma.$transaction([
-        prisma.examAttempt.deleteMany({
-          where: { studentId: { in: studentIds } }
-        }),
-        prisma.student.deleteMany({
-          where: { schoolId: { in: ownedIds } }
-        }),
-        prisma.schoolClassroom.deleteMany({
-          where: { schoolId: { in: ownedIds } }
-        }),
-        prisma.schoolExam.deleteMany({
-          where: { schoolId: { in: ownedIds } }
-        }),
-        prisma.school.deleteMany({
-          where: { id: { in: ownedIds } }
-        })
-      ])
-      return successResponse({ success: true, message: `${ownedIds.length} schools and all associated student records deleted successfully` })
-    }
+      // 3. Delete school-classroom join records
+      await tx.schoolClassroom.deleteMany({
+        where: {
+          schoolId: { in: allSchoolIds },
+        },
+      })
 
-    return errorResponse('Bad request', 400)
+      // 4. Delete school-exam join records
+      await tx.schoolExam.deleteMany({
+        where: {
+          schoolId: { in: allSchoolIds },
+        },
+      })
+
+      // 5. Delete the schools
+      return await tx.school.deleteMany({
+        where: {
+          id: { in: allSchoolIds },
+        },
+      })
+    }, {
+      timeout: 60000,
+      maxWait: 15000,
+    })
+
+    return successResponse({
+      success: true,
+      message: `${targetUdises.length} school(s) and all associated student records deleted successfully`,
+      count: deleteResult.count,
+    })
   } catch (error: any) {
     console.error('Delete school error:', error)
     return errorResponse('Internal server error', 500)

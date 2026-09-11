@@ -261,10 +261,26 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    const idsStr = searchParams.get('ids')
+    let id = searchParams.get('id')
+    let idsStr = searchParams.get('ids')
+    let bodyIds: string[] = []
 
-    if (!id && !idsStr) {
+    try {
+      const body = await req.json()
+      if (body) {
+        if (typeof body.id === 'string' && body.id) id = body.id
+        if (Array.isArray(body.ids)) bodyIds = body.ids.filter((x: any) => typeof x === 'string' && x.trim().length > 0)
+      }
+    } catch (e) {
+      // Body may be empty
+    }
+
+    const targetIds: string[] = []
+    if (id) targetIds.push(id)
+    if (idsStr) targetIds.push(...idsStr.split(',').map(s => s.trim()).filter(Boolean))
+    if (bodyIds.length > 0) targetIds.push(...bodyIds)
+
+    if (targetIds.length === 0) {
       return errorResponse('Missing parameter: id or ids is required', 400)
     }
 
@@ -330,20 +346,14 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    if (id) {
-      await processDelete(id)
-      return successResponse({ success: true, message: 'Classroom deleted/unlinked successfully' })
+    for (const targetId of targetIds) {
+      await processDelete(targetId)
     }
 
-    if (idsStr) {
-      const targetIds = idsStr.split(',').filter(Boolean)
-      for (const targetId of targetIds) {
-        await processDelete(targetId)
-      }
-      return successResponse({ success: true, message: 'Classrooms deleted/unlinked successfully' })
-    }
-
-    return errorResponse('Bad request', 400)
+    return successResponse({
+      success: true,
+      message: `${targetIds.length} classroom(s) deleted/unlinked successfully`
+    })
   } catch (error: any) {
     console.error('Delete classrooms error:', error)
     return errorResponse('Internal server error', 500)

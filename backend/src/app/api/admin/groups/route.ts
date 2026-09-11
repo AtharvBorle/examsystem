@@ -173,49 +173,46 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
-    const idsStr = searchParams.get('ids')
+    let id = searchParams.get('id')
+    let idsStr = searchParams.get('ids')
+    let bodyIds: string[] = []
 
-    if (!id && !idsStr) {
+    try {
+      const body = await req.json()
+      if (body) {
+        if (typeof body.id === 'string' && body.id) id = body.id
+        if (Array.isArray(body.ids)) bodyIds = body.ids.filter((x: any) => typeof x === 'string' && x.trim().length > 0)
+      }
+    } catch (e) {
+      // Body may be empty
+    }
+
+    const targetIds: string[] = []
+    if (id) targetIds.push(id)
+    if (idsStr) targetIds.push(...idsStr.split(',').map(s => s.trim()).filter(Boolean))
+    if (bodyIds.length > 0) targetIds.push(...bodyIds)
+
+    if (targetIds.length === 0) {
       return errorResponse('Missing parameter: id or ids is required', 400)
     }
 
-    if (id) {
-      // Verify ownership
-      const group = await prisma.group.findUnique({ where: { id } })
-      if (!group || group.adminId !== user.userId) {
-        return errorResponse('Group not found or unauthorized', 404)
-      }
+    // Filter targetIds to only those owned by this admin
+    const ownedGroups = await prisma.group.findMany({
+      where: { id: { in: targetIds }, adminId: user.userId },
+      select: { id: true },
+    })
+    const ownedIds = ownedGroups.map((g) => g.id)
 
-      await prisma.group.delete({
-        where: { id },
-      })
-      return successResponse({ success: true, message: 'Group deleted successfully' })
+    if (ownedIds.length === 0) {
+      return errorResponse('No authorized groups found for deletion', 404)
     }
 
-    if (idsStr) {
-      const targetIds = idsStr.split(',').filter(Boolean)
-
-      // Filter targetIds to only those owned by this admin
-      const ownedGroups = await prisma.group.findMany({
-        where: { id: { in: targetIds }, adminId: user.userId },
-        select: { id: true }
-      })
-      const ownedIds = ownedGroups.map(g => g.id)
-
-      if (ownedIds.length === 0) {
-        return errorResponse('No authorized groups found for deletion', 400)
-      }
-
-      const deleteResult = await prisma.group.deleteMany({
-        where: {
-          id: { in: ownedIds },
-        },
-      })
-      return successResponse({ success: true, message: `${deleteResult.count} groups deleted successfully` })
-    }
-
-    return errorResponse('Bad request', 400)
+    const deleteResult = await prisma.group.deleteMany({
+      where: {
+        id: { in: ownedIds },
+      },
+    })
+    return successResponse({ success: true, message: `${deleteResult.count} group(s) deleted successfully` })
   } catch (error: any) {
     console.error('Delete groups error:', error)
     return errorResponse('Internal server error', 500)
