@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser, errorResponse, successResponse } from '@/lib/auth-middleware'
 import { parseCSV } from '@/lib/csv'
-import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +49,6 @@ export async function POST(req: NextRequest) {
 
     if (firstRow) {
       const lowerCells = firstRow.map(c => c.toLowerCase())
-      // Check if this looks like a header row
       if (
         lowerCells.some(c => c.includes('question') || c.includes('text') || c.includes('option') || c.includes('correct') || c.includes('code'))
       ) {
@@ -78,9 +76,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Default configuration if header was not found but we have a code column (7+ columns)
     if (!hasHeader && firstRow && firstRow.length >= 7) {
-      // If first cell looks like a code (e.g. Q_1001 or no spaces and short), assume code is Col 0
       const looksLikeCode = /^[a-zA-Z0-9_\-]+$/.test(firstRow[0]?.trim())
       if (looksLikeCode) {
         codeColIdx = 0
@@ -97,11 +93,21 @@ export async function POST(req: NextRequest) {
     }
 
     const startIndex = hasHeader ? 1 : 0
+    const validItems: Array<{
+      rowIndex: number
+      code: string | null
+      text: string
+      optionA: string
+      optionB: string
+      optionC: string
+      optionD: string
+      correctOption: string
+      referenceImage: string | null
+    }> = []
 
+    // 2. Parse and validate all rows in memory
     for (let i = startIndex; i < rows.length; i++) {
       const row = rows[i]
-
-      // Determine text and options
       const rawText = row[textColIdx]?.trim() || ''
       const text = rawText.replace(/\s*\(\s*Q\s*[-_]?\s*\d+\s*\)\s*$/i, '').trim()
       const optionA = row[optAColIdx]?.trim()
@@ -110,7 +116,7 @@ export async function POST(req: NextRequest) {
       const optionD = row[optDColIdx]?.trim()
       const rawAns = row[correctColIdx]?.trim()
       const referenceImage = imageColIdx !== -1 ? row[imageColIdx]?.trim() || null : null
-      const code = codeColIdx !== -1 ? row[codeColIdx]?.trim() : null
+      const code = codeColIdx !== -1 ? row[codeColIdx]?.trim() || null : null
 
       if (!text || !optionA || !optionB || !optionC || !optionD || !rawAns) {
         errors.push(`Row ${i + 1}: One or more fields are empty.`)
@@ -118,7 +124,6 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      // Determine correct option
       let correctOption = ''
       const upperAns = rawAns.toUpperCase()
       if (['A', 'B', 'C', 'D'].includes(upperAns)) {
@@ -137,95 +142,109 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      try {
-        let masterId = ''
+      validItems.push({
+        rowIndex: i + 1,
+        code,
+        text,
+        optionA,
+        optionB,
+        optionC,
+        optionD,
+        correctOption,
+        referenceImage,
+      })
+    }
 
-        if (code) {
-          // Check if QuestionMaster already exists with this code
-          const existingMaster = await prisma.questionMaster.findUnique({
-            where: { code },
-          })
+    // 3. Batch Pre-fetch all existing question codes in 1 single database call
+    const explicitCodes = Array.from(new Set(validItems.map(item => item.code).filter(Boolean))) as string[]
+    const existingMasters = explicitCodes.length > 0
+      ? await prisma.questionMaster.findMany({
+          where: { code: { in: explicitCodes } },
+          select: { id: true, code: true, subcategoryId: true, questionSetName: true, referenceImage: true }
+        })
+      : []
 
-          if (existingMaster) {
-            masterId = existingMaster.id
-            // If subcategory or set name was updated, update master
-            await prisma.questionMaster.update({
-              where: { id: masterId },
-              data: {
-                subcategoryId: subcategoryId || existingMaster.subcategoryId,
-                questionSetName: qSetName || existingMaster.questionSetName,
-                referenceImage: referenceImage || existingMaster.referenceImage,
-              }
-            })
-          } else {
-            // Create new master with this code
-            const newMaster = await prisma.questionMaster.create({
-              data: {
-                code,
-                categoryId,
-                subcategoryId: subcategoryId || null,
-                adminId: user.userId,
-                questionSetName: qSetName,
-                referenceImage: referenceImage,
-              }
-            })
-            masterId = newMaster.id
-          }
-        } else {
-          // Generate a new code and create master
-          const autoCode = `QM_${Date.now()}_${Math.floor(Math.random() * 1000)}`
-          const newMaster = await prisma.questionMaster.create({
-            data: {
-              code: autoCode,
-              categoryId,
-              subcategoryId: subcategoryId || null,
-              adminId: user.userId,
-              questionSetName: qSetName,
-              referenceImage: referenceImage,
+    const masterMap = new Map(existingMasters.map(m => [m.code, m]))
+
+    // 4. Process in concurrent chunks of 50
+    const CHUNK_SIZE = 50
+    for (let i = 0; i < validItems.length; i += CHUNK_SIZE) {
+      const chunk = validItems.slice(i, i + CHUNK_SIZE)
+
+      await Promise.all(
+        chunk.map(async (item) => {
+          try {
+            let masterId = ''
+
+            if (item.code && masterMap.has(item.code)) {
+              const existing = masterMap.get(item.code)!
+              masterId = existing.id
+              // Update master details if modified
+              await prisma.questionMaster.update({
+                where: { id: masterId },
+                data: {
+                  subcategoryId: subcategoryId || existing.subcategoryId,
+                  questionSetName: qSetName || existing.questionSetName,
+                  referenceImage: item.referenceImage || existing.referenceImage,
+                }
+              })
+            } else {
+              const assignedCode = item.code || `QM_${Date.now()}_${Math.floor(Math.random() * 100000)}_${item.rowIndex}`
+              const createdMaster = await prisma.questionMaster.create({
+                data: {
+                  code: assignedCode,
+                  categoryId,
+                  subcategoryId: subcategoryId || null,
+                  adminId: user.userId,
+                  questionSetName: qSetName,
+                  referenceImage: item.referenceImage,
+                }
+              })
+              masterId = createdMaster.id
+              masterMap.set(assignedCode, createdMaster)
             }
-          })
-          masterId = newMaster.id
-        }
 
-        // Upsert the translation for the selected language
-        const translation = await prisma.questionTranslation.upsert({
-          where: {
-            questionMasterId_language: {
-              questionMasterId: masterId,
+            // Upsert the translation for the selected language
+            await prisma.questionTranslation.upsert({
+              where: {
+                questionMasterId_language: {
+                  questionMasterId: masterId,
+                  language: targetLang,
+                }
+              },
+              update: {
+                text: item.text,
+                optionA: item.optionA,
+                optionB: item.optionB,
+                optionC: item.optionC,
+                optionD: item.optionD,
+                correctOption: item.correctOption,
+              },
+              create: {
+                questionMasterId: masterId,
+                language: targetLang,
+                text: item.text,
+                optionA: item.optionA,
+                optionB: item.optionB,
+                optionC: item.optionC,
+                optionD: item.optionD,
+                correctOption: item.correctOption,
+              }
+            })
+
+            questionsCreated.push({
+              masterId,
+              code: item.code || 'Generated',
               language: targetLang,
-            }
-          },
-          update: {
-            text,
-            optionA,
-            optionB,
-            optionC,
-            optionD,
-            correctOption,
-          },
-          create: {
-            questionMasterId: masterId,
-            language: targetLang,
-            text,
-            optionA,
-            optionB,
-            optionC,
-            optionD,
-            correctOption,
+              text: item.text,
+            })
+            importedCount++
+          } catch (err: any) {
+            errors.push(`Row ${item.rowIndex}: DB write failed. ${err.message}`)
+            skippedCount++
           }
         })
-
-        questionsCreated.push({
-          masterId,
-          code: code || 'Generated',
-          language: targetLang,
-          text,
-        })
-        importedCount++
-      } catch (err: any) {
-        errors.push(`Row ${i + 1}: DB write failed. ${err.message}`)
-        skippedCount++
-      }
+      )
     }
 
     return successResponse({

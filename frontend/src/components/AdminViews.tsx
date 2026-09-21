@@ -142,18 +142,15 @@ function SchoolDetailPanel({
     const fetchGroupsAndClassrooms = async () => {
       if (!token) return
       try {
-        const resG = await fetch(`/api/admin/groups?language=${lang}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const dG = await resG.json()
+        const headers = { Authorization: `Bearer ${token}` }
+        const [resG, resC] = await Promise.all([
+          fetch(`/api/admin/groups?language=${lang}`, { headers }),
+          fetch(`/api/admin/classrooms?language=${lang}`, { headers })
+        ])
+        const [dG, dC] = await Promise.all([resG.json(), resC.json()])
         if (dG.success) {
           setGroups(dG.groups)
         }
-
-        const resC = await fetch(`/api/admin/classrooms?language=${lang}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const dC = await resC.json()
         if (dC.success) {
           setAllClassrooms([...dC.classrooms].sort(naturalSortByName))
         }
@@ -1186,22 +1183,25 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
   const fetchDashboardData = async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const resStats = await fetch(`/api/superadmin/dashboard?language=${lang}`, { headers })
-      const dataStats = await resStats.json()
+      const [resStats, resAdmins, resStudents] = await Promise.all([
+        fetch(`/api/superadmin/dashboard?language=${lang}`, { headers }),
+        fetch('/api/superadmin/admins', { headers }),
+        fetch(`/api/superadmin/students?language=${lang}`, { headers })
+      ])
+      const [dataStats, dataAdmins, dataStudents] = await Promise.all([
+        resStats.json(),
+        resAdmins.json(),
+        resStudents.json()
+      ])
+
       if (dataStats.success) {
         setStats(dataStats.stats)
         setSchools(dataStats.schools)
         setRecentAttempts(dataStats.recentAttempts)
       }
-
-      const resAdmins = await fetch('/api/superadmin/admins', { headers })
-      const dataAdmins = await resAdmins.json()
       if (dataAdmins.success) {
         setAdmins(dataAdmins.admins)
       }
-
-      const resStudents = await fetch(`/api/superadmin/students?language=${lang}`, { headers })
-      const dataStudents = await resStudents.json()
       if (dataStudents.success) {
         setAllStudents(dataStudents.students)
       }
@@ -5333,6 +5333,8 @@ function AdminClassroomsTab({ token, lang }: { token: string | null; lang: Langu
     return schools.filter(s => (s.language || 'en') === lang)
   }, [schools, lang])
 
+  const schoolMap = React.useMemo(() => new Map(schools.map(s => [s.id, s])), [schools])
+
   // Form states - Classroom
   const [classroomName, setClassroomName] = useState('')
   const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([])
@@ -5362,16 +5364,19 @@ function AdminClassroomsTab({ token, lang }: { token: string | null; lang: Langu
     setSelectedGroupIds([])
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const resSchools = await fetch(`/api/admin/schools?language=${lang}`, { headers })
-      const dSchools = await resSchools.json()
+      const [resSchools, resClassrooms, resGroups] = await Promise.all([
+        fetch(`/api/admin/schools?language=${lang}`, { headers }),
+        fetch(`/api/admin/classrooms?language=${lang}`, { headers }),
+        fetch(`/api/admin/groups?language=${lang}`, { headers }),
+      ])
+      const [dSchools, dClassrooms, dGroups] = await Promise.all([
+        resSchools.json(),
+        resClassrooms.json(),
+        resGroups.json(),
+      ])
+
       if (dSchools.success) setSchools(dSchools.schools)
-
-      const resClassrooms = await fetch(`/api/admin/classrooms?language=${lang}`, { headers })
-      const dClassrooms = await resClassrooms.json()
       if (dClassrooms.success) setClassrooms([...dClassrooms.classrooms].sort(naturalSortByName))
-
-      const resGroups = await fetch(`/api/admin/groups?language=${lang}`, { headers })
-      const dGroups = await resGroups.json()
       if (dGroups.success) setGroups(dGroups.groups)
     } catch (err) {
       console.error(err)
@@ -5752,7 +5757,18 @@ function AdminClassroomsTab({ token, lang }: { token: string | null; lang: Langu
                   <div>
                     <strong>{cls.name}</strong>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {t.examsPushSchools || "Pushed to"}: {cls.schools.map((s: any) => s.name).join(', ') || t.adminNoSchools}
+                      {t.examsPushSchools || "Pushed to"}: {(() => {
+                        const linkedCount = cls.schools?.length || 0
+                        if (linkedCount === 0) return t.adminNoSchools || 'No schools'
+                        if (schools.length > 0 && linkedCount >= schools.length) {
+                          return lang === 'hi' ? `सभी ${linkedCount} स्कूल` : `All ${linkedCount} schools`
+                        }
+                        if (linkedCount <= 3) {
+                          return cls.schools.map((s: any) => schoolMap.get(s.id)?.name || s.name || s.id).filter(Boolean).join(', ')
+                        }
+                        const preview = cls.schools.slice(0, 3).map((s: any) => schoolMap.get(s.id)?.name || s.name || s.id).filter(Boolean).join(', ')
+                        return `${preview} (+${linkedCount - 3} ${lang === 'hi' ? 'अन्य' : 'more'})`
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -7312,20 +7328,22 @@ function AdminExamsTab({ token, lang }: { token: string | null; lang: Language }
   const fetchData = async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const resSchools = await fetch(`/api/admin/schools?language=${lang}`, { headers })
-      const dSchools = await resSchools.json()
+      const [resSchools, resCategories, resGroups, resExams] = await Promise.all([
+        fetch(`/api/admin/schools?language=${lang}`, { headers }),
+        fetch(`/api/admin/categories?language=${lang}`, { headers }),
+        fetch(`/api/admin/groups?language=${lang}`, { headers }),
+        fetch(`/api/admin/exams?language=${lang}`, { headers }),
+      ])
+      const [dSchools, dCategories, dGroups, dExams] = await Promise.all([
+        resSchools.json(),
+        resCategories.json(),
+        resGroups.json(),
+        resExams.json(),
+      ])
+
       if (dSchools.success) setSchools(dSchools.schools)
-
-      const resCategories = await fetch(`/api/admin/categories?language=${lang}`, { headers })
-      const dCategories = await resCategories.json()
       if (dCategories.success) setCategories(dCategories.categories)
-
-      const resGroups = await fetch(`/api/admin/groups?language=${lang}`, { headers })
-      const dGroups = await resGroups.json()
       if (dGroups.success) setGroups(dGroups.groups)
-
-      const resExams = await fetch(`/api/admin/exams?language=${lang}`, { headers })
-      const dExams = await resExams.json()
       if (dExams.success) setExams(dExams.exams)
     } catch (err) {
       console.error(err)
