@@ -79,6 +79,8 @@ model School {
   exams      SchoolExam[]
 
   @@unique([udise, language])
+  @@index([adminId])
+  @@index([udise])
 }
 
 model Classroom {
@@ -92,6 +94,8 @@ model Classroom {
   schools    SchoolClassroom[]
   groups     GroupClassroom[]
   students   Student[]
+
+  @@index([adminId])
 }
 
 // Many-to-many join model for School and Classroom
@@ -102,6 +106,8 @@ model SchoolClassroom {
   classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
 
   @@id([schoolId, classroomId])
+  @@index([classroomId])
+  @@index([schoolId])
 }
 
 model Category {
@@ -114,6 +120,8 @@ model Category {
   subcategories   Subcategory[]
   questionMasters QuestionMaster[]
   exams           Exam[]
+
+  @@index([adminId])
 }
 
 model Subcategory {
@@ -125,6 +133,8 @@ model Subcategory {
   
   questionMasters QuestionMaster[]
   exams           Exam[]
+
+  @@index([categoryId])
 }
 
 model Group {
@@ -137,6 +147,8 @@ model Group {
   // Relations
   classrooms GroupClassroom[]
   exams      ExamGroup[]
+
+  @@index([adminId])
 }
 
 model GroupClassroom {
@@ -146,6 +158,8 @@ model GroupClassroom {
   classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
 
   @@id([groupId, classroomId])
+  @@index([classroomId])
+  @@index([groupId])
 }
 
 model Exam {
@@ -169,6 +183,10 @@ model Exam {
   groups    ExamGroup[]
   questions ExamQuestion[]
   attempts  ExamAttempt[]
+
+  @@index([adminId])
+  @@index([categoryId])
+  @@index([subcategoryId])
 }
 
 // Many-to-many relationships
@@ -180,6 +198,8 @@ model SchoolExam {
   exam      Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   @@id([schoolId, examId])
+  @@index([examId])
+  @@index([schoolId])
 }
 
 model ExamGroup {
@@ -189,6 +209,8 @@ model ExamGroup {
   group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@id([examId, groupId])
+  @@index([examId])
+  @@index([groupId])
 }
 
 model ExamQuestion {
@@ -198,6 +220,8 @@ model ExamQuestion {
   questionMaster   QuestionMaster @relation(fields: [questionMasterId], references: [id], onDelete: Cascade)
 
   @@id([examId, questionMasterId])
+  @@index([examId])
+  @@index([questionMasterId])
 }
 
 model Student {
@@ -219,6 +243,10 @@ model Student {
   deletedAt       DateTime?
   
   attempts    ExamAttempt[]
+
+  @@index([schoolId])
+  @@index([classroomId])
+  @@index([createdAt])
 }
 
 model ExamAttempt {
@@ -239,6 +267,12 @@ model ExamAttempt {
   // Stores student responses as a JSON object, e.g., { "question-uuid-1": "A", "question-uuid-2": "C" }
   responses      Json         @default("{}")
   language       String       @default("en")
+
+  @@index([studentId])
+  @@index([examId])
+  @@index([completed])
+  @@index([examId, completed])
+  @@index([submittedAt])
 }
 
 model QuestionMaster {
@@ -256,6 +290,10 @@ model QuestionMaster {
 
   translations    QuestionTranslation[]
   exams           ExamQuestion[]
+
+  @@index([adminId])
+  @@index([categoryId])
+  @@index([subcategoryId])
 }
 
 model QuestionTranslation {
@@ -271,6 +309,7 @@ model QuestionTranslation {
   correctOption    String         // "A" | "B" | "C" | "D"
 
   @@unique([questionMasterId, language])
+  @@index([questionMasterId])
 }
 
 model Otp {
@@ -293,6 +332,8 @@ model Resource {
   adminId          String
   admin            Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
   createdAt        DateTime @default(now())
+
+  @@index([adminId])
 }
 
 model SystemSetting {
@@ -300,6 +341,3 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
-
-
-

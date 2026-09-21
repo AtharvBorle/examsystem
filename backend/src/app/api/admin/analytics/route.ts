@@ -158,30 +158,32 @@ export async function GET(req: NextRequest) {
       attempts: item.count,
     }))
 
-    // Registration Trend (Last 7 Days)
+    // Registration Trend (Last 7 Days - parallel execution)
     const trendDays = 7
-    const registrationTrend = []
-    for (let i = trendDays - 1; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0] // YYYY-MM-DD
-      const dateStart = new Date(dateStr + 'T00:00:00.000Z')
-      const dateEnd = new Date(dateStr + 'T23:59:59.999Z')
+    const dayIndices = Array.from({ length: trendDays }, (_, i) => trendDays - 1 - i)
+    const registrationTrend = await Promise.all(
+      dayIndices.map(async (i) => {
+        const d = new Date()
+        d.setDate(d.getDate() - i)
+        const dateStr = d.toISOString().split('T')[0] // YYYY-MM-DD
+        const dateStart = new Date(dateStr + 'T00:00:00.000Z')
+        const dateEnd = new Date(dateStr + 'T23:59:59.999Z')
 
-      const count = await prisma.student.count({
-        where: {
-          schoolId: { in: activeSchoolIds },
-          ...(classroomIdParam ? { classroomId: classroomIdParam } : {}),
-          createdAt: {
-            gte: dateStart,
-            lte: dateEnd
-          }
-        }
+        const count = await prisma.student.count({
+          where: {
+            schoolId: { in: activeSchoolIds },
+            ...(classroomIdParam ? { classroomId: classroomIdParam } : {}),
+            createdAt: {
+              gte: dateStart,
+              lte: dateEnd,
+            },
+          },
+        })
+
+        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        return { date: label, count }
       })
-
-      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      registrationTrend.push({ date: label, count })
-    }
+    )
 
     // Classroom performance breakdown
     const classrooms = await prisma.classroom.findMany({

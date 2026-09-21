@@ -10,30 +10,34 @@ export async function GET(req: NextRequest) {
       return errorResponse('Unauthorized. Admin access required.', 401)
     }
 
+    // 1. Fetch admin's school IDs in a fast single indexed query
+    const adminSchools = await prisma.school.findMany({
+      where: { adminId: user.userId },
+      select: { id: true },
+    })
+    const adminSchoolIds = adminSchools.map((s) => s.id)
+
+    // 2. Fetch classrooms using direct indexed lookup (avoids 3-table nested scans)
     const classrooms = await prisma.classroom.findMany({
       where: {
         OR: [
           { adminId: user.userId },
-          {
-            schools: {
-              some: {
-                school: {
-                  adminId: user.userId,
-                },
-              },
-            },
-          },
+          ...(adminSchoolIds.length > 0
+            ? [{ schools: { some: { schoolId: { in: adminSchoolIds } } } }]
+            : []),
         ],
       },
       orderBy: { name: 'asc' },
       include: {
         schools: {
           where: {
+            schoolId: { in: adminSchoolIds },
+          },
+          include: {
             school: {
-              adminId: user.userId,
+              select: { id: true, name: true, udise: true },
             },
           },
-          include: { school: true },
         },
       },
     })
