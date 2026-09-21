@@ -69,10 +69,17 @@ export async function POST(req: NextRequest) {
     }
 
     const startIndex = isHeaderRow(rows[0]) ? 1 : 0
+    const validItems: Array<{
+      rowIndex: number
+      schoolName: string
+      udise: string
+      tehsil: string | null
+      district: string | null
+    }> = []
 
+    // 1. Parse and validate all rows in memory
     for (let i = startIndex; i < rows.length; i++) {
       const row = rows[i]
-
       const schoolName = row[nameColIndex]?.trim()
       const udise = row[udiseColIndex]?.trim()
       const tehsil = tehsilColIndex !== -1 ? row[tehsilColIndex]?.trim() || null : null
@@ -84,67 +91,108 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      try {
-        // 1. Check if ANY school record with this UDISE exists in ANY language across the entire DB
-        const anyExistingSchool = await prisma.school.findFirst({
-          where: { udise },
-          select: { id: true, adminId: true, tehsil: true, district: true }
+      validItems.push({
+        rowIndex: i + 1,
+        schoolName,
+        udise,
+        tehsil,
+        district,
+      })
+    }
+
+    // 2. Batch Pre-fetch all matching schools for all UDISEs in 1 single query
+    const allUdises = Array.from(new Set(validItems.map(item => item.udise)))
+    const existingSchools = allUdises.length > 0
+      ? await prisma.school.findMany({
+          where: { udise: { in: allUdises } },
+          select: { id: true, udise: true, language: true, adminId: true, tehsil: true, district: true }
         })
+      : []
 
-        // RULE C: If this UDISE is already owned by ANOTHER Admin in any language, REJECT / SKIP!
-        if (anyExistingSchool && anyExistingSchool.adminId !== user.userId) {
-          otherAdminCount++
-          skippedCount++
-          conflictingSchools.push({
-            udise,
-            name: schoolName,
-            tehsil: tehsil || anyExistingSchool.tehsil || '',
-            district: district || anyExistingSchool.district || '',
-            status: 'Managed by another organization'
-          })
-          errors.push(`Row ${i + 1}: UDISE "${udise}" (${schoolName}) is already managed by another organization.`)
-          continue
-        }
+    // Group existing schools by UDISE
+    const existingByUdise = new Map<string, typeof existingSchools>()
+    for (const s of existingSchools) {
+      if (!existingByUdise.has(s.udise)) {
+        existingByUdise.set(s.udise, [])
+      }
+      existingByUdise.get(s.udise)!.push(s)
+    }
 
-        // RULE B: Same Admin can add multiple language records under their UDISE
-        const targetLangSchool = await prisma.school.findUnique({
-          where: {
-            udise_language: {
-              udise,
-              language: targetLang,
+    // Filter items to process and flag conflicts
+    const itemsToProcess: Array<typeof validItems[0] & { existingMatchingLang?: typeof existingSchools[0]; defaultTehsil: string | null; defaultDistrict: string | null }> = []
+
+    for (const item of validItems) {
+      const existingList = existingByUdise.get(item.udise) || []
+      const anyExisting = existingList[0]
+
+      // RULE C: If this UDISE is already owned by ANOTHER Admin in any language, REJECT / SKIP!
+      if (anyExisting && anyExisting.adminId !== user.userId) {
+        otherAdminCount++
+        skippedCount++
+        conflictingSchools.push({
+          udise: item.udise,
+          name: item.schoolName,
+          tehsil: item.tehsil || anyExisting.tehsil || '',
+          district: item.district || anyExisting.district || '',
+          status: 'Managed by another organization'
+        })
+        errors.push(`Row ${item.rowIndex}: UDISE "${item.udise}" (${item.schoolName}) is already managed by another organization.`)
+        continue
+      }
+
+      const existingMatchingLang = existingList.find(s => s.language === targetLang)
+      itemsToProcess.push({
+        ...item,
+        existingMatchingLang,
+        defaultTehsil: item.tehsil || (anyExisting ? anyExisting.tehsil : null),
+        defaultDistrict: item.district || (anyExisting ? anyExisting.district : null),
+      })
+    }
+
+    // 3. Process in concurrent chunks of 50
+    const CHUNK_SIZE = 50
+    for (let i = 0; i < itemsToProcess.length; i += CHUNK_SIZE) {
+      const chunk = itemsToProcess.slice(i, i + CHUNK_SIZE)
+
+      await Promise.all(
+        chunk.map(async (item) => {
+          try {
+            if (item.existingMatchingLang) {
+              // Record for this language already exists for this same Admin -> Update details
+              await prisma.school.update({
+                where: { id: item.existingMatchingLang.id },
+                data: {
+                  name: item.schoolName,
+                  tehsil: item.tehsil || item.existingMatchingLang.tehsil,
+                  district: item.district || item.existingMatchingLang.district,
+                }
+              })
+              seededCount++
+            } else {
+              // Record for this language does not exist yet under this same Admin -> Create it!
+              const created = await prisma.school.create({
+                data: {
+                  name: item.schoolName,
+                  udise: item.udise,
+                  tehsil: item.defaultTehsil,
+                  district: item.defaultDistrict,
+                  language: targetLang,
+                  adminId: user.userId
+                }
+              })
+              // Register created in lookup map to prevent intra-batch duplicates
+              if (!existingByUdise.has(item.udise)) {
+                existingByUdise.set(item.udise, [])
+              }
+              existingByUdise.get(item.udise)!.push(created)
+              seededCount++
             }
+          } catch (err: any) {
+            errors.push(`Row ${item.rowIndex}: Failed to write. ${err.message}`)
+            skippedCount++
           }
         })
-
-        if (targetLangSchool) {
-          // Record for this language already exists for this same Admin -> Update details
-          await prisma.school.update({
-            where: { id: targetLangSchool.id },
-            data: {
-              name: schoolName,
-              tehsil: tehsil || targetLangSchool.tehsil,
-              district: district || targetLangSchool.district,
-            }
-          })
-          seededCount++
-        } else {
-          // Record for this language does not exist yet under this same Admin -> Create it!
-          await prisma.school.create({
-            data: {
-              name: schoolName,
-              udise,
-              tehsil: tehsil || (anyExistingSchool ? anyExistingSchool.tehsil : null),
-              district: district || (anyExistingSchool ? anyExistingSchool.district : null),
-              language: targetLang,
-              adminId: user.userId
-            }
-          })
-          seededCount++
-        }
-      } catch (err: any) {
-        errors.push(`Row ${i + 1}: Failed to insert. ${err.message}`)
-        skippedCount++
-      }
+      )
     }
 
     let finalMessage = `Successfully processed CSV. Seeded ${seededCount} school(s).`
