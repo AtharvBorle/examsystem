@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
     const groupId = searchParams.get('groupId')
     const startDate = searchParams.get('startDate') // Date range start
     const endDate = searchParams.get('endDate') // Date range end
+    const timeframe = searchParams.get('timeframe') // 'weekly' | 'monthly' | 'yearly' | 'all'
 
     if (!examId) {
       return errorResponse('examId query parameter is required', 400)
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
       completed: true,
     }
 
-    // Filter by date range if provided
+    // Filter by date range or timeframe if provided
     if (startDate || endDate) {
       where.submittedAt = {}
       if (startDate) {
@@ -65,6 +66,21 @@ export async function GET(req: NextRequest) {
       }
       if (endDate) {
         where.submittedAt.lte = new Date(endDate)
+      }
+    } else if (timeframe && timeframe !== 'all') {
+      const now = new Date()
+      where.submittedAt = {}
+      if (timeframe === 'weekly') {
+        const d = new Date(now)
+        d.setDate(d.getDate() - 7)
+        where.submittedAt.gte = d
+      } else if (timeframe === 'monthly') {
+        const d = new Date(now)
+        d.setDate(d.getDate() - 30)
+        where.submittedAt.gte = d
+      } else if (timeframe === 'yearly') {
+        const d = new Date(now.getFullYear(), 0, 1)
+        where.submittedAt.gte = d
       }
     }
 
@@ -102,10 +118,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (classroomId) {
+    if (groupId && classroomId) {
+      const groupClassrooms = await prisma.groupClassroom.findMany({
+        where: { groupId },
+        select: { classroomId: true },
+      })
+      const classroomIds = groupClassrooms.map((gc) => gc.classroomId)
+      if (classroomIds.includes(classroomId)) {
+        studentWhere.classroomId = classroomId
+      } else {
+        studentWhere.classroomId = '__none__'
+      }
+    } else if (classroomId) {
       studentWhere.classroomId = classroomId
-    }
-    if (groupId) {
+    } else if (groupId) {
       // Find classrooms belonging to this group
       const groupClassrooms = await prisma.groupClassroom.findMany({
         where: { groupId },

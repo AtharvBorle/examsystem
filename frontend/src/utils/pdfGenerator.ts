@@ -813,6 +813,7 @@ export function generateAnswersheetPDF(data: {
 export async function generateLeaderboardPDF(data: {
   examName: string
   language?: string
+  periodText?: string
   results: Array<{
     rank: number
     studentName: string
@@ -924,7 +925,7 @@ export async function generateLeaderboardPDF(data: {
     setFont(ctx, 'bold', 14.5)
     ctx.fillStyle = '#f5d782'
     ctx.fillText(
-      isHindi ? 'शीर्ष-3 सहभागिता लीडरबोर्ड  |  ऑनलाइन परीक्षा परिणाम एवं योग्यता सूची' : 'TOP-3 PARTICIPATION LEADERBOARD  |  ONLINE EXAMINATION MERIT & RANKING REPORT',
+      isHindi ? 'लीडरबोर्ड  |  ऑनलाइन परीक्षा परिणाम एवं योग्यता सूची' : 'LEADERBOARD  |  ONLINE EXAMINATION MERIT & RANKING REPORT',
       850,
       y + 24
     )
@@ -938,7 +939,7 @@ export async function generateLeaderboardPDF(data: {
     setFont(ctx, 'bold', 22)
     ctx.fillStyle = '#f5d782'
     ctx.fillText(
-      isHindi ? 'भारत विकास परिषद - शीर्ष-3 सहभागिता लीडरबोर्ड' : 'BHARAT VIKAS PARISHAD - TOP-3 PARTICIPATION LEADERBOARD',
+      isHindi ? 'भारत विकास परिषद - लीडरबोर्ड' : 'BHARAT VIKAS PARISHAD - LEADERBOARD',
       850,
       y + 36
     )
@@ -970,14 +971,23 @@ export async function generateLeaderboardPDF(data: {
   ctx.fillText(isHindi ? 'परीक्षा: ' : 'Exam: ', 50, y + 28)
   setFont(ctx, 'normal', 12.5)
   ctx.fillStyle = '#334155'
-  ctx.fillText(data.examName, 100, y + 28)
+  ctx.fillText(truncateText(ctx, data.examName, data.periodText ? 400 : 550), 100, y + 28)
+
+  if (data.periodText) {
+    setFont(ctx, 'bold', 12.5)
+    ctx.fillStyle = '#1e293b'
+    ctx.fillText(isHindi ? 'समयावधि: ' : 'Period: ', 550, y + 28)
+    setFont(ctx, 'normal', 12.5)
+    ctx.fillStyle = '#334155'
+    ctx.fillText(data.periodText, isHindi ? 625 : 615, y + 28)
+  }
 
   setFont(ctx, 'bold', 12.5)
   ctx.fillStyle = '#1e293b'
-  ctx.fillText(isHindi ? 'दिनांक: ' : 'Generated On: ', 700, y + 28)
+  ctx.fillText(isHindi ? 'दिनांक: ' : 'Generated On: ', data.periodText ? 820 : 700, y + 28)
   setFont(ctx, 'normal', 12.5)
   ctx.fillStyle = '#334155'
-  ctx.fillText(formattedDate, 815, y + 28)
+  ctx.fillText(formattedDate, data.periodText ? 935 : 815, y + 28)
 
   setFont(ctx, 'bold', 12.5)
   ctx.fillStyle = '#1e293b'
@@ -1106,7 +1116,8 @@ export async function generateLeaderboardPDF(data: {
   })
 
   const cleanExamName = data.examName.replace(/\s+/g, '_')
-  const filename = `${cleanExamName}_Top3_Leaderboard.pdf`
+  const periodSlug = data.periodText ? `_${data.periodText.replace(/[^a-zA-Z0-9\u0900-\u097F]/g, '_')}` : ''
+  const filename = `${cleanExamName}_Leaderboard${periodSlug}.pdf`
 
   if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
     try {
