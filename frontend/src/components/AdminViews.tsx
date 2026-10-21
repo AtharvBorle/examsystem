@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { useAuth, User } from '../context/AuthContext'
 import defaultIconAsset from '../assets/app_icon.jpeg'
@@ -13,7 +13,8 @@ import {
   LogOut, Shield, Award, Users, School as SchoolIcon, 
   CheckCircle, Clock, Award as TrophyIcon, 
   ChevronRight, ChevronLeft, Search,
-  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe, Download, Share2, Copy, ExternalLink, Check
+  BookOpen, FileText, TrendingUp, BarChart2, PieChart, Globe, Download, Share2, Copy, ExternalLink, Check,
+  GripHorizontal, Plus, Minus, Maximize2, RotateCcw, ChevronsUpDown
 } from 'lucide-react'
 
 // Global CSV Exporter
@@ -3194,18 +3195,209 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
   const [schoolId, setSchoolId] = useState('')
   const [classroomId, setClassroomId] = useState('')
 
-  // Top-3 Leaderboard states
+  // Leaderboard states
   const [exams, setExams] = useState<any[]>([])
   const [selectedExamId, setSelectedExamId] = useState('')
   const [groups, setGroups] = useState<any[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState('')
+  const [selectedLeaderboardClassroomId, setSelectedLeaderboardClassroomId] = useState('')
+  const [classroomsList, setClassroomsList] = useState<any[]>([])
   const [selectedLeaderboardSchoolIds, setSelectedLeaderboardSchoolIds] = useState<string[]>(['all'])
+  const [timeframe, setTimeframe] = useState<'all' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('all')
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
   const [leaderboardResults, setLeaderboardResults] = useState<any[]>([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
+
+  const handleTimeframeSelect = (selected: 'all' | 'weekly' | 'monthly' | 'yearly' | 'custom') => {
+    setTimeframe(selected)
+    if (selected === 'all') {
+      setStartDate('')
+      setStartTime('')
+      setEndDate('')
+      setEndTime('')
+    } else {
+      const now = new Date()
+      const formatIsoDate = (d: Date) => {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+      }
+      
+      let start = new Date(now)
+      if (selected === 'weekly') {
+        start.setDate(now.getDate() - 7)
+      } else if (selected === 'monthly') {
+        start.setDate(now.getDate() - 30)
+      } else if (selected === 'yearly') {
+        start = new Date(now.getFullYear(), 0, 1)
+      }
+
+      setStartDate(formatIsoDate(start))
+      setStartTime('00:00')
+      setEndDate(formatIsoDate(now))
+      setEndTime('23:59')
+    }
+  }
+
+  // Leaderboard Pagination & Search states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [isCustomPageSize, setIsCustomPageSize] = useState(false)
+  const [leaderboardSearch, setLeaderboardSearch] = useState('')
+
+  const filteredLeaderboardResults = useMemo(() => {
+    if (!leaderboardSearch.trim()) {
+      return leaderboardResults
+    }
+    const q = leaderboardSearch.toLowerCase().trim()
+    return leaderboardResults.filter((r: any) => {
+      const name = (r.studentName || '').toLowerCase()
+      const school = (r.schoolName || '').toLowerCase()
+      const classroom = (r.classroomName || '').toLowerCase()
+      const mobile = (r.studentMobile || '').toLowerCase()
+      const district = (r.district || '').toLowerCase()
+      const tehsil = (r.tehsil || '').toLowerCase()
+      const udise = (r.udise || '').toLowerCase()
+      const score = String(r.score ?? '')
+      const rank = String(r.rank ?? '')
+
+      return (
+        name.includes(q) ||
+        school.includes(q) ||
+        classroom.includes(q) ||
+        mobile.includes(q) ||
+        district.includes(q) ||
+        tehsil.includes(q) ||
+        udise.includes(q) ||
+        score === q ||
+        rank === q
+      )
+    })
+  }, [leaderboardResults, leaderboardSearch])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedExamId, selectedLeaderboardSchoolIds, selectedGroupId, selectedLeaderboardClassroomId, timeframe, startDate, startTime, endDate, endTime, pageSize, leaderboardSearch, leaderboardResults.length])
+
+  const totalRecords = filteredLeaderboardResults.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+
+  const paginatedLeaderboardResults = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredLeaderboardResults.slice(start, start + pageSize)
+  }, [filteredLeaderboardResults, currentPage, pageSize])
+
+  const visiblePages = useMemo(() => {
+    const range: number[] = []
+    let start = Math.max(1, currentPage - 2)
+    let end = Math.min(totalPages, start + 2)
+
+    if (end - start < 4) {
+      start = Math.max(1, end - 4)
+    }
+
+    for (let i = start; i <= end; i++) {
+      if (i >= 1 && i <= totalPages) {
+        range.push(i)
+      }
+    }
+    return range
+  }, [currentPage, totalPages])
+
+  // Classroom Performance Table Resizing state & handlers
+  const [classroomTableHeight, setClassroomTableHeight] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('admin_classroom_perf_height')
+      if (saved) {
+        const parsed = parseInt(saved, 10)
+        if (!isNaN(parsed) && parsed >= 120 && parsed <= 1200) {
+          return parsed
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return 180
+  })
+  const [isResizingClassroom, setIsResizingClassroom] = useState(false)
+  const classroomTableRef = useRef<HTMLDivElement>(null)
+  const isDraggingClassroomRef = useRef(false)
+  const startYClassroomRef = useRef(0)
+  const startHeightClassroomRef = useRef(180)
+
+  const handleStartClassroomResize = (e: React.MouseEvent | React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    e.preventDefault()
+    isDraggingClassroomRef.current = true
+    setIsResizingClassroom(true)
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    startYClassroomRef.current = clientY
+    startHeightClassroomRef.current = classroomTableHeight
+    document.body.style.cursor = 'ns-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMove = (moveEvent: MouseEvent | TouchEvent) => {
+      if (!isDraggingClassroomRef.current) return
+      const currentY = 'touches' in moveEvent ? moveEvent.touches[0].clientY : moveEvent.clientY
+      const deltaY = currentY - startYClassroomRef.current
+      const newHeight = Math.max(120, Math.min(1000, Math.round(startHeightClassroomRef.current + deltaY)))
+      setClassroomTableHeight(newHeight)
+      try {
+        localStorage.setItem('admin_classroom_perf_height', newHeight.toString())
+      } catch (err) {}
+    }
+
+    const handleEnd = () => {
+      isDraggingClassroomRef.current = false
+      setIsResizingClassroom(false)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleEnd)
+      window.removeEventListener('touchmove', handleMove)
+      window.removeEventListener('touchend', handleEnd)
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleEnd)
+    window.addEventListener('touchmove', handleMove)
+    window.addEventListener('touchend', handleEnd)
+  }
+
+  const handleClassroomHeightChange = (delta: number) => {
+    setClassroomTableHeight(prev => {
+      const next = Math.max(120, Math.min(1000, prev + delta))
+      try {
+        localStorage.setItem('admin_classroom_perf_height', next.toString())
+      } catch (e) {}
+      return next
+    })
+  }
+
+  const handleFitAllClassrooms = () => {
+    if (classroomTableRef.current) {
+      const tableElement = classroomTableRef.current.querySelector('table')
+      const targetHeight = tableElement ? tableElement.offsetHeight + 10 : classroomTableRef.current.scrollHeight
+      const next = Math.max(180, Math.min(1000, targetHeight))
+      setClassroomTableHeight(next)
+      try {
+        localStorage.setItem('admin_classroom_perf_height', next.toString())
+      } catch (e) {}
+    }
+  }
+
+  const handleResetClassroomHeight = () => {
+    setClassroomTableHeight(180)
+    try {
+      localStorage.setItem('admin_classroom_perf_height', '180')
+    } catch (e) {}
+  }
 
   const fetchAnalytics = async () => {
     setLoading(true)
@@ -3271,6 +3463,46 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     fetchGroups()
   }, [token])
 
+  // Fetch classrooms list for leaderboard dropdown on mount
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      try {
+        const res = await fetch(`/api/admin/classrooms?language=${lang}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const d = await res.json()
+        if (d.success) {
+          setClassroomsList(d.classrooms)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    fetchClassrooms()
+  }, [token, lang])
+
+  const availableLeaderboardClassrooms = useMemo(() => {
+    if (selectedGroupId) {
+      const grp = groups.find(g => g.id === selectedGroupId)
+      if (grp && grp.classrooms && grp.classrooms.length > 0) {
+        return grp.classrooms
+      }
+    }
+    return classroomsList.length > 0 ? classroomsList : (data?.filterOptions?.classrooms || [])
+  }, [selectedGroupId, groups, classroomsList, data])
+
+  useEffect(() => {
+    if (selectedGroupId && selectedLeaderboardClassroomId) {
+      const grp = groups.find(g => g.id === selectedGroupId)
+      if (grp && grp.classrooms) {
+        const belongs = grp.classrooms.some((c: any) => c.id === selectedLeaderboardClassroomId)
+        if (!belongs) {
+          setSelectedLeaderboardClassroomId('')
+        }
+      }
+    }
+  }, [selectedGroupId])
+
   // Fetch analytics metrics
   useEffect(() => {
     fetchAnalytics()
@@ -3306,10 +3538,12 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
         } else {
           query += `&schoolIds=all`
         }
-        if (classroomId) query += `&classroomId=${classroomId}`
+        const activeClassroomId = selectedLeaderboardClassroomId || classroomId
+        if (activeClassroomId) query += `&classroomId=${activeClassroomId}`
         if (selectedGroupId) query += `&groupId=${selectedGroupId}`
         if (startIso) query += `&startDate=${encodeURIComponent(startIso)}`
         if (endIso) query += `&endDate=${encodeURIComponent(endIso)}`
+        if (timeframe && timeframe !== 'all') query += `&timeframe=${timeframe}`
 
         const res = await fetch(query, {
           headers: { Authorization: `Bearer ${token}` }
@@ -3325,7 +3559,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
       }
     }
     fetchLeaderboard()
-  }, [selectedExamId, selectedLeaderboardSchoolIds, schoolId, classroomId, selectedGroupId, startDate, startTime, endDate, endTime, token])
+  }, [selectedExamId, selectedLeaderboardSchoolIds, schoolId, classroomId, selectedLeaderboardClassroomId, selectedGroupId, startDate, startTime, endDate, endTime, timeframe, token])
 
   const handleSchoolChange = (val: string) => {
     setSchoolId(val)
@@ -3359,7 +3593,11 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     
     const examObj = exams.find((e) => e.id === selectedExamId)
     const examLabel = examObj ? examObj.name.replace(/\s+/g, '_') : 'Exam'
-    link.setAttribute('download', `${examLabel}_Top3_Per_School_Leaderboard.csv`)
+    const selectedClassroomObj = availableLeaderboardClassrooms.find((c: any) => c.id === selectedLeaderboardClassroomId)
+    const classSuffix = selectedClassroomObj ? `_${selectedClassroomObj.name.replace(/\s+/g, '_')}` : ''
+    const tfSuffix = timeframe !== 'all' ? `_${timeframe}` : ''
+    const searchSuffix = leaderboardSearch.trim() ? `_search_${leaderboardSearch.trim().replace(/\s+/g, '_')}` : ''
+    link.setAttribute('download', `${examLabel}${classSuffix}_Leaderboard${tfSuffix}${searchSuffix}.csv`)
     
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
@@ -3368,7 +3606,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
   }
 
   const handleDownloadExcel = () => {
-    if (leaderboardResults.length === 0) return
+    if (filteredLeaderboardResults.length === 0) return
 
     const headers = [
       'Rank in School', 'Student Name', 'Mobile', 'School Name', 'UDISE', 'Class Name', 
@@ -3376,7 +3614,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
       'Duration (Minutes)', 'Completion Date'
     ]
 
-    const rows = leaderboardResults.map((r) => [
+    const rows = filteredLeaderboardResults.map((r) => [
       r.rank, r.studentName, r.studentMobile, r.schoolName, r.udise, r.classroomName,
       r.district, r.tehsil, r.score, r.correctAnswers, r.totalQuestions,
       r.durationMinutes, new Date(r.submittedAt).toLocaleDateString()
@@ -3385,23 +3623,48 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     const worksheetData = [headers, ...rows]
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Top 3 Leaderboard')
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Leaderboard')
 
     const examObj = exams.find((e) => e.id === selectedExamId)
     const examLabel = examObj ? examObj.name.replace(/\s+/g, '_') : 'Exam'
-    XLSX.writeFile(workbook, `${examLabel}_Top3_Per_School_Leaderboard.xlsx`)
+    const selectedClassroomObj = availableLeaderboardClassrooms.find((c: any) => c.id === selectedLeaderboardClassroomId)
+    const classSuffix = selectedClassroomObj ? `_${selectedClassroomObj.name.replace(/\s+/g, '_')}` : ''
+    const tfSuffix = timeframe !== 'all' ? `_${timeframe}` : ''
+    const searchSuffix = leaderboardSearch.trim() ? `_search_${leaderboardSearch.trim().replace(/\s+/g, '_')}` : ''
+    XLSX.writeFile(workbook, `${examLabel}${classSuffix}_Leaderboard${tfSuffix}${searchSuffix}.xlsx`)
   }
 
   const handleDownloadPDF = () => {
-    if (leaderboardResults.length === 0) return
+    if (filteredLeaderboardResults.length === 0) return
 
     const examObj = exams.find((e) => e.id === selectedExamId)
     const examName = examObj ? ((lang === 'hi' && examObj.nameHindi) ? examObj.nameHindi : examObj.name) : 'Exam'
+    const selectedClassroomObj = availableLeaderboardClassrooms.find((c: any) => c.id === selectedLeaderboardClassroomId)
+
+    const parts: string[] = []
+    if (selectedClassroomObj) {
+      parts.push(selectedClassroomObj.name)
+    }
+    if (timeframe === 'weekly') {
+      parts.push(t.analyticsTimeframeWeekly)
+    } else if (timeframe === 'monthly') {
+      parts.push(t.analyticsTimeframeMonthly)
+    } else if (timeframe === 'yearly') {
+      parts.push(t.analyticsTimeframeYearly)
+    } else if (startDate || endDate) {
+      parts.push(`${startDate || 'Start'} - ${endDate || 'Now'}`)
+    }
+    if (leaderboardSearch.trim()) {
+      parts.push(`Search: "${leaderboardSearch.trim()}"`)
+    }
+
+    const periodText = parts.join(' | ')
 
     generateLeaderboardPDF({
       examName,
       language: lang,
-      results: leaderboardResults
+      periodText,
+      results: filteredLeaderboardResults
     })
   }
 
@@ -3576,61 +3839,128 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
   }
 
   const renderDonutChart = () => {
-    const { excellent, good, average, poor } = scoreDistribution
-    const total = excellent + good + average + poor
-    if (total === 0) return <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t.analyticsNoScoreRecords}</div>
+    if (!classroomPerformance || classroomPerformance.length === 0) {
+      return (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '1rem' }}>
+          {t.analyticsNoClassroomData}
+        </div>
+      )
+    }
+
+    const PALETTE = [
+      '#2563eb', // Blue
+      '#10b981', // Emerald
+      '#f59e0b', // Amber
+      '#8b5cf6', // Violet
+      '#ec4899', // Pink
+      '#06b6d4', // Cyan
+      '#f97316', // Orange
+      '#14b8a6', // Teal
+      '#6366f1', // Indigo
+      '#84cc16', // Lime
+      '#e11d48', // Rose
+      '#a855f7', // Purple
+      '#0284c7', // Sky
+      '#d97706', // Ochre
+    ]
+
+    // Sort classrooms by studentsCount descending
+    const sortedClassrooms = [...classroomPerformance].sort((a: any, b: any) => (b.studentsCount || 0) - (a.studentsCount || 0))
+    const totalStudents = sortedClassrooms.reduce((acc: number, c: any) => acc + (c.studentsCount || 0), 0)
+
+    if (totalStudents === 0) {
+      return (
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '1.5rem 1rem' }}>
+          <Users size={30} style={{ color: 'var(--border-muted, #cbd5e1)', marginBottom: '0.5rem', display: 'block', margin: '0 auto 0.5rem' }} />
+          <div>{t.analyticsNoClassStudentData || 'No registered students in classrooms yet.'}</div>
+        </div>
+      )
+    }
 
     const radius = 50
     const strokeWidth = 14
     const circumference = 2 * Math.PI * radius
-    
-    const segments = [
-      { count: excellent, color: '#2ecc71', label: '80%+' },
-      { count: good, color: 'var(--accent-gold)', label: '60-79%' },
-      { count: average, color: '#3498db', label: '40-59%' },
-      { count: poor, color: '#e74c3c', label: '<40%' },
-    ].filter(s => s.count > 0)
+
+    // Only non-zero classrooms get SVG segments
+    const activeSegments = sortedClassrooms
+      .filter((cls: any) => (cls.studentsCount || 0) > 0)
+      .map((cls: any, idx: number) => ({
+        name: cls.name,
+        count: cls.studentsCount,
+        color: PALETTE[idx % PALETTE.length]
+      }))
 
     let accumulatedPercentage = 0
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-        <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--bg-muted, #f4f6f8)" strokeWidth={strokeWidth} />
-          {segments.map((seg, idx) => {
-            const percentage = (seg.count / total) * 100
-            const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`
-            const strokeDashoffset = `${-((accumulatedPercentage / 100) * circumference)}`
-            accumulatedPercentage += percentage
-            
-            return (
-              <circle
-                key={idx}
-                cx="60"
-                cy="60"
-                r={radius}
-                fill="none"
-                stroke={seg.color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={strokeDasharray}
-                strokeDashoffset={strokeDashoffset}
-                transform="rotate(-90 60 60)"
-                strokeLinecap="round"
-              />
-            )
-          })}
-          <text x="60" y="58" textAnchor="middle" fontSize="11" fontWeight="bold" fill="var(--primary-navy)">{t.analyticsLeaderboardTotal}</text>
-          <text x="60" y="74" textAnchor="middle" fontSize="15" fontWeight="bold" fill="var(--text-main, #333)">{total}</text>
-        </svg>
+        {/* SVG Donut Chart */}
+        <div style={{ position: 'relative', width: '130px', height: '130px', flexShrink: 0 }}>
+          <svg width="130" height="130" viewBox="0 0 130 130">
+            <circle cx="65" cy="65" r={radius} fill="none" stroke="var(--bg-muted, #f1f5f9)" strokeWidth={strokeWidth} />
+            {activeSegments.map((seg, idx) => {
+              const percentage = (seg.count / totalStudents) * 100
+              const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`
+              const strokeDashoffset = `${-((accumulatedPercentage / 100) * circumference)}`
+              accumulatedPercentage += percentage
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
-          {segments.map((seg, idx) => {
-            const percentage = Math.round((seg.count / total) * 100)
+              return (
+                <circle
+                  key={idx}
+                  cx="65"
+                  cy="65"
+                  r={radius}
+                  fill="none"
+                  stroke={seg.color}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDasharray}
+                  strokeDashoffset={strokeDashoffset}
+                  transform="rotate(-90 65 65)"
+                  style={{ transition: 'stroke-width 0.2s', cursor: 'pointer' }}
+                >
+                  <title>{`${seg.name}: ${seg.count} ${t.analyticsTotalStudents || 'Students'} (${Math.round(percentage)}%)`}</title>
+                </circle>
+              )
+            })}
+            <text x="65" y="60" textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--text-muted, #64748b)">
+              {t.analyticsLeaderboardTotal || 'Total'}
+            </text>
+            <text x="65" y="77" textAnchor="middle" fontSize="15" fontWeight="bold" fill="var(--primary-navy, #0f172a)">
+              {totalStudents}
+            </text>
+          </svg>
+        </div>
+
+        {/* Classroom Legend */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px', minWidth: '180px', flex: '1 1 auto' }}>
+          {sortedClassrooms.map((cls: any, idx: number) => {
+            const hasStudents = (cls.studentsCount || 0) > 0
+            const percentage = totalStudents > 0 ? Math.round(((cls.studentsCount || 0) / totalStudents) * 100) : 0
+            const activeIdx = activeSegments.findIndex(s => s.name === cls.name)
+            const color = activeIdx !== -1 ? activeSegments[activeIdx].color : '#94a3b8'
+
             return (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', backgroundColor: seg.color }}></span>
-                <span style={{ fontWeight: 'bold' }}>{seg.label}:</span>
-                <span>{seg.count} ({percentage}%)</span>
+              <div 
+                key={idx} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  opacity: hasStudents ? 1 : 0.6,
+                  padding: '2px 0'
+                }}
+                title={`${cls.name}: ${cls.studentsCount || 0} students (${percentage}%)`}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '3px', backgroundColor: color, flexShrink: 0 }}></span>
+                  <span style={{ fontWeight: hasStudents ? 600 : 400, color: 'var(--text-main, #334155)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {cls.name}
+                  </span>
+                </div>
+                <span style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.78rem', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                  {cls.studentsCount || 0} ({percentage}%)
+                </span>
               </div>
             )
           })}
@@ -3720,36 +4050,64 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
           </div>
         </div>
 
-        <div className="grid-2" style={{ gap: '1.5rem', gridTemplateColumns: '1.2fr 1.8fr' }}>
+        <div className="grid-2" style={{ gap: '1.5rem', gridTemplateColumns: '1.2fr 1.8fr', alignItems: 'start' }}>
           <div className="card" style={{ height: 'fit-content', padding: '1.25rem' }}>
-            <h3 className="card-title" style={{ fontSize: '1.1rem', marginBottom: '1.25rem', borderBottom: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <PieChart size={18} style={{ color: '#2ecc71' }} />
-              <span>{t.analyticsGradeDistribution}</span>
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0, borderBottom: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <PieChart size={18} style={{ color: '#2563eb' }} />
+                <span>{t.analyticsClassStudentCount || 'Class-wise Student Count'}</span>
+              </h3>
+              {classroomPerformance && classroomPerformance.length > 0 && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, background: 'var(--bg-card-alt, #f1f5f9)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--border-muted, #e2e8f0)' }}>
+                  {classroomPerformance.reduce((acc: number, c: any) => acc + (c.studentsCount || 0), 0)} {t.analyticsTotalStudents || 'Students'}
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '170px' }}>
               {renderDonutChart()}
             </div>
           </div>
 
-          <div className="card" style={{ height: 'fit-content', padding: '1.25rem' }}>
-            <h3 className="card-title" style={{ fontSize: '1.1rem', marginBottom: '1.25rem', borderBottom: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <SchoolIcon size={18} style={{ color: 'var(--primary-navy)' }} />
-              <span>{t.analyticsClassroomPerformance}</span>
-            </h3>
-            <div className="table-container" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+          <div className="card" style={{ height: 'fit-content', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0, borderBottom: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <SchoolIcon size={18} style={{ color: 'var(--primary-navy)' }} />
+                <span>{t.analyticsClassroomPerformance}</span>
+              </h3>
+              {classroomPerformance && classroomPerformance.length > 0 && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, background: 'var(--bg-card-alt, #f1f5f9)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--border-muted, #e2e8f0)' }}>
+                  {classroomPerformance.length} {t.classClassroom || 'Classrooms'}
+                </span>
+              )}
+            </div>
+
+            <div 
+              ref={classroomTableRef}
+              className="table-container" 
+              style={{ 
+                height: `${classroomTableHeight}px`,
+                maxHeight: `${classroomTableHeight}px`,
+                overflowY: 'auto',
+                marginTop: 0,
+                marginBottom: '0.5rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-muted, #e2e8f0)',
+                position: 'relative'
+              }}
+            >
               <table>
-                <thead>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                   <tr>
-                    <th>{t.analyticsClassroomColName}</th>
-                    <th>{t.analyticsClassroomColStudents}</th>
-                    <th>{t.analyticsClassroomColAttempts}</th>
-                    <th>{t.analyticsClassroomColAvgScore}</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'var(--accent-gold-light)', zIndex: 2 }}>{t.analyticsClassroomColName}</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'var(--accent-gold-light)', zIndex: 2 }}>{t.analyticsClassroomColStudents}</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'var(--accent-gold-light)', zIndex: 2 }}>{t.analyticsClassroomColAttempts}</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'var(--accent-gold-light)', zIndex: 2 }}>{t.analyticsClassroomColAvgScore}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {classroomPerformance.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{t.analyticsNoClassroomData}</td>
+                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 1rem' }}>{t.analyticsNoClassroomData}</td>
                     </tr>
                   ) : (
                     classroomPerformance.map((cls: any, i: number) => (
@@ -3768,15 +4126,253 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
                 </tbody>
               </table>
             </div>
+
+            {/* Bottom Resizer and Controls Bar */}
+            <div
+              onMouseDown={handleStartClassroomResize}
+              onTouchStart={handleStartClassroomResize}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                padding: '6px 10px',
+                background: isResizingClassroom ? 'var(--accent-gold-light, #fef9c3)' : 'var(--bg-card-alt, #f8fafc)',
+                border: isResizingClassroom ? '1px dashed var(--accent-gold, #ca8a04)' : '1px dashed var(--border-muted, #cbd5e1)',
+                borderRadius: '6px',
+                cursor: 'ns-resize',
+                userSelect: 'none',
+                transition: 'background-color 0.15s, border-color 0.15s'
+              }}
+              title={t.analyticsDragToResize}
+            >
+              {/* Quick +/- buttons & current height */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleClassroomHeightChange(-60); }}
+                  title={t.analyticsDecreaseHeight}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '24px',
+                    height: '24px',
+                    padding: 0,
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-muted, #cbd5e1)',
+                    background: '#ffffff',
+                    cursor: 'pointer',
+                    color: 'var(--text-main, #334155)',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  <Minus size={13} />
+                </button>
+                <span 
+                  style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 600, 
+                    color: 'var(--text-muted, #64748b)', 
+                    padding: '0 4px',
+                    minWidth: '45px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {classroomTableHeight}px
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleClassroomHeightChange(60); }}
+                  title={t.analyticsIncreaseHeight}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '24px',
+                    height: '24px',
+                    padding: 0,
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-muted, #cbd5e1)',
+                    background: '#ffffff',
+                    cursor: 'pointer',
+                    color: 'var(--text-main, #334155)',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+
+              {/* Center Grab Handle */}
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px', 
+                  color: isResizingClassroom ? 'var(--primary-navy, #1e293b)' : 'var(--text-muted, #64748b)',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  pointerEvents: 'none'
+                }}
+              >
+                <GripHorizontal size={15} />
+                <span>{t.analyticsDragToResize}</span>
+                <ChevronsUpDown size={13} />
+              </div>
+
+              {/* Right: Fit All & Reset actions */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleFitAllClassrooms(); }}
+                  title={t.analyticsFitAll}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-muted, #cbd5e1)',
+                    background: '#ffffff',
+                    cursor: 'pointer',
+                    color: 'var(--primary-navy, #0f172a)',
+                    fontSize: '0.75rem',
+                    fontWeight: 500
+                  }}
+                >
+                  <Maximize2 size={12} />
+                  <span>{t.analyticsFitAll}</span>
+                </button>
+
+                {classroomTableHeight !== 180 && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleResetClassroomHeight(); }}
+                    title={t.analyticsResetHeight}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-muted, #cbd5e1)',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted, #64748b)',
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    <RotateCcw size={12} />
+                    <span>{t.analyticsResetHeight}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Top-3 Leaderboard integration */}
+        {/* Leaderboard integration */}
         <div className="card" style={{ height: 'fit-content', padding: '1.25rem' }}>
-          <h3 className="card-title" style={{ fontSize: '1.1rem', marginBottom: '1.25rem', borderBottom: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <TrophyIcon size={18} style={{ color: 'var(--accent-gold)' }} />
-            <span>{t.analyticsLeaderboardTitle}</span>
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0, borderBottom: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <TrophyIcon size={18} style={{ color: 'var(--accent-gold)' }} />
+              <span>{t.analyticsLeaderboardTitle}</span>
+            </h3>
+
+            {/* Quick Timeframe Filter Pills */}
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-card-alt, #f1f5f9)', padding: '3px', borderRadius: '8px', gap: '3px', border: '1px solid var(--border-muted, #e2e8f0)', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handleTimeframeSelect('all')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: timeframe === 'all' ? 600 : 500,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: timeframe === 'all' ? 'var(--primary-navy, #0b2240)' : 'transparent',
+                  color: timeframe === 'all' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                  boxShadow: timeframe === 'all' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {t.analyticsTimeframeAll}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTimeframeSelect('weekly')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: timeframe === 'weekly' ? 600 : 500,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: timeframe === 'weekly' ? 'var(--primary-navy, #0b2240)' : 'transparent',
+                  color: timeframe === 'weekly' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                  boxShadow: timeframe === 'weekly' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {t.analyticsTimeframeWeekly}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTimeframeSelect('monthly')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: timeframe === 'monthly' ? 600 : 500,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: timeframe === 'monthly' ? 'var(--primary-navy, #0b2240)' : 'transparent',
+                  color: timeframe === 'monthly' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                  boxShadow: timeframe === 'monthly' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {t.analyticsTimeframeMonthly}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTimeframeSelect('yearly')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: timeframe === 'yearly' ? 600 : 500,
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: timeframe === 'yearly' ? 'var(--primary-navy, #0b2240)' : 'transparent',
+                  color: timeframe === 'yearly' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                  boxShadow: timeframe === 'yearly' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {t.analyticsTimeframeYearly}
+              </button>
+              {timeframe === 'custom' && (
+                <span
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    background: 'var(--primary-navy, #0b2240)',
+                    color: '#ffffff',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {t.analyticsTimeframeCustom}
+                </span>
+              )}
+            </div>
+          </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem', zIndex: 900, position: 'relative' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -3814,20 +4410,54 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t.analyticsStandardOptional}</span>
+              <CustomSelectObject
+                value={selectedLeaderboardClassroomId}
+                onChange={setSelectedLeaderboardClassroomId}
+                options={availableLeaderboardClassrooms.map((c: any) => ({ id: c.id, name: c.name }))}
+                placeholder={t.analyticsAllStandardsPlaceholder}
+                maxWidth="100%"
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t.analyticsTimeframe}</span>
+              <CustomSelectObject
+                value={timeframe}
+                onChange={(val) => handleTimeframeSelect(val as any)}
+                options={[
+                  { id: 'all', name: t.analyticsTimeframeAll },
+                  { id: 'weekly', name: t.analyticsTimeframeWeekly },
+                  { id: 'monthly', name: t.analyticsTimeframeMonthly },
+                  { id: 'yearly', name: t.analyticsTimeframeYearly },
+                  ...(timeframe === 'custom' ? [{ id: 'custom', name: t.analyticsTimeframeCustom }] : [])
+                ]}
+                placeholder={t.analyticsTimeframe}
+                maxWidth="100%"
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t.analyticsFromDateTime}</span>
               <div style={{ display: 'flex', gap: '0.4rem' }}>
                 <input 
                   type="date" 
                   className="form-input" 
                   value={startDate} 
-                  onChange={(e) => setStartDate(e.target.value)} 
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    setTimeframe('custom')
+                  }} 
                   style={{ padding: '0.4rem 0.5rem', margin: 0, fontSize: '0.85rem', flex: 1, height: '34px', boxSizing: 'border-box' }} 
                 />
                 <input 
                   type="time" 
                   className="form-input" 
                   value={startTime} 
-                  onChange={(e) => setStartTime(e.target.value)} 
+                  onChange={(e) => {
+                    setStartTime(e.target.value)
+                    setTimeframe('custom')
+                  }} 
                   style={{ padding: '0.4rem 0.4rem', margin: 0, fontSize: '0.85rem', width: '90px', height: '34px', boxSizing: 'border-box' }} 
                 />
               </div>
@@ -3840,84 +4470,139 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
                   type="date" 
                   className="form-input" 
                   value={endDate} 
-                  onChange={(e) => setEndDate(e.target.value)} 
+                  onChange={(e) => {
+                    setEndDate(e.target.value)
+                    setTimeframe('custom')
+                  }} 
                   style={{ padding: '0.4rem 0.5rem', margin: 0, fontSize: '0.85rem', flex: 1, height: '34px', boxSizing: 'border-box' }} 
                 />
                 <input 
                   type="time" 
                   className="form-input" 
                   value={endTime} 
-                  onChange={(e) => setEndTime(e.target.value)} 
+                  onChange={(e) => {
+                    setEndTime(e.target.value)
+                    setTimeframe('custom')
+                  }} 
                   style={{ padding: '0.4rem 0.4rem', margin: 0, fontSize: '0.85rem', width: '90px', height: '34px', boxSizing: 'border-box' }} 
                 />
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginBottom: '1.25rem' }}>
-            {(selectedExamId || selectedGroupId || (selectedLeaderboardSchoolIds.length > 0 && !selectedLeaderboardSchoolIds.includes('all')) || startDate || startTime || endDate || endTime) && (
-              <button
-                onClick={() => {
-                  setSelectedExamId('')
-                  setSelectedGroupId('')
-                  setSelectedLeaderboardSchoolIds(['all'])
-                  setStartDate('')
-                  setStartTime('')
-                  setEndDate('')
-                  setEndTime('')
-                }}
-                className="btn btn-secondary"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none' }}
-              >
-                {t.analyticsClearLeaderboardFilters}
-              </button>
-            )}
-            {selectedExamId && leaderboardResults.length > 0 && (
-              <>
-                <button
-                  onClick={handleDownloadCSV}
-                  className="btn btn-primary"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                >
-                  <Download size={15} />
-                  {t.analyticsDownloadCsvReport}
-                </button>
-                <button
-                  onClick={handleDownloadExcel}
-                  className="btn btn-primary"
-                  style={{ 
-                    padding: '0.35rem 0.75rem', 
-                    fontSize: '0.85rem', 
-                    textTransform: 'none', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.35rem',
-                    backgroundColor: '#107c41',
-                    borderColor: '#107c41'
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {selectedExamId && leaderboardResults.length > 0 ? (
+              <div style={{ position: 'relative', width: '360px', maxWidth: '100%' }}>
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={t.analyticsLeaderboardSearchPlaceholder}
+                  value={leaderboardSearch}
+                  onChange={(e) => setLeaderboardSearch(e.target.value)}
+                  style={{
+                    paddingLeft: '32px',
+                    paddingRight: leaderboardSearch ? '30px' : '10px',
+                    height: '36px',
+                    fontSize: '0.85rem',
+                    margin: 0,
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}
-                >
-                  <FileText size={15} />
-                  {t.analyticsDownloadExcelReport}
-                </button>
+                />
+                {leaderboardSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLeaderboardSearch('')}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      fontSize: '1rem',
+                      padding: '2px 6px',
+                      lineHeight: 1
+                    }}
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ) : <div />}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {(selectedExamId || selectedGroupId || selectedLeaderboardClassroomId || (selectedLeaderboardSchoolIds.length > 0 && !selectedLeaderboardSchoolIds.includes('all')) || startDate || startTime || endDate || endTime || timeframe !== 'all' || leaderboardSearch) && (
                 <button
-                  onClick={handleDownloadPDF}
-                  className="btn btn-primary"
-                  style={{ 
-                    padding: '0.35rem 0.75rem', 
-                    fontSize: '0.85rem', 
-                    textTransform: 'none', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.35rem',
-                    backgroundColor: '#dc2626',
-                    borderColor: '#dc2626'
+                  onClick={() => {
+                    setSelectedExamId('')
+                    setSelectedGroupId('')
+                    setSelectedLeaderboardClassroomId('')
+                    setSelectedLeaderboardSchoolIds(['all'])
+                    setStartDate('')
+                    setStartTime('')
+                    setEndDate('')
+                    setEndTime('')
+                    setTimeframe('all')
+                    setLeaderboardSearch('')
                   }}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none' }}
                 >
-                  <Download size={15} />
-                  {t.analyticsDownloadPdfReport}
+                  {t.analyticsClearLeaderboardFilters}
                 </button>
-              </>
-            )}
+              )}
+              {selectedExamId && filteredLeaderboardResults.length > 0 && (
+                <>
+                  <button
+                    onClick={handleDownloadCSV}
+                    className="btn btn-primary"
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', textTransform: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Download size={15} />
+                    {t.analyticsDownloadCsvReport}
+                  </button>
+                  <button
+                    onClick={handleDownloadExcel}
+                    className="btn btn-primary"
+                    style={{ 
+                      padding: '0.35rem 0.75rem', 
+                      fontSize: '0.85rem', 
+                      textTransform: 'none', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.35rem',
+                      backgroundColor: '#107c41',
+                      borderColor: '#107c41'
+                    }}
+                  >
+                    <FileText size={15} />
+                    {t.analyticsDownloadExcelReport}
+                  </button>
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="btn btn-primary"
+                    style={{ 
+                      padding: '0.35rem 0.75rem', 
+                      fontSize: '0.85rem', 
+                      textTransform: 'none', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.35rem',
+                      backgroundColor: '#dc2626',
+                      borderColor: '#dc2626'
+                    }}
+                  >
+                    <Download size={15} />
+                    {t.analyticsDownloadPdfReport}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {leaderboardLoading ? (
@@ -3926,8 +4611,13 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
             <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t.analyticsSelectExamToLoad}</div>
           ) : leaderboardResults.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t.analyticsNoStudentCompleted}</div>
+          ) : filteredLeaderboardResults.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              {t.analyticsNoMatchingLeaderboardResults}
+            </div>
           ) : (
-            <div className="table-container">
+            <>
+              <div className="table-container">
               <table>
                 <thead>
                   <tr>
@@ -3940,7 +4630,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
                   </tr>
                 </thead>
                 <tbody>
-                  {leaderboardResults.map((r: any) => (
+                  {paginatedLeaderboardResults.map((r: any) => (
                     <tr key={r.rank + r.studentMobile} style={{ backgroundColor: r.rank === 1 ? 'rgba(212,175,55,0.05)' : 'transparent' }}>
                       <td>
                         <span 
@@ -3976,6 +4666,183 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalRecords > 0 && (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginTop: '1.25rem', 
+                  paddingTop: '0.75rem',
+                  borderTop: '1px solid var(--border-muted, #e2e8f0)',
+                  flexWrap: 'wrap', 
+                  gap: '1rem' 
+                }}
+              >
+                {/* Left: Records per page selector & showing count */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    {t.analyticsRecordsPerPage}:
+                  </span>
+                  <select
+                    className="form-input"
+                    value={[5, 10, 25, 50, 100].includes(pageSize) && !isCustomPageSize ? pageSize : 'custom'}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomPageSize(true)
+                      } else {
+                        setIsCustomPageSize(false)
+                        setPageSize(Number(e.target.value))
+                        setCurrentPage(1)
+                      }
+                    }}
+                    style={{ 
+                      width: 'auto', 
+                      padding: '0.25rem 0.5rem', 
+                      fontSize: '0.85rem', 
+                      height: '32px', 
+                      margin: 0,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value="custom">{t.analyticsCustomPageSize}...</option>
+                  </select>
+
+                  {isCustomPageSize && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={5000}
+                        value={pageSize}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1)
+                          setPageSize(val)
+                          setCurrentPage(1)
+                        }}
+                        className="form-input"
+                        style={{ width: '75px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', height: '32px', margin: 0 }}
+                        placeholder="Qty"
+                      />
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {t.analyticsRecordsText}
+                      </span>
+                    </div>
+                  )}
+
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                    {t.analyticsShowingRecords} {Math.min(totalRecords, (currentPage - 1) * pageSize + 1)} - {Math.min(totalRecords, currentPage * pageSize)} {t.analyticsOf} {totalRecords} {t.analyticsRecordsText}
+                  </span>
+                </div>
+
+                {/* Right: Page navigation */}
+                {totalPages > 1 && (
+                  <div style={{ display: 'inline-flex', gap: '0.3rem', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="btn btn-secondary"
+                      style={{ 
+                        padding: '0.3rem 0.6rem', 
+                        fontSize: '0.8rem', 
+                        textTransform: 'none', 
+                        opacity: currentPage === 1 ? 0.5 : 1,
+                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                      }}
+                      title="First Page"
+                    >
+                      «
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="btn btn-secondary"
+                      style={{ 
+                        padding: '0.3rem 0.7rem', 
+                        fontSize: '0.8rem', 
+                        textTransform: 'none', 
+                        opacity: currentPage === 1 ? 0.5 : 1,
+                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {t.adminPrevious}
+                    </button>
+
+                    {visiblePages[0] > 1 && (
+                      <span style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>...</span>
+                    )}
+
+                    {visiblePages.map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={currentPage === pageNum ? 'btn btn-primary' : 'btn btn-secondary'}
+                        style={{
+                          padding: '0.3rem 0.65rem',
+                          fontSize: '0.8rem',
+                          textTransform: 'none',
+                          fontWeight: currentPage === pageNum ? 'bold' : 'normal',
+                          backgroundColor: currentPage === pageNum ? 'var(--primary-navy)' : 'transparent',
+                          color: currentPage === pageNum ? '#ffffff' : 'var(--primary-navy)',
+                          border: currentPage === pageNum ? '1px solid var(--primary-navy)' : '1px solid var(--border-muted)',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    {visiblePages[visiblePages.length - 1] < totalPages && (
+                      <span style={{ padding: '0 0.25rem', color: 'var(--text-muted)' }}>...</span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="btn btn-secondary"
+                      style={{ 
+                        padding: '0.3rem 0.7rem', 
+                        fontSize: '0.8rem', 
+                        textTransform: 'none', 
+                        opacity: currentPage === totalPages ? 0.5 : 1,
+                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {t.adminNext}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="btn btn-secondary"
+                      style={{ 
+                        padding: '0.3rem 0.6rem', 
+                        fontSize: '0.8rem', 
+                        textTransform: 'none', 
+                        opacity: currentPage === totalPages ? 0.5 : 1,
+                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                      }}
+                      title="Last Page"
+                    >
+                      »
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>

@@ -66,11 +66,22 @@ export async function GET(req: NextRequest) {
     // Fetch classrooms under these active schools for filter options and queries
     const allClassrooms = await prisma.classroom.findMany({
       where: {
-        schools: {
-          some: {
-            schoolId: { in: activeSchoolIds }
+        OR: [
+          {
+            schools: {
+              some: {
+                schoolId: { in: activeSchoolIds }
+              }
+            }
+          },
+          {
+            students: {
+              some: {
+                schoolId: { in: activeSchoolIds }
+              }
+            }
           }
-        }
+        ]
       },
       select: { id: true, name: true }
     })
@@ -189,11 +200,22 @@ export async function GET(req: NextRequest) {
     const classrooms = await prisma.classroom.findMany({
       where: {
         ...(classroomIdParam ? { id: classroomIdParam } : {}),
-        schools: {
-          some: {
-            schoolId: { in: activeSchoolIds }
+        OR: [
+          {
+            schools: {
+              some: {
+                schoolId: { in: activeSchoolIds }
+              }
+            }
+          },
+          {
+            students: {
+              some: {
+                schoolId: { in: activeSchoolIds }
+              }
+            }
           }
-        }
+        ]
       },
       include: {
         students: {
