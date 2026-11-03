@@ -1,6 +1,6 @@
 {
   "name": "com.onlineexamsystem.app",
-  "version": "0.0.1",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "preandroid": "node load-env.js",
