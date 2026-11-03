@@ -323,6 +323,67 @@ function formatClassForHindi(name: string): string {
   return cleaned.replace(/(कक्षा|क्लास)/gi, '').trim() || cleaned
 }
 
+function drawClassWithSuperscript(
+  ctx: CanvasRenderingContext2D,
+  classText: string,
+  centerX: number,
+  centerY: number,
+  isHindi: boolean,
+  fontStack: string
+) {
+  if (!classText) return
+
+  // Parse ordinal numbers: e.g. "12th", "7th", "1st", "2nd", "3rd", "10th - A", "7वीं", "12वीं - ए"
+  const match = classText.match(/^(\d+|[A-Za-z]+)(st|nd|rd|th|वीं|री|ली|थी)?(.*)$/i)
+  
+  const baseSize = isHindi ? 35 : 36
+  const supSize = isHindi ? 21 : 21
+  const baseFont = `bold ${baseSize}px ${fontStack}`
+  const supFont = `bold ${supSize}px ${fontStack}`
+
+  if (match && match[2]) {
+    const numPart = match[1]
+    const supPart = match[2]
+    const restPart = match[3] || ''
+
+    ctx.font = baseFont
+    const numWidth = ctx.measureText(numPart).width
+    const restWidth = restPart ? ctx.measureText(restPart).width : 0
+
+    ctx.font = supFont
+    const supWidth = ctx.measureText(supPart).width
+
+    const totalWidth = numWidth + supWidth + restWidth
+    let curX = centerX - totalWidth / 2
+
+    // Draw base number
+    ctx.font = baseFont
+    ctx.fillStyle = '#111827'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(numPart, curX, centerY)
+    curX += numWidth
+
+    // Draw superscript (small and at upper part: offset up by ~8px)
+    ctx.font = supFont
+    ctx.fillText(supPart, curX, centerY - 8)
+    curX += supWidth
+
+    // Draw remaining section if any
+    if (restPart) {
+      ctx.font = baseFont
+      ctx.fillText(restPart, curX, centerY)
+    }
+  } else {
+    // Fallback if no ordinal suffix matched
+    ctx.font = baseFont
+    ctx.fillStyle = '#111827'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(classText, centerX, centerY)
+  }
+}
+
 export async function generateCertificatePDF(data: {
   studentName: string
   schoolName: string
@@ -373,7 +434,7 @@ export async function generateCertificatePDF(data: {
 
   // 1. Student Name (Arrow Place 1: Below 'This certificate is proudly presented to' / 'यह प्रमाण पत्र...')
   if (data.studentName) {
-    let nameSize = isHindi ? 51 : 53
+    let nameSize = isHindi ? 50 : 52
     ctx.font = `bold ${nameSize}px ${fontStack}`
     ctx.fillStyle = '#111827'
     ctx.textAlign = 'center'
@@ -386,33 +447,16 @@ export async function generateCertificatePDF(data: {
   }
 
   // 2. Class (Arrow Place 2: Between 'Belongs to Class' and 'From School' / 'कक्षा:' and 'विद्यालय')
+  // Lowered to Y: 716 with ordinal suffix (e.g. 'th', 'वीं') rendered as small superscript
   if (isHindi) {
     const displayClass = formatClassForHindi(data.classroomName || '')
     if (displayClass) {
-      let classSize = 35
-      ctx.font = `bold ${classSize}px ${fontStack}`
-      ctx.fillStyle = '#111827'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      while (ctx.measureText(displayClass).width > 90 && classSize > 18) {
-        classSize -= 2
-        ctx.font = `bold ${classSize}px ${fontStack}`
-      }
-      ctx.fillText(displayClass, 980, 712)
+      drawClassWithSuperscript(ctx, displayClass, 980, 716, true, fontStack)
     }
   } else {
     const displayClass = formatClassForEnglish(data.classroomName || '')
     if (displayClass) {
-      let classSize = 36
-      ctx.font = `bold ${classSize}px ${fontStack}`
-      ctx.fillStyle = '#111827'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      while (ctx.measureText(displayClass).width > 85 && classSize > 18) {
-        classSize -= 2
-        ctx.font = `bold ${classSize}px ${fontStack}`
-      }
-      ctx.fillText(displayClass, 1052, 711)
+      drawClassWithSuperscript(ctx, displayClass, 1052, 716, false, fontStack)
     }
   }
 
@@ -444,23 +488,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 37
+      let tSize = 38
       ctx.font = `bold ${tSize}px ${fontStack}`
       while (ctx.measureText(displayTehsil).width > 175 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 948, 841)
+      ctx.fillText(displayTehsil, 948, 845)
     }
 
     if (displayDistrict) {
-      let dSize = 37
+      let dSize = 38
       ctx.font = `bold ${dSize}px ${fontStack}`
       while (ctx.measureText(displayDistrict).width > 175 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1238, 841)
+      ctx.fillText(displayDistrict, 1238, 845)
     }
   } else {
     const displayTehsil = translateGeography(data.tehsil || '', false)
@@ -471,23 +515,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 37
+      let tSize = 38
       ctx.font = `bold ${tSize}px ${fontStack}`
       while (ctx.measureText(displayTehsil).width > 170 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 935, 846)
+      ctx.fillText(displayTehsil, 935, 850)
     }
 
     if (displayDistrict) {
-      let dSize = 37
+      let dSize = 38
       ctx.font = `bold ${dSize}px ${fontStack}`
       while (ctx.measureText(displayDistrict).width > 170 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1245, 846)
+      ctx.fillText(displayDistrict, 1245, 850)
     }
   }
 
