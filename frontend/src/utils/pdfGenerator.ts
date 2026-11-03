@@ -373,7 +373,7 @@ export async function generateCertificatePDF(data: {
 
   // 1. Student Name (Arrow Place 1: Below 'This certificate is proudly presented to' / 'यह प्रमाण पत्र...')
   if (data.studentName) {
-    let nameSize = isHindi ? 52 : 54
+    let nameSize = isHindi ? 51 : 53
     ctx.font = `bold ${nameSize}px ${fontStack}`
     ctx.fillStyle = '#111827'
     ctx.textAlign = 'center'
@@ -444,23 +444,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 36
+      let tSize = 37
       ctx.font = `bold ${tSize}px ${fontStack}`
-      while (ctx.measureText(displayTehsil).width > 170 && tSize > 20) {
+      while (ctx.measureText(displayTehsil).width > 175 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 948, 836)
+      ctx.fillText(displayTehsil, 948, 841)
     }
 
     if (displayDistrict) {
-      let dSize = 36
+      let dSize = 37
       ctx.font = `bold ${dSize}px ${fontStack}`
-      while (ctx.measureText(displayDistrict).width > 170 && dSize > 20) {
+      while (ctx.measureText(displayDistrict).width > 175 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1238, 836)
+      ctx.fillText(displayDistrict, 1238, 841)
     }
   } else {
     const displayTehsil = translateGeography(data.tehsil || '', false)
@@ -471,23 +471,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 36
+      let tSize = 37
       ctx.font = `bold ${tSize}px ${fontStack}`
-      while (ctx.measureText(displayTehsil).width > 165 && tSize > 20) {
+      while (ctx.measureText(displayTehsil).width > 170 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 935, 842)
+      ctx.fillText(displayTehsil, 935, 846)
     }
 
     if (displayDistrict) {
-      let dSize = 36
+      let dSize = 37
       ctx.font = `bold ${dSize}px ${fontStack}`
-      while (ctx.measureText(displayDistrict).width > 165 && dSize > 20) {
+      while (ctx.measureText(displayDistrict).width > 170 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1245, 842)
+      ctx.fillText(displayDistrict, 1245, 846)
     }
   }
 
