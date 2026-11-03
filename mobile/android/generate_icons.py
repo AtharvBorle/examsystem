@@ -1,9 +1,12 @@
 import os
 from PIL import Image, ImageDraw
 
-src_path = r"c:\Users\Admin\Downloads\onlineexamsystem\frontend\public\app_icon.jpeg"
-mobile_icon_path = r"c:\Users\Admin\Downloads\onlineexamsystem\mobile\icon.jpeg"
-res_dir = r"c:\Users\Admin\Downloads\onlineexamsystem\mobile\android\app\src\main\res"
+base_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(base_dir, "..", ".."))
+
+src_path = os.path.join(project_root, "frontend", "public", "app_icon.jpeg")
+mobile_icon_path = os.path.join(project_root, "mobile", "icon.jpeg")
+res_dir = os.path.join(base_dir, "app", "src", "main", "res")
 
 try:
     img = Image.open(src_path)
