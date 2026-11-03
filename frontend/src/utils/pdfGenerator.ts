@@ -371,104 +371,70 @@ export async function generateCertificatePDF(data: {
     ? "'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Segoe UI', system-ui, sans-serif"
     : "'Segoe UI', Arial, system-ui, sans-serif"
 
-  // 1. Dynamic Branch Name (Line 2)
-  // Both templates have default branch ('Siddheshwar Shakha, Latur' / 'सिद्धेश्वर शाखा, लातूर') baked in.
-  // If the admin configured a custom branch that differs, seamlessly patch Line 2 using parchment texture.
-  const rawBranch = (data.branch || '').trim()
-  const cleanedBranch = isHindi 
-    ? rawBranch.replace(/^भारत विकास परिषद\s*/g, '').trim()
-    : rawBranch.replace(/^Bharat Vikas Parishad\s*/gi, '').trim()
-
-  const defaultBranchEn = 'siddheshwar shakha, latur'
-  const defaultBranchHi = 'सिद्धेश्वर शाखा, लातूर'
-  const isBranchCustom = cleanedBranch && 
-    cleanedBranch.toLowerCase() !== defaultBranchEn && 
-    cleanedBranch.toLowerCase() !== defaultBranchHi &&
-    !cleanedBranch.toLowerCase().startsWith('siddheshwar') &&
-    !cleanedBranch.startsWith('सिद्धेश्वर')
-
-  if (isBranchCustom) {
-    try {
-      ctx.drawImage(canvas, 550, 325, 900, 55, 550, 226, 900, 55)
-    } catch (e) {
-      // ignore
-    }
-    let branchSize = isHindi ? 36 : 38
-    ctx.font = `bold ${branchSize}px ${fontStack}`
-    ctx.fillStyle = '#2b2b2b'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    while (ctx.measureText(cleanedBranch).width > 850 && branchSize > 20) {
-      branchSize -= 2
-      ctx.font = `bold ${branchSize}px ${fontStack}`
-    }
-    ctx.fillText(cleanedBranch, 1000, 252)
-  }
-
-  // 2. Student Name (Line 6) - Includes mother name
+  // 1. Student Name (Arrow Place 1: Below 'This certificate is proudly presented to' / 'यह प्रमाण पत्र...')
   if (data.studentName) {
-    let nameSize = isHindi ? 42 : 40
+    let nameSize = isHindi ? 52 : 54
     ctx.font = `bold ${nameSize}px ${fontStack}`
     ctx.fillStyle = '#111827'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    while (ctx.measureText(data.studentName).width > 900 && nameSize > 20) {
+    while (ctx.measureText(data.studentName).width > 950 && nameSize > 24) {
       nameSize -= 2
       ctx.font = `bold ${nameSize}px ${fontStack}`
     }
-    ctx.fillText(data.studentName, 1000, 648)
+    ctx.fillText(data.studentName, 1000, 649)
   }
 
-  // 3. Class (Line 7)
+  // 2. Class (Arrow Place 2: Between 'Belongs to Class' and 'From School' / 'कक्षा:' and 'विद्यालय')
   if (isHindi) {
     const displayClass = formatClassForHindi(data.classroomName || '')
     if (displayClass) {
-      let classSize = 27
+      let classSize = 35
       ctx.font = `bold ${classSize}px ${fontStack}`
       ctx.fillStyle = '#111827'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      while (ctx.measureText(displayClass).width > 75 && classSize > 16) {
+      while (ctx.measureText(displayClass).width > 90 && classSize > 18) {
         classSize -= 2
         ctx.font = `bold ${classSize}px ${fontStack}`
       }
-      ctx.fillText(displayClass, 982, 712)
+      ctx.fillText(displayClass, 980, 712)
     }
   } else {
     const displayClass = formatClassForEnglish(data.classroomName || '')
     if (displayClass) {
-      let classSize = 28
+      let classSize = 36
       ctx.font = `bold ${classSize}px ${fontStack}`
       ctx.fillStyle = '#111827'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      while (ctx.measureText(displayClass).width > 65 && classSize > 16) {
+      while (ctx.measureText(displayClass).width > 85 && classSize > 18) {
         classSize -= 2
         ctx.font = `bold ${classSize}px ${fontStack}`
       }
-      ctx.fillText(displayClass, 1052, 714)
+      ctx.fillText(displayClass, 1052, 711)
     }
   }
 
-  // 4. School Name (Line 8)
+  // 3. School Name (Arrow Place 3: Dedicated line below Class / 'कक्षा')
   const displaySchool = isHindi 
-    ? (translateSchoolToHindi(data.schoolName || '') || cleanedBranch || '') 
-    : (data.schoolName || cleanedBranch || '')
+    ? (translateSchoolToHindi(data.schoolName || '') || data.schoolName || '') 
+    : (data.schoolName || '')
 
   if (displaySchool) {
-    let schoolSize = isHindi ? 34 : 33
+    let schoolSize = 44
     ctx.font = `bold ${schoolSize}px ${fontStack}`
     ctx.fillStyle = '#111827'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    while (ctx.measureText(displaySchool).width > 850 && schoolSize > 18) {
+    while (ctx.measureText(displaySchool).width > 950 && schoolSize > 22) {
       schoolSize -= 2
       ctx.font = `bold ${schoolSize}px ${fontStack}`
     }
-    ctx.fillText(displaySchool, 1000, 778.5)
+    ctx.fillText(displaySchool, 1000, 779)
   }
 
-  // 5. Taluka & District (Line 9)
+  // 4 & 5. Taluka & District (Arrow Places 4 & 5: Next to 'Taluka' / 'District' and 'तहसील' / 'ज़िला')
   if (isHindi) {
     const displayTehsil = translateGeography(data.tehsil || '', true)
     const displayDistrict = translateGeography(data.district || '', true)
@@ -478,23 +444,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 30
+      let tSize = 36
       ctx.font = `bold ${tSize}px ${fontStack}`
-      while (ctx.measureText(displayTehsil).width > 160 && tSize > 18) {
+      while (ctx.measureText(displayTehsil).width > 170 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 948, 835)
+      ctx.fillText(displayTehsil, 948, 836)
     }
 
     if (displayDistrict) {
-      let dSize = 30
+      let dSize = 36
       ctx.font = `bold ${dSize}px ${fontStack}`
-      while (ctx.measureText(displayDistrict).width > 160 && dSize > 18) {
+      while (ctx.measureText(displayDistrict).width > 170 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1238, 835)
+      ctx.fillText(displayDistrict, 1238, 836)
     }
   } else {
     const displayTehsil = translateGeography(data.tehsil || '', false)
@@ -505,23 +471,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 30
+      let tSize = 36
       ctx.font = `bold ${tSize}px ${fontStack}`
-      while (ctx.measureText(displayTehsil).width > 155 && tSize > 18) {
+      while (ctx.measureText(displayTehsil).width > 165 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 935, 841.5)
+      ctx.fillText(displayTehsil, 935, 842)
     }
 
     if (displayDistrict) {
-      let dSize = 30
+      let dSize = 36
       ctx.font = `bold ${dSize}px ${fontStack}`
-      while (ctx.measureText(displayDistrict).width > 155 && dSize > 18) {
+      while (ctx.measureText(displayDistrict).width > 165 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1245, 841.5)
+      ctx.fillText(displayDistrict, 1245, 842)
     }
   }
 
