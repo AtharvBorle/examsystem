@@ -1,14 +1,28 @@
 import { jsPDF } from 'jspdf'
 import certificateBg from '../assets/Certificatebackground.jpg'
+import englishCertBg from '../assets/english.png'
+import hindiCertBg from '../assets/hindi.png'
 import letterheadAsset from '../assets/letterhead.png'
 
 const loadPdfImage = (src: string): Promise<HTMLImageElement | null> => {
   return new Promise((resolve) => {
     if (!src) return resolve(null)
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (!src.startsWith('data:') && !src.startsWith('file:')) {
+      img.crossOrigin = 'anonymous'
+    }
     img.onload = () => resolve(img)
-    img.onerror = () => resolve(null)
+    img.onerror = () => {
+      // In WebView or local file protocol, crossOrigin may trigger security errors; retry without crossOrigin
+      if (img.crossOrigin) {
+        const retryImg = new Image()
+        retryImg.onload = () => resolve(retryImg)
+        retryImg.onerror = () => resolve(null)
+        retryImg.src = src
+        return
+      }
+      resolve(null)
+    }
     img.src = src
   })
 }
@@ -261,6 +275,54 @@ function translateGeography(value: string, toHindi: boolean): string {
   return value
 }
 
+function formatClassForEnglish(name: string): string {
+  if (!name) return ''
+  const cleaned = name.trim()
+  const numMatch = cleaned.match(/(12|11|10|[1-9])/)
+  const romanMatch = cleaned.match(/\b(xii|xi|x|ix|viii|vii|vi|v|iv|iii|ii|i)\b/i)
+  const ROMAN: { [k: string]: number } = { xii: 12, xi: 11, x: 10, ix: 9, viii: 8, vii: 7, vi: 6, v: 5, iv: 4, iii: 3, ii: 2, i: 1 }
+  const num = numMatch ? parseInt(numMatch[1]) : (romanMatch ? ROMAN[romanMatch[1].toLowerCase()] : null)
+  if (num) {
+    const ordinals: { [k: number]: string } = {
+      1: '1st', 2: '2nd', 3: '3rd', 4: '4th', 5: '5th',
+      6: '6th', 7: '7th', 8: '8th', 9: '9th', 10: '10th',
+      11: '11th', 12: '12th'
+    }
+    let res = ordinals[num] || `${num}th`
+    const secMatch = cleaned.match(/\b([A-D])\b/i)
+    if (secMatch) {
+      res += ` ${secMatch[1].toUpperCase()}`
+    }
+    return res
+  }
+  return cleaned.replace(/^(class|classroom|grade)\s*/gi, '').trim() || cleaned
+}
+
+function formatClassForHindi(name: string): string {
+  if (!name) return ''
+  const cleaned = name.trim()
+  const numMatch = cleaned.match(/(12|11|10|[1-9])/)
+  const romanMatch = cleaned.match(/\b(xii|xi|x|ix|viii|vii|vi|v|iv|iii|ii|i)\b/i)
+  const ROMAN: { [k: string]: number } = { xii: 12, xi: 11, x: 10, ix: 9, viii: 8, vii: 7, vi: 6, v: 5, iv: 4, iii: 3, ii: 2, i: 1 }
+  const num = numMatch ? parseInt(numMatch[1]) : (romanMatch ? ROMAN[romanMatch[1].toLowerCase()] : null)
+  if (num) {
+    const HINDI_ORDINALS: { [k: number]: string } = {
+      1: '1ली', 2: '2री', 3: '3री', 4: '4थी', 5: '5वीं',
+      6: '6ठी', 7: '7वीं', 8: '8वीं', 9: '9वीं', 10: '10वीं',
+      11: '11वीं', 12: '12वीं'
+    }
+    let res = HINDI_ORDINALS[num] || `${num}वीं`
+    const secMatch = cleaned.match(/\b([A-D])\b/i)
+    if (secMatch) {
+      const s = secMatch[1].toUpperCase()
+      const hiSec = s === 'A' ? 'ए' : s === 'B' ? 'बी' : s === 'C' ? 'सी' : 'डी'
+      res += ` - ${hiSec}`
+    }
+    return res
+  }
+  return cleaned.replace(/(कक्षा|क्लास)/gi, '').trim() || cleaned
+}
+
 export async function generateCertificatePDF(data: {
   studentName: string
   schoolName: string
@@ -281,189 +343,187 @@ export async function generateCertificatePDF(data: {
     return
   }
 
-  // Create canvas
+  // Create canvas exactly matching template dimensions (2000 x 1414)
   const canvas = document.createElement('canvas')
   canvas.width = 2000
   canvas.height = 1414
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  // Load backdrop template image
-  const bgImg = new Image()
-  bgImg.src = certificateBg
-  await new Promise<void>((resolve) => {
-    bgImg.onload = () => {
-      ctx.drawImage(bgImg, 0, 0, 2000, 1414)
-      resolve()
-    }
-    bgImg.onerror = () => {
-      console.error('Failed to load certificate background image')
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, 2000, 1414)
-      resolve()
-    }
-  })
-
-  const scale = (mm: number) => mm * 6.734
-  const scaleSize = (pt: number) => Math.round(pt * 2.37)
-
   const isHindi = data.language === 'hi'
+  const primaryBg = isHindi ? hindiCertBg : englishCertBg
+  const fallbackBgUrl = isHindi ? '/hindi.png' : '/english.png'
+
+  let bgImg = await loadPdfImage(primaryBg)
+  if (!bgImg) {
+    bgImg = await loadPdfImage(fallbackBgUrl)
+  }
+
+  if (bgImg) {
+    ctx.drawImage(bgImg, 0, 0, 2000, 1414)
+  } else {
+    console.error('Failed to load certificate template image')
+    ctx.fillStyle = '#f7f4ee'
+    ctx.fillRect(0, 0, 2000, 1414)
+  }
+
   const fontStack = isHindi 
     ? "'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Mangal', 'Segoe UI', system-ui, sans-serif"
-    : "'Times New Roman', Georgia, serif"
+    : "'Segoe UI', Arial, system-ui, sans-serif"
 
-  const setCanvasFont = (style: string, sizePt: number) => {
-    const sizePx = scaleSize(sizePt)
-    if (style === 'italic') {
-      ctx.font = `italic ${sizePx}px ${fontStack}`
-    } else if (style === 'bold') {
-      ctx.font = `bold ${sizePx}px ${fontStack}`
-    } else if (style === 'bolditalic') {
-      ctx.font = `bold italic ${sizePx}px ${fontStack}`
-    } else {
-      ctx.font = `${sizePx}px ${fontStack}`
+  // 1. Dynamic Branch Name (Line 2)
+  // Both templates have default branch ('Siddheshwar Shakha, Latur' / 'सिद्धेश्वर शाखा, लातूर') baked in.
+  // If the admin configured a custom branch that differs, seamlessly patch Line 2 using parchment texture.
+  const rawBranch = (data.branch || '').trim()
+  const cleanedBranch = isHindi 
+    ? rawBranch.replace(/^भारत विकास परिषद\s*/g, '').trim()
+    : rawBranch.replace(/^Bharat Vikas Parishad\s*/gi, '').trim()
+
+  const defaultBranchEn = 'siddheshwar shakha, latur'
+  const defaultBranchHi = 'सिद्धेश्वर शाखा, लातूर'
+  const isBranchCustom = cleanedBranch && 
+    cleanedBranch.toLowerCase() !== defaultBranchEn && 
+    cleanedBranch.toLowerCase() !== defaultBranchHi &&
+    !cleanedBranch.toLowerCase().startsWith('siddheshwar') &&
+    !cleanedBranch.startsWith('सिद्धेश्वर')
+
+  if (isBranchCustom) {
+    try {
+      ctx.drawImage(canvas, 550, 325, 900, 55, 550, 226, 900, 55)
+    } catch (e) {
+      // ignore
     }
+    let branchSize = isHindi ? 36 : 38
+    ctx.font = `bold ${branchSize}px ${fontStack}`
+    ctx.fillStyle = '#2b2b2b'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    while (ctx.measureText(cleanedBranch).width > 850 && branchSize > 20) {
+      branchSize -= 2
+      ctx.font = `bold ${branchSize}px ${fontStack}`
+    }
+    ctx.fillText(cleanedBranch, 1000, 252)
   }
 
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-
-  // 1. Branch Name (Bigger, 2 Lines)
-  setCanvasFont('bold', 20.5)
-  ctx.fillStyle = 'rgb(220, 95, 0)' // Vibrant Orange / Saffron
-  const line1Text = isHindi ? 'भारत विकास परिषद' : 'BHARAT VIKAS PARISHAD'
-  ctx.fillText(line1Text, scale(297 / 2), scale(30))
-
-  let line2Text = ''
-  if (data.branch) {
-    const rawBranch = data.branch.trim()
-    const cleaned = isHindi 
-      ? rawBranch.replace(/^भारत विकास परिषद\s*/g, '').trim()
-      : rawBranch.replace(/^Bharat Vikas Parishad\s*/gi, '').trim()
-    line2Text = cleaned || (isHindi ? 'शाखा' : 'BRANCH')
-  } else {
-    line2Text = isHindi ? 'शाखा' : 'BRANCH'
-  }
-  ctx.fillText(line2Text, scale(297 / 2), scale(41))
-
-  // 2. Large Bold Title
-  setCanvasFont('bold', 33)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const titleText = isHindi ? 'सहभागिता प्रमाण पत्र' : 'CERTIFICATE'
-  ctx.fillText(titleText, scale(297 / 2), scale(56))
-
-  // 3. Subtitle
-  setCanvasFont('bold', 14.5)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const subtitleText = isHindi ? 'सहभागिता का' : 'OF PARTICIPATION'
-  ctx.fillText(subtitleText, scale(297 / 2), scale(68))
-
-  // 4. Presentation line
-  setCanvasFont('bold', 13)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const presentText = isHindi ? 'यह प्रमाण पत्र गर्व से प्रदान किया जाता है' : 'This certificate is proudly presented to'
-  ctx.fillText(presentText, scale(297 / 2), scale(78))
-
-  // 5. Student Name
-  setCanvasFont('bold', 30)
-  ctx.fillStyle = 'rgb(197, 160, 89)' // Elegant Gold
-  ctx.fillText(data.studentName, scale(297 / 2), scale(93))
-
-  // Name Underline
-  ctx.strokeStyle = 'rgb(226, 232, 240)'
-  ctx.lineWidth = scale(0.4)
-  ctx.beginPath()
-  ctx.moveTo(scale(297 / 2 - 100), scale(101))
-  ctx.lineTo(scale(297 / 2 + 100), scale(101))
-  ctx.stroke()
-
-  // 6. Description Text
-  setCanvasFont('bold', 13)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const descText = isHindi 
-    ? 'प्रतियोगिता में सक्रिय रूप से भाग लेने के लिए, जो भारत के सामान्य ज्ञान पर केंद्रित है।' 
-    : 'For actively participating in the competition, which focuses on general knowledge about India.'
-  ctx.fillText(descText, scale(297 / 2), scale(112))
-
-  // 7. Combined Exam Name & Held On Date in ONE Line
-  setCanvasFont('bold', 16.5)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const displayExam = isHindi ? translateExamToHindi(data.examName) : data.examName
-  const formattedDate = new Date(data.completedAt).toLocaleDateString(
-    isHindi ? 'hi-IN' : 'en-US',
-    {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+  // 2. Student Name (Line 6) - Includes mother name
+  if (data.studentName) {
+    let nameSize = isHindi ? 42 : 40
+    ctx.font = `bold ${nameSize}px ${fontStack}`
+    ctx.fillStyle = '#111827'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    while (ctx.measureText(data.studentName).width > 900 && nameSize > 20) {
+      nameSize -= 2
+      ctx.font = `bold ${nameSize}px ${fontStack}`
     }
-  )
-  const dateText = isHindi ? `आयोजन तिथि: ${formattedDate}` : `Held On ${formattedDate}`
-  const examAndDateCombined = `${displayExam}    •    ${dateText}`
-  ctx.fillText(examAndDateCombined, scale(297 / 2), scale(127))
+    ctx.fillText(data.studentName, 1000, 648)
+  }
 
-  // 8. Class / School / Geography Details Row
-  setCanvasFont('bold', 11.5)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const displayClassroom = isHindi ? translateClassroomToHindi(data.classroomName) : data.classroomName
-  const displaySchool = isHindi ? translateSchoolToHindi(data.schoolName) : data.schoolName
-  const displayDistrict = translateGeography(data.district || '', isHindi)
-  const displayTehsil = translateGeography(data.tehsil || '', isHindi)
-
-  const detailsText = isHindi 
-    ? `कक्षा : ${displayClassroom}      विद्यालय : ${displaySchool}      जिला : ${displayDistrict}      तालुका : ${displayTehsil}`
-    : `Classroom : ${displayClassroom}      School : ${displaySchool}      District : ${displayDistrict}      Taluka : ${displayTehsil}`
-  ctx.fillText(detailsText, scale(297 / 2), scale(143))
-
-  // Helpers to load dynamic signatory images from server disk
-  const loadSigImg = (src: string) => {
-    return new Promise<HTMLImageElement | null>((resolve) => {
-      if (!src) return resolve(null)
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => resolve(img)
-      img.onerror = () => resolve(null)
-      if (src.startsWith('/')) {
-        img.src = window.location.origin + src
-      } else {
-        img.src = src
+  // 3. Class (Line 7)
+  if (isHindi) {
+    const displayClass = formatClassForHindi(data.classroomName || '')
+    if (displayClass) {
+      let classSize = 27
+      ctx.font = `bold ${classSize}px ${fontStack}`
+      ctx.fillStyle = '#111827'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      while (ctx.measureText(displayClass).width > 75 && classSize > 16) {
+        classSize -= 2
+        ctx.font = `bold ${classSize}px ${fontStack}`
       }
-    })
-  }
-
-  // 10. Left Signature (President/अध्यक्ष)
-  if (data.presidentSignature) {
-    const presSig = await loadSigImg(data.presidentSignature)
-    if (presSig) {
-      // Draw signature image centered over the President title
-      ctx.drawImage(presSig, scale(85) - (14 * 6.734), scale(163), 28 * 6.734, 11 * 6.734)
+      ctx.fillText(displayClass, 982, 712)
+    }
+  } else {
+    const displayClass = formatClassForEnglish(data.classroomName || '')
+    if (displayClass) {
+      let classSize = 28
+      ctx.font = `bold ${classSize}px ${fontStack}`
+      ctx.fillStyle = '#111827'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      while (ctx.measureText(displayClass).width > 65 && classSize > 16) {
+        classSize -= 2
+        ctx.font = `bold ${classSize}px ${fontStack}`
+      }
+      ctx.fillText(displayClass, 1052, 714)
     }
   }
-  setCanvasFont('bold', 11.5)
-  ctx.fillStyle = 'rgb(45, 55, 72)'
-  ctx.fillText(isHindi ? 'अध्यक्ष' : 'President', scale(85), scale(179))
 
-  setCanvasFont('bold', 12.5)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const presName = data.presidentName || ''
-  ctx.fillText(presName, scale(85), scale(187))
+  // 4. School Name (Line 8)
+  const displaySchool = isHindi 
+    ? (translateSchoolToHindi(data.schoolName || '') || cleanedBranch || '') 
+    : (data.schoolName || cleanedBranch || '')
 
+  if (displaySchool) {
+    let schoolSize = isHindi ? 34 : 33
+    ctx.font = `bold ${schoolSize}px ${fontStack}`
+    ctx.fillStyle = '#111827'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    while (ctx.measureText(displaySchool).width > 850 && schoolSize > 18) {
+      schoolSize -= 2
+      ctx.font = `bold ${schoolSize}px ${fontStack}`
+    }
+    ctx.fillText(displaySchool, 1000, 778.5)
+  }
 
-  // 11. Right Signature (Secretary/सचिव)
-  if (data.secretarySignature) {
-    const secSig = await loadSigImg(data.secretarySignature)
-    if (secSig) {
-      // Draw signature image centered over the Secretary title
-      ctx.drawImage(secSig, scale(297 - 85) - (14 * 6.734), scale(163), 28 * 6.734, 11 * 6.734)
+  // 5. Taluka & District (Line 9)
+  if (isHindi) {
+    const displayTehsil = translateGeography(data.tehsil || '', true)
+    const displayDistrict = translateGeography(data.district || '', true)
+
+    ctx.fillStyle = '#111827'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+
+    if (displayTehsil) {
+      let tSize = 30
+      ctx.font = `bold ${tSize}px ${fontStack}`
+      while (ctx.measureText(displayTehsil).width > 160 && tSize > 18) {
+        tSize -= 2
+        ctx.font = `bold ${tSize}px ${fontStack}`
+      }
+      ctx.fillText(displayTehsil, 948, 835)
+    }
+
+    if (displayDistrict) {
+      let dSize = 30
+      ctx.font = `bold ${dSize}px ${fontStack}`
+      while (ctx.measureText(displayDistrict).width > 160 && dSize > 18) {
+        dSize -= 2
+        ctx.font = `bold ${dSize}px ${fontStack}`
+      }
+      ctx.fillText(displayDistrict, 1238, 835)
+    }
+  } else {
+    const displayTehsil = translateGeography(data.tehsil || '', false)
+    const displayDistrict = translateGeography(data.district || '', false)
+
+    ctx.fillStyle = '#111827'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+
+    if (displayTehsil) {
+      let tSize = 30
+      ctx.font = `bold ${tSize}px ${fontStack}`
+      while (ctx.measureText(displayTehsil).width > 155 && tSize > 18) {
+        tSize -= 2
+        ctx.font = `bold ${tSize}px ${fontStack}`
+      }
+      ctx.fillText(displayTehsil, 935, 841.5)
+    }
+
+    if (displayDistrict) {
+      let dSize = 30
+      ctx.font = `bold ${dSize}px ${fontStack}`
+      while (ctx.measureText(displayDistrict).width > 155 && dSize > 18) {
+        dSize -= 2
+        ctx.font = `bold ${dSize}px ${fontStack}`
+      }
+      ctx.fillText(displayDistrict, 1245, 841.5)
     }
   }
-  setCanvasFont('bold', 11.5)
-  ctx.fillStyle = 'rgb(45, 55, 72)'
-  ctx.fillText(isHindi ? 'सचिव' : 'Secretary', scale(297 - 85), scale(179))
-
-  setCanvasFont('bold', 12.5)
-  ctx.fillStyle = 'rgb(12, 34, 64)'
-  const secName = data.secretaryName || ''
-  ctx.fillText(secName, scale(297 - 85), scale(187))
 
   // Convert canvas to image and add to PDF
   const imgData = canvas.toDataURL('image/jpeg', 0.98)
@@ -480,20 +540,19 @@ export async function generateCertificatePDF(data: {
 
   if (typeof window !== 'undefined' && (window as any).ReactNativeWebView) {
     try {
-      const pdfDataUri = doc.output('datauristring');
-      (window as any).ReactNativeWebView.postMessage(JSON.stringify({
+      const pdfDataUri = doc.output('datauristring')
+      ;(window as any).ReactNativeWebView.postMessage(JSON.stringify({
         type: 'DOWNLOAD_PDF',
         pdfData: pdfDataUri,
         filename
-      }));
+      }))
     } catch (err) {
-      doc.save(filename);
+      doc.save(filename)
     }
   } else {
-    doc.save(filename);
+    doc.save(filename)
   }
 }
-
 
 export function generateAnswersheetPDF(data: {
   studentName: string
