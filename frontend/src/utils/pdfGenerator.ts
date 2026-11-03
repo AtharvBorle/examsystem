@@ -488,7 +488,7 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 38
+      let tSize = 39
       ctx.font = `bold ${tSize}px ${fontStack}`
       while (ctx.measureText(displayTehsil).width > 175 && tSize > 20) {
         tSize -= 2
@@ -498,7 +498,7 @@ export async function generateCertificatePDF(data: {
     }
 
     if (displayDistrict) {
-      let dSize = 38
+      let dSize = 39
       ctx.font = `bold ${dSize}px ${fontStack}`
       while (ctx.measureText(displayDistrict).width > 175 && dSize > 20) {
         dSize -= 2
@@ -515,23 +515,23 @@ export async function generateCertificatePDF(data: {
     ctx.textBaseline = 'middle'
 
     if (displayTehsil) {
-      let tSize = 38
+      let tSize = 39
       ctx.font = `bold ${tSize}px ${fontStack}`
       while (ctx.measureText(displayTehsil).width > 170 && tSize > 20) {
         tSize -= 2
         ctx.font = `bold ${tSize}px ${fontStack}`
       }
-      ctx.fillText(displayTehsil, 935, 850)
+      ctx.fillText(displayTehsil, 935, 848)
     }
 
     if (displayDistrict) {
-      let dSize = 38
+      let dSize = 39
       ctx.font = `bold ${dSize}px ${fontStack}`
       while (ctx.measureText(displayDistrict).width > 170 && dSize > 20) {
         dSize -= 2
         ctx.font = `bold ${dSize}px ${fontStack}`
       }
-      ctx.fillText(displayDistrict, 1245, 850)
+      ctx.fillText(displayDistrict, 1245, 848)
     }
   }
 
