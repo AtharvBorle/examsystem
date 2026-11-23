@@ -5,6 +5,26 @@ import { translateClassroomName } from '@/lib/class-translator'
 
 export const dynamic = 'force-dynamic'
 
+function formatToIST(dateVal: string | Date | null | undefined): string {
+  if (!dateVal) return 'N/A'
+  try {
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return 'N/A'
+    return d.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  } catch {
+    return 'N/A'
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const user = getAuthUser(req)
@@ -162,7 +182,7 @@ export async function GET(req: NextRequest) {
           totalMarksText = (totalQ > 0 && marksPerQ > 0) ? String(totalQ * marksPerQ) : 'N/A'
 
           const dateToFormat = att.submittedAt || att.startedAt
-          attemptDateTime = dateToFormat ? new Date(dateToFormat).toLocaleString() : 'N/A'
+          attemptDateTime = formatToIST(dateToFormat)
         } else {
           // Multiple exams: list each exam cleanly on a numbered line within the single student row
           const examNames: string[] = []
@@ -190,7 +210,7 @@ export async function GET(req: NextRequest) {
             totalMarksList.push(`${prefix}${(totalQ > 0 && marksPerQ > 0) ? (totalQ * marksPerQ) : 'N/A'}`)
 
             const dateToFormat = att.submittedAt || att.startedAt
-            dateList.push(`${prefix}${dateToFormat ? new Date(dateToFormat).toLocaleString() : 'N/A'}`)
+            dateList.push(`${prefix}${formatToIST(dateToFormat)}`)
           })
 
           examName = examNames.join('\n')
@@ -216,7 +236,7 @@ export async function GET(req: NextRequest) {
         language: std.language === 'hi' ? 'Hindi' : 'English',
         approved: std.approved ? 'Approved' : 'Pending Approval',
         accountStatus: std.deletedAt ? 'Deleted' : 'Active',
-        registeredAt: std.createdAt ? new Date(std.createdAt).toLocaleString() : '',
+        registeredAt: formatToIST(std.createdAt),
         acceptedTerms: std.acceptedTerms ? 'Yes' : 'No',
         branch: branchName,
         totalAttempts: std.attempts.length,
