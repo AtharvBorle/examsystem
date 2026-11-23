@@ -55,8 +55,10 @@ export const exportToExcel = (filename: string, headers: string[], rows: any[][]
     for (let r = 0; r < rows.length; r++) {
       const val = rows[r][i]
       if (val !== null && val !== undefined) {
-        const strLen = String(val).length
-        if (strLen > maxLen) maxLen = strLen
+        const lines = String(val).split('\n')
+        for (const line of lines) {
+          if (line.length > maxLen) maxLen = line.length
+        }
       }
     }
     return { wch: Math.min(Math.max(maxLen + 3, 10), 50) }

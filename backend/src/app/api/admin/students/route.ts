@@ -129,10 +129,6 @@ export async function GET(req: NextRequest) {
     })
 
     const formatted = students.map((std, index) => {
-      // Find completed attempt, or latest in-progress attempt
-      const completedAttempt = std.attempts.find(a => a.completed)
-      const primaryAttempt = completedAttempt || std.attempts[0] || null
-
       const udise = std.school?.udise || ''
       const schoolName = localizedSchoolMap.get(udise) || std.school?.name || ''
       const classroomName = std.classroom?.name ? translateClassroomName(std.classroom.name, targetLang) : ''
@@ -142,35 +138,69 @@ export async function GET(req: NextRequest) {
         : (std.school?.admin?.branch || '')
 
       let examStatus = 'Not Attempted'
-      let examName = ''
+      let examName = 'N/A'
       let scoreText = 'N/A'
       let correctAnswersText = 'N/A'
       let totalQuestionsText = 'N/A'
       let totalMarksText = 'N/A'
       let attemptDateTime = 'N/A'
 
-      if (primaryAttempt) {
-        examName = (targetLang === 'hi' && primaryAttempt.exam?.nameHindi)
-          ? primaryAttempt.exam.nameHindi
-          : (primaryAttempt.exam?.name || '')
-        
-        if (primaryAttempt.completed) {
-          examStatus = 'Completed'
-          scoreText = String(primaryAttempt.score ?? 0)
-          correctAnswersText = String(primaryAttempt.correctAnswers ?? 0)
+      if (std.attempts && std.attempts.length > 0) {
+        if (std.attempts.length === 1) {
+          const att = std.attempts[0]
+          examName = (targetLang === 'hi' && att.exam?.nameHindi)
+            ? att.exam.nameHindi
+            : (att.exam?.name || 'Exam 1')
+          
+          examStatus = att.completed ? 'Completed' : 'In Progress'
+          scoreText = att.completed ? String(att.score ?? 0) : 'In Progress'
+          correctAnswersText = att.completed ? String(att.correctAnswers ?? 0) : 'In Progress'
+
+          const totalQ = att.totalQuestions || att.exam?.questionCount || 0
+          const marksPerQ = att.exam?.marksPerQuestion || 0
+          totalQuestionsText = totalQ > 0 ? String(totalQ) : 'N/A'
+          totalMarksText = (totalQ > 0 && marksPerQ > 0) ? String(totalQ * marksPerQ) : 'N/A'
+
+          const dateToFormat = att.submittedAt || att.startedAt
+          attemptDateTime = dateToFormat ? new Date(dateToFormat).toLocaleString() : 'N/A'
         } else {
-          examStatus = 'In Progress'
-          scoreText = 'In Progress'
-          correctAnswersText = 'In Progress'
+          // Multiple exams: list each exam cleanly on a numbered line within the single student row
+          const examNames: string[] = []
+          const examStatuses: string[] = []
+          const scores: string[] = []
+          const correctAnsList: string[] = []
+          const totalQList: string[] = []
+          const totalMarksList: string[] = []
+          const dateList: string[] = []
+
+          std.attempts.forEach((att, idx) => {
+            const prefix = `${idx + 1}) `
+            const eName = (targetLang === 'hi' && att.exam?.nameHindi)
+              ? att.exam.nameHindi
+              : (att.exam?.name || `Exam ${idx + 1}`)
+            examNames.push(`${prefix}${eName}`)
+
+            examStatuses.push(`${prefix}${att.completed ? 'Completed' : 'In Progress'}`)
+            scores.push(`${prefix}${att.completed ? String(att.score ?? 0) : 'In Progress'}`)
+            correctAnsList.push(`${prefix}${att.completed ? String(att.correctAnswers ?? 0) : 'In Progress'}`)
+
+            const totalQ = att.totalQuestions || att.exam?.questionCount || 0
+            const marksPerQ = att.exam?.marksPerQuestion || 0
+            totalQList.push(`${prefix}${totalQ > 0 ? totalQ : 'N/A'}`)
+            totalMarksList.push(`${prefix}${(totalQ > 0 && marksPerQ > 0) ? (totalQ * marksPerQ) : 'N/A'}`)
+
+            const dateToFormat = att.submittedAt || att.startedAt
+            dateList.push(`${prefix}${dateToFormat ? new Date(dateToFormat).toLocaleString() : 'N/A'}`)
+          })
+
+          examName = examNames.join('\n')
+          examStatus = examStatuses.join('\n')
+          scoreText = scores.join('\n')
+          correctAnswersText = correctAnsList.join('\n')
+          totalQuestionsText = totalQList.join('\n')
+          totalMarksText = totalMarksList.join('\n')
+          attemptDateTime = dateList.join('\n')
         }
-
-        const totalQ = primaryAttempt.totalQuestions || primaryAttempt.exam?.questionCount || 0
-        const marksPerQ = primaryAttempt.exam?.marksPerQuestion || 0
-        totalQuestionsText = totalQ > 0 ? String(totalQ) : 'N/A'
-        totalMarksText = (totalQ > 0 && marksPerQ > 0) ? String(totalQ * marksPerQ) : 'N/A'
-
-        const dateToFormat = primaryAttempt.submittedAt || primaryAttempt.startedAt
-        attemptDateTime = dateToFormat ? new Date(dateToFormat).toLocaleString() : 'N/A'
       }
 
       return {
