@@ -44,6 +44,69 @@ export const downloadCSV = (filename: string, headers: string[], rows: any[][]) 
   document.body.removeChild(link)
 }
 
+// Global Excel Exporter using SheetJS
+export const exportToExcel = (filename: string, headers: string[], rows: any[][], sheetName = 'Students') => {
+  const worksheetData = [headers, ...rows]
+  const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+
+  // Auto-fit column widths
+  const colWidths = headers.map((h, i) => {
+    let maxLen = String(h).length
+    for (let r = 0; r < rows.length; r++) {
+      const val = rows[r][i]
+      if (val !== null && val !== undefined) {
+        const lines = String(val).split('\n')
+        for (const line of lines) {
+          if (line.length > maxLen) maxLen = line.length
+        }
+      }
+    }
+    return { wch: Math.min(Math.max(maxLen + 3, 10), 50) }
+  })
+  worksheet['!cols'] = colWidths
+
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+  XLSX.writeFile(workbook, filename)
+}
+
+// Indian Standard Time (IST, UTC+5:30) Formatter
+export const formatToIST = (dateVal: string | Date | null | undefined): string => {
+  if (!dateVal) return '-'
+  try {
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return '-'
+    return d.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  } catch {
+    return '-'
+  }
+}
+
+export const formatDateToIST = (dateVal: string | Date | null | undefined): string => {
+  if (!dateVal) return '-'
+  try {
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return '-'
+    return d.toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  } catch {
+    return '-'
+  }
+}
+
 // Natural sort comparator for items with a 'name' field (e.g. Class 1, Class 2, ..., Class 10)
 const naturalSortByName = (a: any, b: any) => {
   return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
@@ -245,7 +308,7 @@ function SchoolDetailPanel({
       r.correctAnswers !== undefined ? r.correctAnswers : '-',
       r.totalQuestions !== undefined ? r.totalQuestions : '-',
       r.durationMinutes || '-',
-      r.submittedAt ? new Date(r.submittedAt).toLocaleString() : '-'
+      formatToIST(r.submittedAt)
     ])
 
     const cleanSchool = schoolDetail.school.name.replace(/\s+/g, '_')
@@ -274,7 +337,7 @@ function SchoolDetailPanel({
       r.correctAnswers !== undefined ? r.correctAnswers : '-',
       r.totalQuestions !== undefined ? r.totalQuestions : '-',
       r.durationMinutes || '-',
-      r.submittedAt ? new Date(r.submittedAt).toLocaleString() : '-'
+      formatToIST(r.submittedAt)
     ])
 
     const worksheetData = [headers, ...rows]
@@ -325,7 +388,7 @@ function SchoolDetailPanel({
       att.examName,
       att.score,
       att.completed ? 'Completed' : 'In Progress',
-      att.submittedAt ? new Date(att.submittedAt).toLocaleString() : '-'
+      formatToIST(att.submittedAt)
     ])
 
     const cleanSchool = schoolDetail.school.name.replace(/\s+/g, '_')
@@ -351,7 +414,7 @@ function SchoolDetailPanel({
       att.examName,
       att.score,
       att.completed ? 'Completed' : 'In Progress',
-      att.submittedAt ? new Date(att.submittedAt).toLocaleString() : '-'
+      formatToIST(att.submittedAt)
     ])
 
     const worksheetData = [headers, ...rows]
@@ -1240,7 +1303,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       a.examName,
       a.score,
       a.completed ? 'Completed' : 'In Progress',
-      new Date(a.startedAt).toLocaleString()
+      formatToIST(a.startedAt)
     ])
     downloadExcel('exam_attempts.xlsx', headers, rows)
   }
@@ -1292,7 +1355,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       a.examName,
       `${a.score} marks`,
       a.completed ? 'Completed' : 'In Progress',
-      new Date(a.startedAt).toLocaleString()
+      formatToIST(a.startedAt)
     ])
     downloadCSV('exam_attempts.csv', headers, rows)
   }
@@ -1307,7 +1370,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       st.classroomName,
       st.district || '',
       st.tehsil || '',
-      new Date(st.registeredAt).toLocaleDateString()
+      formatDateToIST(st.registeredAt)
     ])
     downloadCSV('registered_students.csv', headers, rows)
   }
@@ -1322,7 +1385,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       st.classroomName,
       st.district || '',
       st.tehsil || '',
-      new Date(st.registeredAt).toLocaleDateString()
+      formatDateToIST(st.registeredAt)
     ])
     downloadExcel('registered_students.xlsx', headers, rows)
   }
@@ -1354,7 +1417,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         ['User Count Used', data.admin.userCountUsed],
         ['President Name', data.admin.presidentName],
         ['Secretary Name', data.admin.secretaryName],
-        ['Created Date', new Date(data.admin.createdAt).toLocaleString()],
+        ['Created Date', formatToIST(data.admin.createdAt)],
       ]
       const wsAdmin = XLSX.utils.aoa_to_sheet(adminRows)
       XLSX.utils.book_append_sheet(wb, wsAdmin, 'Admin Profile')
@@ -1362,21 +1425,21 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       // Schools Sheet
       const schoolHeaders = ['School ID', 'School Name', 'UDISE', 'Tehsil', 'District', 'Language', 'Registered Students', 'Created Date']
       const schoolRows = data.schools.map((s: any) => [
-        s.id, s.name, s.udise, s.tehsil, s.district, s.language, s.studentsCount, new Date(s.createdAt).toLocaleString()
+        s.id, s.name, s.udise, s.tehsil, s.district, s.language, s.studentsCount, formatToIST(s.createdAt)
       ])
       const wsSchools = XLSX.utils.aoa_to_sheet([schoolHeaders, ...schoolRows])
       XLSX.utils.book_append_sheet(wb, wsSchools, 'Schools')
 
       // Classrooms Sheet
       const classHeaders = ['Classroom ID', 'Classroom Name', 'Created Date']
-      const classRows = data.classrooms.map((c: any) => [c.id, c.name, new Date(c.createdAt).toLocaleString()])
+      const classRows = data.classrooms.map((c: any) => [c.id, c.name, formatToIST(c.createdAt)])
       const wsClassrooms = XLSX.utils.aoa_to_sheet([classHeaders, ...classRows])
       XLSX.utils.book_append_sheet(wb, wsClassrooms, 'Classrooms')
 
       // Exams Sheet
       const examHeaders = ['Exam ID', 'Exam Name', 'Exam Code', 'Language', 'Total Questions', 'Duration (Mins)', 'Pass Marks', 'Total Marks', 'Assigned Classrooms', 'Created Date']
       const examRows = data.exams.map((ex: any) => [
-        ex.id, ex.name, ex.examCode, ex.language, ex.totalQuestions, ex.durationMinutes, ex.passMarks, ex.totalMarks, ex.assignedClassrooms, new Date(ex.createdAt).toLocaleString()
+        ex.id, ex.name, ex.examCode, ex.language, ex.totalQuestions, ex.durationMinutes, ex.passMarks, ex.totalMarks, ex.assignedClassrooms, formatToIST(ex.createdAt)
       ])
       const wsExams = XLSX.utils.aoa_to_sheet([examHeaders, ...examRows])
       XLSX.utils.book_append_sheet(wb, wsExams, 'Exams')
@@ -1392,7 +1455,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       // Registered Students Sheet
       const stdHeaders = ['Student ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'District', 'Tehsil', 'Registration Date']
       const stdRows = data.students.map((st: any) => [
-        st.id, st.name, st.mobile, st.schoolName, st.udise, st.classroomName, st.district, st.tehsil, new Date(st.registeredAt).toLocaleString()
+        st.id, st.name, st.mobile, st.schoolName, st.udise, st.classroomName, st.district, st.tehsil, formatToIST(st.registeredAt)
       ])
       const wsStudents = XLSX.utils.aoa_to_sheet([stdHeaders, ...stdRows])
       XLSX.utils.book_append_sheet(wb, wsStudents, 'Registered Students')
@@ -1400,7 +1463,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       // Exam Attempts & Scores Sheet
       const attHeaders = ['Attempt ID', 'Student Name', 'Mobile Number', 'School Name', 'UDISE', 'Class Name', 'Exam Name', 'Score', 'Correct Answers', 'Total Questions', 'Duration (Mins)', 'Completed', 'Started Time', 'Submitted Time']
       const attRows = data.attempts.map((att: any) => [
-        att.attemptId, att.studentName, att.studentMobile, att.schoolName, att.udise, att.classroomName, att.examName, att.score, att.correctAnswers, att.totalQuestions, att.durationMinutes, att.completed, new Date(att.startedAt).toLocaleString(), att.submittedAt ? new Date(att.submittedAt).toLocaleString() : ''
+        att.attemptId, att.studentName, att.studentMobile, att.schoolName, att.udise, att.classroomName, att.examName, att.score, att.correctAnswers, att.totalQuestions, att.durationMinutes, att.completed, formatToIST(att.startedAt), formatToIST(att.submittedAt)
       ])
       const wsAttempts = XLSX.utils.aoa_to_sheet([attHeaders, ...attRows])
       XLSX.utils.book_append_sheet(wb, wsAttempts, 'Exam Attempts')
@@ -1456,7 +1519,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
         combinedRows.push(['User Count Used', data.admin.userCountUsed])
         combinedRows.push(['President Name', data.admin.presidentName || '-'])
         combinedRows.push(['Secretary Name', data.admin.secretaryName || '-'])
-        combinedRows.push(['Registration Date', new Date(data.admin.createdAt).toLocaleString()])
+        combinedRows.push(['Registration Date', formatToIST(data.admin.createdAt)])
       } else {
         combinedRows.push(['Administrator', 'All Administrators Included'])
       }
@@ -1524,7 +1587,7 @@ export function SuperAdminDashboard({ token, lang }: { token: string | null; lan
       // 2. Executive Summary Sheet
       const summaryRows = [
         ['ALL SYSTEM DATA & CANDIDATE RANKINGS REPORT'],
-        ['Report Generated At', new Date().toLocaleString()],
+        ['Report Generated At', formatToIST(new Date())],
         ['Filter Administrator', aId === 'all' ? 'All Administrators' : (data.admin?.email || aId)],
         ['Filter School(s)', sIds.includes('all') ? 'All Schools' : `${sIds.length} Selected Schools`],
         ['Filter Date Range', stDate || enDate ? `${stDate || 'Beginning'} to ${enDate || 'Present'}` : 'All Time'],
@@ -3561,6 +3624,89 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     fetchLeaderboard()
   }, [selectedExamId, selectedLeaderboardSchoolIds, schoolId, classroomId, selectedLeaderboardClassroomId, selectedGroupId, startDate, startTime, endDate, endTime, timeframe, token])
 
+  const [downloadingStudents, setDownloadingStudents] = useState(false)
+
+  const handleDownloadAllStudents = async (format: 'excel' | 'csv' = 'excel') => {
+    try {
+      setDownloadingStudents(true)
+      const res = await fetch(`/api/admin/students?all=true&language=${lang}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!data.success) {
+        alert(data.error || 'Failed to fetch student records')
+        return
+      }
+
+      if (!data.students || data.students.length === 0) {
+        alert(t.noStudentsToDownload || 'No registered students found.')
+        return
+      }
+
+      const headers = [
+        lang === 'hi' ? 'क्र. सं.' : 'Sr. No.',
+        lang === 'hi' ? 'छात्र का नाम' : 'Student Name',
+        lang === 'hi' ? 'मोबाइल नंबर' : 'Mobile Number',
+        lang === 'hi' ? 'विद्यालय का नाम' : 'School Name',
+        lang === 'hi' ? 'UDISE कोड' : 'UDISE Number',
+        lang === 'hi' ? 'कक्षा' : 'Class / Standard',
+        lang === 'hi' ? 'ज़िला' : 'District',
+        lang === 'hi' ? 'तहसील' : 'Tehsil',
+        lang === 'hi' ? 'पंजीकरण भाषा' : 'Language',
+        lang === 'hi' ? 'मंजूरी स्थिति' : 'Approval Status',
+        lang === 'hi' ? 'खाता स्थिति' : 'Account Status',
+        lang === 'hi' ? 'पंजीकरण तिथि' : 'Registration Date',
+        lang === 'hi' ? 'नियम व शर्तें स्वीकृत' : 'Terms Accepted',
+        lang === 'hi' ? 'शाखा' : 'Branch',
+        lang === 'hi' ? 'कुल परीक्षा प्रयास' : 'Total Exam Attempts',
+        lang === 'hi' ? 'परीक्षा का नाम' : 'Exam Name',
+        lang === 'hi' ? 'परीक्षा स्थिति' : 'Exam Status',
+        lang === 'hi' ? 'प्राप्त अंक' : 'Score Obtained',
+        lang === 'hi' ? 'सही उत्तर' : 'Correct Answers',
+        lang === 'hi' ? 'कुल प्रश्न' : 'Total Questions',
+        lang === 'hi' ? 'कुल अंक' : 'Total Marks',
+        lang === 'hi' ? 'परीक्षा समय' : 'Exam Date & Time'
+      ]
+
+      const rows = data.students.map((st: any, idx: number) => [
+        idx + 1,
+        st.name || '',
+        st.mobile || '',
+        st.schoolName || '',
+        st.udise || '',
+        st.classroomName || '',
+        st.district || '',
+        st.tehsil || '',
+        st.language || '',
+        st.approved || '',
+        st.accountStatus || 'Active',
+        st.registeredAt || '',
+        st.acceptedTerms || 'Yes',
+        st.branch || '',
+        st.totalAttempts ?? 0,
+        st.examName || '',
+        st.examStatus || 'Not Attempted',
+        st.score ?? 'N/A',
+        st.correctAnswers ?? 'N/A',
+        st.totalQuestions ?? 'N/A',
+        st.totalMarks ?? 'N/A',
+        st.attemptDateTime || 'N/A'
+      ])
+
+      const dateStr = new Date().toISOString().split('T')[0]
+      if (format === 'csv') {
+        downloadCSV(`All_Registered_Students_${dateStr}.csv`, headers, rows)
+      } else {
+        exportToExcel(`All_Registered_Students_${dateStr}.xlsx`, headers, rows, 'All Students')
+      }
+    } catch (err) {
+      console.error('Error downloading all students:', err)
+      alert('Failed to connect to server to download students.')
+    } finally {
+      setDownloadingStudents(false)
+    }
+  }
+
   const handleSchoolChange = (val: string) => {
     setSchoolId(val)
     setClassroomId('')
@@ -3578,7 +3724,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     const rows = leaderboardResults.map((r) => [
       r.rank, r.studentName, r.studentMobile, r.schoolName, r.udise, r.classroomName,
       r.district, r.tehsil, r.score, r.correctAnswers, r.totalQuestions,
-      r.durationMinutes, new Date(r.submittedAt).toLocaleDateString()
+      r.durationMinutes, formatDateToIST(r.submittedAt)
     ])
 
     const csvContent = [
@@ -3617,7 +3763,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
     const rows = filteredLeaderboardResults.map((r) => [
       r.rank, r.studentName, r.studentMobile, r.schoolName, r.udise, r.classroomName,
       r.district, r.tehsil, r.score, r.correctAnswers, r.totalQuestions,
-      r.durationMinutes, new Date(r.submittedAt).toLocaleDateString()
+      r.durationMinutes, formatDateToIST(r.submittedAt)
     ])
 
     const worksheetData = [headers, ...rows]
@@ -3726,6 +3872,7 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
   const kpis = [
     { title: t.analyticsTotalSchools, value: stats.schools, icon: <SchoolIcon size={24} />, color: 'var(--primary-navy)' },
     { title: t.analyticsTotalClassrooms, value: stats.classrooms, icon: <BookOpen size={24} />, color: 'var(--accent-gold)' },
+    { title: t.analyticsTotalStudents, value: stats.students, icon: <Users size={24} />, color: '#0284c7' },
     { title: t.analyticsTotalExams, value: stats.exams, icon: <FileText size={24} />, color: '#2ecc71' },
     { title: t.analyticsTotalAttempts, value: stats.attempts, icon: <Award size={24} />, color: '#9b59b6' },
     { title: t.analyticsAverageScore, value: `${stats.avgScore}%`, icon: <TrendingUp size={24} />, color: '#e67e22' },
@@ -3971,12 +4118,13 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', marginTop: '1rem' }}>
-      {/* Filter Row */}
+      {/* Filter Row & Download Actions */}
       <div style={{ 
         display: 'flex', 
         gap: '1rem', 
         flexWrap: 'wrap', 
         alignItems: 'center', 
+        justifyContent: 'space-between',
         backgroundColor: 'var(--bg-muted, #f8f9fa)', 
         padding: '0.75rem 1rem', 
         borderRadius: '6px', 
@@ -3984,40 +4132,95 @@ function AdminAnalyticsTab({ token, lang }: { token: string | null; lang: Langua
         zIndex: 1000,
         position: 'relative'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-          <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>{t.schoolBadge}:</span>
-          <CustomSelectObject
-            value={schoolId}
-            onChange={handleSchoolChange}
-            options={filterOptions?.schools || []}
-            placeholder={t.analyticsSelectSchool}
-          />
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>{t.schoolBadge}:</span>
+            <CustomSelectObject
+              value={schoolId}
+              onChange={handleSchoolChange}
+              options={filterOptions?.schools || []}
+              placeholder={t.analyticsSelectSchool}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>{t.classClassroom}:</span>
+            <CustomSelectObject
+              value={classroomId}
+              onChange={setClassroomId}
+              options={filterOptions?.classrooms || []}
+              placeholder={t.selectClass}
+            />
+          </div>
+
+          {(schoolId || classroomId) && (
+            <button
+              onClick={() => { setSchoolId(''); setClassroomId(''); }}
+              className="btn btn-secondary"
+              style={{ 
+                padding: '0.35rem 0.6rem', 
+                fontSize: '0.8rem', 
+                textTransform: 'none'
+              }}
+            >
+              {t.analyticsClearFilters}
+            </button>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-          <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>{t.classClassroom}:</span>
-          <CustomSelectObject
-            value={classroomId}
-            onChange={setClassroomId}
-            options={filterOptions?.classrooms || []}
-            placeholder={t.selectClass}
-          />
-        </div>
-
-        {(schoolId || classroomId) && (
+        {/* Download All Registered Students Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
           <button
-            onClick={() => { setSchoolId(''); setClassroomId(''); }}
-            className="btn btn-secondary"
-            style={{ 
-              padding: '0.35rem 0.6rem', 
-              fontSize: '0.8rem', 
-              textTransform: 'none', 
-              marginLeft: 'auto' 
+            type="button"
+            onClick={() => handleDownloadAllStudents('excel')}
+            disabled={downloadingStudents}
+            className="btn btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              backgroundColor: '#107c41',
+              borderColor: '#107c41',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              padding: '0.45rem 0.95rem',
+              borderRadius: '6px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              cursor: downloadingStudents ? 'not-allowed' : 'pointer',
+              opacity: downloadingStudents ? 0.7 : 1,
+              whiteSpace: 'nowrap'
             }}
+            title={lang === 'hi' ? 'सभी पंजीकृत छात्रों की जानकारी Excel (.xlsx) में डाउनलोड करें' : 'Download all registered students with full information in Excel (.xlsx)'}
           >
-            {t.analyticsClearFilters}
+            <Download size={15} />
+            <span>
+              {downloadingStudents ? t.downloadingStudents : t.downloadAllStudentsExcel}
+            </span>
           </button>
-        )}
+
+          <button
+            type="button"
+            onClick={() => handleDownloadAllStudents('csv')}
+            disabled={downloadingStudents}
+            className="btn btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              padding: '0.45rem 0.75rem',
+              borderRadius: '6px',
+              cursor: downloadingStudents ? 'not-allowed' : 'pointer',
+              opacity: downloadingStudents ? 0.7 : 1,
+              whiteSpace: 'nowrap'
+            }}
+            title={lang === 'hi' ? 'CSV (.csv) प्रारूप में डाउनलोड करें' : 'Download in CSV (.csv) format'}
+          >
+            <FileText size={15} />
+            <span>CSV</span>
+          </button>
+        </div>
       </div>
 
       {/* Main dashboard content container (with loading opacity indicator) */}
